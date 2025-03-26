@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+if [ "$(gsettings get org.gnome.desktop.peripherals.touchpad tap-to-click)" == "true" ]; then
+    echo "Disabling tap-to-click"
+    gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click false
+else
+    echo "Enabling tap-to-click"
+    gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
+fi
