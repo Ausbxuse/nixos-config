@@ -6,7 +6,7 @@
   - Lenovo Yoga 720 (Spacy)
   - A home configuration that can be used universally on other generic machines (Earthy)
     - This is often used with home-manager only for cross OS compatibility.
-  - [ ] servers (WIP)
+  - [x] servers (WIP)
 
 # Why?
 
@@ -16,7 +16,6 @@
 
 # Future work
 
-- [ ] Single command remote deployment
-- [ ] Single command and offline local machine deployment
-- [ ] Support servers running useful services
+- [x] Single command remote deployment
+- [x] Support servers running useful services
 - [ ] installation scripts

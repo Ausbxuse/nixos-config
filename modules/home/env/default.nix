@@ -21,7 +21,7 @@
 
   home.sessionVariables = {
     XCURSOR_THEME = "capitaine-cursors-white";
-    FLAKE = "${config.home.homeDirectory}/src/public/nix-conf";
+    FLAKE = "${config.home.homeDirectory}/src/public/nixos-config";
     MANPAGER = "nvim +Man!";
     NPM_PACKAGES = "${config.home.homeDirectory}/.local/share/npm";
     NODE_PATH = "$NPM_PACKAGES/lib/node_modules:$NODE_PATH";

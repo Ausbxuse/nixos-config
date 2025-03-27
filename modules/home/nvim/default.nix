@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: let
-  nvimPath = "${config.home.homeDirectory}/src/public/nix-conf/modules/home/nvim/nvim";
+  nvimPath = "${config.home.homeDirectory}/src/public/nixos-config/modules/home/nvim/nvim";
 in {
   xdg.configFile."nvim".source = config.lib.file.mkOutOfStoreSymlink nvimPath;
 
