@@ -33,6 +33,5 @@
     moreutils
     gnome-graphs
     mpv
-    imv
   ];
 }

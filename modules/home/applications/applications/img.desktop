@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Application
 Name=Image viewer
-Exec=imv %f
-Icon=imv
+Exec=loupe %f
+Icon=loupe

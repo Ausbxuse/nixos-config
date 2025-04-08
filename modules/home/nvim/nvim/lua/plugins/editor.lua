@@ -86,36 +86,9 @@ return {
     -- optionally include "folke/noice.nvim" or "rcarriga/nvim-notify" for beautiful notifications
     config = function()
       require('parrot').setup {
-        -- Providers must be explicitly added to make them available.
         providers = {
           anthropic = {
             api_key = os.getenv 'ANTHROPIC_API_KEY',
-          },
-          gemini = {
-            api_key = os.getenv 'GEMINI_API_KEY',
-          },
-          groq = {
-            api_key = os.getenv 'GROQ_API_KEY',
-          },
-          mistral = {
-            api_key = os.getenv 'MISTRAL_API_KEY',
-          },
-          pplx = {
-            api_key = os.getenv 'PERPLEXITY_API_KEY',
-          },
-          -- provide an empty list to make provider available (no API key required)
-          ollama = {},
-          openai = {
-            api_key = os.getenv 'OPENAI_API_KEY',
-          },
-          github = {
-            api_key = os.getenv 'GITHUB_TOKEN',
-          },
-          nvidia = {
-            api_key = os.getenv 'NVIDIA_API_KEY',
-          },
-          xai = {
-            api_key = os.getenv 'XAI_API_KEY',
           },
         },
       }
@@ -125,8 +98,30 @@ return {
     'milanglacier/minuet-ai.nvim',
     config = function()
       require('minuet').setup {
-        -- Your configuration options here
+        provider = 'claude',
+
+        blink = {
+          enable_auto_complete = false,
+        },
+        -- provider_options = {
+        --   claude = {
+        --     max_tokens = 512,
+        --     model = 'claude-3-5-haiku-20241022',
+        --     system = 'see [Prompt] section for the default value',
+        --     few_shots = 'see [Prompt] section for the default value',
+        --     chat_input = 'See [Prompt Section for default value]',
+        --     stream = true,
+        --     api_key = 'ANTHROPIC_API_KEY',
+        --     optional = {
+        --       -- pass any additional parameters you want to send to claude request,
+        --       -- e.g.
+        --       -- stop_sequences = nil,
+        --     },
+        --   },
+        -- },
       }
+
+      vim.keymap.set('n', '<leader>m', '<cmd>Minuet blink toggle<CR>')
     end,
   },
 }

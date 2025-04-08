@@ -22,6 +22,7 @@ return {
         ghost_text = {
           enabled = true,
         },
+        trigger = { prefetch_on_insert = false },
       },
       keymap = {
         preset = 'default',
@@ -38,6 +39,7 @@ return {
         ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
         ['<c-e>'] = { 'snippet_forward', 'fallback' },
         ['<c-y>'] = { 'snippet_backward', 'fallback' },
+        -- ['<A-y>'] = require('minuet').make_blink_map(),
       },
 
       appearance = {
@@ -45,7 +47,14 @@ return {
         nerd_font_variant = 'mono',
       },
       sources = {
-        default = { 'lsp', 'path', 'snippets', 'buffer' },
+        default = { 'lsp', 'path', 'snippets', 'buffer', 'minuet' },
+        providers = {
+          minuet = {
+            name = 'minuet',
+            module = 'minuet.blink',
+            score_offset = 8,
+          },
+        },
       },
     },
     opts_extend = { 'sources.default' },
