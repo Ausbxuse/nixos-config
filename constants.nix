@@ -3,6 +3,6 @@
   username = "zhenyu";
   name = "Zhenyu Zhao";
   email = "peterzhaozzy@gmail.com";
-  private-hosts = ["uni"];
+  private-hosts = ["uni" "timy"];
   public-hosts = ["spacy"];
 }

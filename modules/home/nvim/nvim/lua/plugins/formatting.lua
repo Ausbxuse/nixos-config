@@ -36,6 +36,8 @@ return { -- Autoformat
       nix = { 'alejandra' },
       python = { 'isort', 'black' },
       markdown = { 'prettier' },
+      javascript = { 'prettier' },
+      javascriptreact = { 'prettier' },
     },
   },
 }

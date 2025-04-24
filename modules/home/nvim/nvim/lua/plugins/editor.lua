@@ -27,23 +27,6 @@ return {
     end,
   },
   { 'mbbill/undotree' },
-  -- {
-  --   'yetone/avante.nvim',
-  --   event = 'VeryLazy',
-  --   lazy = false,
-  --   version = false, -- Set this to "*" to always pull the latest release version, or set it to false to update to the latest code changes.
-  --   opts = {
-  --     provider = 'claude',
-  --     hints = { enabled = false },
-  --   },
-  --   -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
-  --   build = 'make',
-  --   dependencies = {
-  --     'nvim-treesitter/nvim-treesitter',
-  --     'nvim-lua/plenary.nvim',
-  --     'MunifTanjim/nui.nvim',
-  --   },
-  -- },
   {
     'oskarrrrrrr/symbols.nvim',
     config = function()
@@ -81,44 +64,39 @@ return {
     },
   },
   {
-    'frankroeder/parrot.nvim',
-    dependencies = { 'ibhagwan/fzf-lua', 'nvim-lua/plenary.nvim' },
-    -- optionally include "folke/noice.nvim" or "rcarriga/nvim-notify" for beautiful notifications
-    config = function()
-      require('parrot').setup {
-        providers = {
-          anthropic = {
-            api_key = os.getenv 'ANTHROPIC_API_KEY',
-          },
-        },
-      }
-    end,
-  },
-  {
     'milanglacier/minuet-ai.nvim',
     config = function()
       require('minuet').setup {
-        provider = 'claude',
+        provider = 'gemini',
 
         blink = {
           enable_auto_complete = false,
         },
-        -- provider_options = {
-        --   claude = {
-        --     max_tokens = 512,
-        --     model = 'claude-3-5-haiku-20241022',
-        --     system = 'see [Prompt] section for the default value',
-        --     few_shots = 'see [Prompt] section for the default value',
-        --     chat_input = 'See [Prompt Section for default value]',
-        --     stream = true,
-        --     api_key = 'ANTHROPIC_API_KEY',
-        --     optional = {
-        --       -- pass any additional parameters you want to send to claude request,
-        --       -- e.g.
-        --       -- stop_sequences = nil,
-        --     },
-        --   },
-        -- },
+        provider_options = {
+          gemini = {
+            model = 'gemini-2.0-flash',
+            optional = {
+              generationConfig = {
+                maxOutputTokens = 256,
+                -- When using `gemini-2.5-flash`, it is recommended to entirely
+                -- disable thinking for faster completion retrieval.
+                thinkingConfig = {
+                  thinkingBudget = 0,
+                },
+              },
+              safetySettings = {
+                {
+                  -- HARM_CATEGORY_HATE_SPEECH,
+                  -- HARM_CATEGORY_HARASSMENT
+                  -- HARM_CATEGORY_SEXUALLY_EXPLICIT
+                  category = 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                  -- BLOCK_NONE
+                  threshold = 'BLOCK_ONLY_HIGH',
+                },
+              },
+            },
+          },
+        },
       }
 
       vim.keymap.set('n', '<leader>m', '<cmd>Minuet blink toggle<CR>')
