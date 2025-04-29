@@ -30,7 +30,6 @@
         "text/html" = browser;
         "text/xml" = browser;
         "text/plain" = editor;
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = browser;
         "application/xml" = browser;
         "application/xhtml+xml" = browser;
         "application/xhtml_xml" = browser;
@@ -64,6 +63,15 @@
         "image/jpeg" = ["img.desktop"];
         "image/png" = ["img.desktop"];
         "image/webp" = ["img.desktop"];
+        "application/msword" = office; # .doc
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = office; # .docx
+        "application/vnd.ms-excel" = office; # .xls
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = office; # .xlsx
+        "application/vnd.ms-powerpoint" = office; # .ppt
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation" = office; # .pptx
+        "application/vnd.oasis.opendocument.text" = office; # .odt
+        "application/vnd.oasis.opendocument.spreadsheet" = office; # .ods
+        "application/vnd.oasis.opendocument.presentation" = office; # .odp
       };
 
       associations.removed = {

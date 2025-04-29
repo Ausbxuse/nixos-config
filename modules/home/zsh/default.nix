@@ -142,6 +142,7 @@
       ${builtins.readFile ./zshrc}
       ${lib.optionalString (builtins.elem hostname const.private-hosts) ''
         export ANTHROPIC_API_KEY="$(cat ${config.sops.secrets.anthropic.path})"
+        export GEMINI_API_KEY="$(cat ${config.sops.secrets.gemini.path})"
       ''}
     '';
 

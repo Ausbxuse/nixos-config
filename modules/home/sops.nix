@@ -15,5 +15,6 @@ in {
     defaultSecretsMountPoint = "/run/user/1000/secrets.d";
     # secrets.github = {};
     secrets.anthropic = {};
+    secrets.gemini = {};
   };
 }
