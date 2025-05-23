@@ -66,42 +66,39 @@ return {
     },
   },
   {
-    'milanglacier/minuet-ai.nvim',
+    'zbirenbaum/copilot.lua',
+    cmd = 'Copilot',
+    event = 'InsertEnter',
     config = function()
-      require('minuet').setup {
-        provider = 'gemini',
-
-        blink = {
-          enable_auto_complete = false,
+      require('copilot').setup {
+        suggestion = {
+          enabled = true,
+          auto_trigger = true,
+          hide_during_completion = true,
+          keymap = {
+            accept = '<Tab>', -- handled by nvim-cmp / blink.cmp
+            next = '<M-]>',
+            prev = '<M-[>',
+          },
         },
-        -- provider_options = {
-        --   gemini = {
-        --     model = 'gemini-2.0-flash',
-        --     optional = {
-        --       generationConfig = {
-        --         maxOutputTokens = 256,
-        --         -- When using `gemini-2.5-flash`, it is recommended to entirely
-        --         -- disable thinking for faster completion retrieval.
-        --         thinkingConfig = {
-        --           thinkingBudget = 0,
-        --         },
-        --       },
-        --       safetySettings = {
-        --         {
-        --           -- HARM_CATEGORY_HATE_SPEECH,
-        --           -- HARM_CATEGORY_HARASSMENT
-        --           -- HARM_CATEGORY_SEXUALLY_EXPLICIT
-        --           category = 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        --           -- BLOCK_NONE
-        --           threshold = 'BLOCK_ONLY_HIGH',
-        --         },
-        --       },
-        --     },
-        --   },
-        -- },
+        panel = { enabled = false },
       }
 
-      vim.keymap.set('n', '<leader>m', '<cmd>Minuet blink toggle<CR>')
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'BlinkCmpMenuOpen',
+        callback = function()
+          vim.b.copilot_suggestion_hidden = true
+        end,
+      })
+
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'BlinkCmpMenuClose',
+        callback = function()
+          vim.b.copilot_suggestion_hidden = false
+        end,
+      })
+      vim.keymap.set('n', '<leader>c', '<cmd>Copilot toggle<CR>')
     end,
   },
+  { 'giuxtaposition/blink-cmp-copilot' },
 }

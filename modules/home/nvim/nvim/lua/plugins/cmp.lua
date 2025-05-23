@@ -24,21 +24,22 @@ return {
         },
         trigger = { prefetch_on_insert = false },
       },
+      -- TODO: better tab for snippets jump
       keymap = {
-        preset = 'default',
-        ['<Tab>'] = {
-          function(cmp)
-            if cmp.snippet_active() then
-              return cmp.accept()
-            else
-              return cmp.select_and_accept()
-            end
-          end,
-          'fallback',
-        },
-        ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
-        ['<c-e>'] = { 'snippet_forward', 'fallback' },
-        ['<c-y>'] = { 'snippet_backward', 'fallback' },
+        preset = 'super-tab',
+        -- ['<Tab>'] = {
+        --   function(cmp)
+        --     if cmp.snippet_active() then
+        --       return cmp.accept()
+        --     else
+        --       return cmp.select_and_accept()
+        --     end
+        --   end,
+        --   'fallback',
+        -- },
+        -- ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
+        -- ['<c-e>'] = { 'snippet_forward', 'fallback' },
+        -- ['<c-y>'] = { 'snippet_backward', 'fallback' },
         -- ['<A-y>'] = require('minuet').make_blink_map(),
       },
 
@@ -47,12 +48,13 @@ return {
         nerd_font_variant = 'mono',
       },
       sources = {
-        default = { 'lsp', 'path', 'snippets', 'buffer', 'minuet' },
+        default = { 'lsp', 'path', 'snippets', 'buffer', 'copilot' },
         providers = {
-          minuet = {
-            name = 'minuet',
-            module = 'minuet.blink',
-            score_offset = 8,
+          copilot = {
+            name = 'copilot',
+            module = 'blink-cmp-copilot',
+            score_offset = 100,
+            async = true,
           },
         },
       },
