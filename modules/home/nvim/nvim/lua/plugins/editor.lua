@@ -68,7 +68,8 @@ return {
   {
     'zbirenbaum/copilot.lua',
     cmd = 'Copilot',
-    event = 'InsertEnter',
+    build = ':Copilot auth',
+    event = 'BufReadPost',
     config = function()
       require('copilot').setup {
         suggestion = {
