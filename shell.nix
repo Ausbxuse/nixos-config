@@ -5,6 +5,17 @@
     # Enable experimental features without having to specify the argument
     NIX_CONFIG = "experimental-features = nix-command flakes";
     nativeBuildInputs = with pkgs; [nix git sops ssh-to-age gnupg age nil];
-    packages = with pkgs; [just nixos-anywhere home-manager];
+    packages = with pkgs; [
+      just
+      nixos-anywhere
+      home-manager
+      lua
+      lua-language-server
+      stylua
+      nixpkgs-fmt
+      nix-index
+      nix-prefetch-git
+      nixos-generators
+    ];
   };
 }

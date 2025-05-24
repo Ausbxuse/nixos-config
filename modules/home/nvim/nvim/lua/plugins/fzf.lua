@@ -4,6 +4,7 @@ return {
     -- dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
       local fzf = require 'fzf-lua'
+      local actions = require 'fzf-lua.actions'
       fzf.setup {
         fzf_colors = {
           false, -- inherit fzf colors that aren't specified below from
@@ -46,6 +47,13 @@ return {
             ['ctrl-g'] = false,
           },
         },
+        grep = {
+          actions = {
+            ['ctrl-g'] = false,
+            ['ctrl-q'] = actions.file_sel_to_qf,
+          },
+        },
+
         keymaps = {
           winopts = { preview = { layout = 'horizontal' } },
         },
