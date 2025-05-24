@@ -7,7 +7,7 @@ return {
     ---@module 'blink.cmp'
     ---@type blink.cmp.Config
     opts = {
-      signature = { enabled = true },
+      signature = { enabled = false },
       completion = {
         menu = {
           winblend = 10,
@@ -26,21 +26,20 @@ return {
       },
       -- TODO: better tab for snippets jump
       keymap = {
-        preset = 'super-tab',
-        -- ['<Tab>'] = {
-        --   function(cmp)
-        --     if cmp.snippet_active() then
-        --       return cmp.accept()
-        --     else
-        --       return cmp.select_and_accept()
-        --     end
-        --   end,
-        --   'fallback',
-        -- },
-        -- ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
+        preset = 'default',
+        ['<Tab>'] = {
+          function(cmp)
+            if cmp.snippet_active() then
+              return cmp.accept()
+            elseif cmp.is_menu_visible() then
+              return cmp.select_and_accept()
+            end
+          end,
+          'fallback',
+        },
+        ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
         -- ['<c-e>'] = { 'snippet_forward', 'fallback' },
         -- ['<c-y>'] = { 'snippet_backward', 'fallback' },
-        -- ['<A-y>'] = require('minuet').make_blink_map(),
       },
 
       appearance = {
@@ -48,15 +47,7 @@ return {
         nerd_font_variant = 'mono',
       },
       sources = {
-        default = { 'lsp', 'path', 'snippets', 'buffer', 'copilot' },
-        providers = {
-          copilot = {
-            name = 'copilot',
-            module = 'blink-cmp-copilot',
-            score_offset = 100,
-            async = true,
-          },
-        },
+        default = { 'lsp', 'path', 'snippets', 'buffer' },
       },
     },
     opts_extend = { 'sources.default' },
