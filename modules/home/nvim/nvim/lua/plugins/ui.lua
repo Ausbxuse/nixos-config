@@ -6,6 +6,20 @@ local function set_path(file_path)
   return path_variable
 end
 return {
+  { 'nvim-treesitter/nvim-treesitter-textobjects', dependencies = { 'nvim-treesitter/nvim-treesitter' } },
+  {
+    'lukas-reineke/indent-blankline.nvim',
+    tag = 'v2.20.8', -- Use v2
+    event = 'BufReadPost',
+    config = function()
+      vim.opt.list = true
+      require('indent_blankline').setup {
+        space_char_blankline = ' ',
+        show_current_context = true,
+        show_current_context_start = true,
+      }
+    end,
+  },
   {
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
@@ -46,6 +60,66 @@ return {
         end,
       },
       indent = { enable = true, disable = { 'ruby' } },
+      incremental_selection = {
+        enable = true,
+        keymaps = {
+          node_incremental = 'v',
+          node_decremental = 'V',
+        },
+      },
+
+      -- textobjects for selection and movement
+      textobjects = {
+        select = {
+          enable = true,
+          lookahead = true,
+          keymaps = {
+            ['ah'] = '@block.outer', -- around the current block
+            ['ih'] = '@block.inner', -- inside the current block
+            ['af'] = '@function.outer',
+            ['if'] = '@function.inner',
+            ['ac'] = '@class.outer',
+            ['ic'] = '@class.inner',
+            ['ad'] = '@conditional.outer',
+            ['id'] = '@conditional.inner',
+            ['al'] = '@loop.outer', -- a loop (for, while, etc.)
+            ['il'] = '@loop.inner', -- inner part of a loop
+            ['as'] = { query = '@local.scope', query_group = 'locals', desc = 'Select language scope' },
+          },
+        },
+        move = {
+          enable = true,
+          set_jumps = true,
+          goto_next_start = {
+            [']f'] = '@function.outer',
+            [']h'] = '@block.outer',
+            [']c'] = '@class.outer',
+            [']i'] = '@conditional.outer',
+            [']l'] = '@loop.outer',
+          },
+          goto_next_end = {
+            [']F'] = '@function.outer',
+            [']H'] = '@block.outer',
+            [']C'] = '@class.outer',
+            [']I'] = '@conditional.outer',
+            [']L'] = '@loop.outer',
+          },
+          goto_previous_start = {
+            ['[f'] = '@function.outer',
+            ['[h'] = '@block.outer',
+            ['[c'] = '@class.outer',
+            ['[i'] = '@conditional.outer',
+            ['[l'] = '@loop.outer',
+          },
+          goto_previous_end = {
+            ['[F'] = '@function.outer',
+            ['[H'] = '@block.outer',
+            ['[C'] = '@class.outer',
+            ['[I'] = '@conditional.outer',
+            ['[L'] = '@loop.outer',
+          },
+        },
+      },
     },
   },
   {
