@@ -47,15 +47,29 @@ return {
             ['ctrl-g'] = false,
           },
         },
-        grep = {
-          actions = {
-            ['ctrl-g'] = false,
-            ['ctrl-q'] = actions.file_sel_to_qf,
-          },
-        },
+        -- grep = {
+        --   actions = {
+        --     ['ctrl-g'] = false,
+        --     ['ctrl-q'] = actions.file_sel_to_qf,
+        --   },
+        -- },
 
-        keymaps = {
-          winopts = { preview = { layout = 'horizontal' } },
+        -- winopts = { preview = { layout = 'horizontal' } },
+        keymap = {
+          fzf = {
+            ['ctrl-z'] = 'abort',
+            ['ctrl-f'] = 'half-page-down',
+            ['ctrl-b'] = 'half-page-up',
+            ['ctrl-a'] = 'beginning-of-line',
+            ['ctrl-e'] = 'end-of-line',
+            ['alt-a'] = 'toggle-all',
+            -- Only valid with fzf previewers (bat/cat/git/etc)
+            ['f3'] = 'toggle-preview-wrap',
+            ['f4'] = 'toggle-preview',
+            ['ctrl-d'] = 'preview-page-down',
+            ['ctrl-u'] = 'preview-page-up',
+            ['ctrl-q'] = 'select-all+accept',
+          },
         },
         oldfiles = {
           previewer = false,
