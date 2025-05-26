@@ -138,7 +138,7 @@
       export KEYTIMEOUT=1
     '';
 
-    initExtra = ''
+    initContent = ''
       ${builtins.readFile ./zshrc}
       ${lib.optionalString (builtins.elem hostname const.private-hosts) ''
         export ANTHROPIC_API_KEY="$(cat ${config.sops.secrets.anthropic.path})"

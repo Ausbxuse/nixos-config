@@ -28,7 +28,7 @@
   ];
   nixpkgs.config.allowUnfree = true;
 
-  programs.zsh.initExtra = builtins.readFile ./zshrc;
+  programs.zsh.initContent = builtins.readFile ./zshrc;
   programs.tmux.extraConfig = builtins.readFile ./tmux.conf;
 
   home.pointerCursor = {

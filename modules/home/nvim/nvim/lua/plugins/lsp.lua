@@ -49,7 +49,16 @@ return {
           map('<leader>ls', fzf.lsp_document_symbols, '[L]sp [S]ymbols')
           map('<leader>lS', fzf.lsp_live_workspace_symbols, '[W]orkspace [S]ymbols')
           map('<leader>lc', vim.lsp.buf.rename, '[C]hange var name')
-          map('K', vim.lsp.buf.hover, 'Loo[K]up')
+          -- map('K', vim.lsp.buf.hover, 'Loo[K]up')
+          --
+          vim.keymap.set('n', 'K', function()
+            vim.lsp.buf.hover { border = 'none', max_width = 60, max_height = 40 }
+          end, { desc = 'LSP Hover' })
+
+          vim.keymap.set('i', '<C-k>', function()
+            vim.lsp.buf.signature_help { border = 'none', max_width = 60, max_height = 40 }
+          end, { desc = 'LSP Signature Help' })
+
           map('<leader>la', fzf.lsp_code_actions, '[C]ode [A]ction', { 'n', 'x' })
           map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
           map('gs', vim.lsp.buf.signature_help, 'Signature [H]elp')
@@ -87,14 +96,6 @@ return {
         end,
       })
 
-      vim.fn.sign_define('DiagnosticSignError', { text = '', texthl = 'DiagnosticSignError' })
-      vim.fn.sign_define('DiagnosticSignWarn', { text = '', texthl = 'DiagnosticSignWarn' })
-      vim.fn.sign_define('DiagnosticSignInfo', { text = '', texthl = 'DiagnosticSignInfo' })
-      vim.fn.sign_define('DiagnosticSignHint', { text = '', texthl = 'DiagnosticSignHint' })
-
-      vim.lsp.handlers['textDocument/hover'] = vim.lsp.with(vim.lsp.handlers.hover, { border = 'none', max_width = 60, max_height = 40 })
-      vim.lsp.handlers['textDocument/signatureHelp'] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = 'none', max_width = 60, max_height = 40 })
-
       vim.diagnostic.config {
         underline = true,
         update_in_insert = false,
@@ -103,20 +104,28 @@ return {
           source = 'if_many',
           prefix = '●',
         },
-        severity_sort = true,
         signs = {
-          [vim.diagnostic.severity.ERROR] = '',
-          [vim.diagnostic.severity.WARN] = '',
-          [vim.diagnostic.severity.HINT] = '',
-          [vim.diagnostic.severity.INFO] = '',
+          active = true, -- turn _on_ your custom signs
+          text = { -- here are your icons
+            [vim.diagnostic.severity.ERROR] = '',
+            [vim.diagnostic.severity.WARN] = '',
+            [vim.diagnostic.severity.INFO] = '',
+            [vim.diagnostic.severity.HINT] = '',
+          },
+          texthl = { -- make sure the highlight groups line up, too
+            [vim.diagnostic.severity.ERROR] = 'DiagnosticError',
+            [vim.diagnostic.severity.WARN] = 'DiagnosticWarn',
+            [vim.diagnostic.severity.INFO] = 'DiagnosticInfo',
+            [vim.diagnostic.severity.HINT] = 'DiagnosticHint',
+          },
+          numhl = {
+            [vim.diagnostic.severity.WARN] = 'DiagnosticWarn',
+            [vim.diagnostic.severity.ERROR] = 'DiagnosticError',
+            [vim.diagnostic.severity.INFO] = 'DiagnosticInfo',
+            [vim.diagnostic.severity.HINT] = 'DiagnosticHint',
+          },
         },
-
-        numhl = {
-          [vim.diagnostic.severity.WARN] = 'DiagnosticSignError',
-          [vim.diagnostic.severity.ERROR] = 'DiagnosticSignError',
-          [vim.diagnostic.severity.INFO] = 'DiagnosticSignInfo',
-          [vim.diagnostic.severity.HINT] = 'DiagnosticSignHint',
-        },
+        severity_sort = true,
       }
       -- require('lspconfig').harper_ls.setup {
       --   filetypes = { 'markdown' },

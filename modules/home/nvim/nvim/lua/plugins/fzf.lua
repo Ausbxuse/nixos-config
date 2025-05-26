@@ -82,7 +82,7 @@ return {
         },
       }
 
-      vim.keymap.set('n', '<leader>sh', fzf.help_tags, { desc = '[S]earch [H]elp' })
+      vim.keymap.set('n', '<leader>fh', fzf.help_tags, { desc = '[F]ind [H]elp' })
       vim.keymap.set('n', '<leader>fk', fzf.keymaps, { desc = '[F]uzzy find [K]eymaps' })
       vim.keymap.set('n', '<leader>ff', function()
         fzf.files()
