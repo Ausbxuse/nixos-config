@@ -9,14 +9,29 @@ return {
   { 'nvim-treesitter/nvim-treesitter-textobjects', dependencies = { 'nvim-treesitter/nvim-treesitter' } },
   {
     'lukas-reineke/indent-blankline.nvim',
-    tag = 'v2.20.8', -- Use v2
-    event = 'BufReadPost',
+    main = 'ibl',
+    ---@module "ibl"
+    ---@type ibl.config
+    opts = {},
     config = function()
-      vim.opt.list = true
-      require('indent_blankline').setup {
-        space_char_blankline = ' ',
-        show_current_context = true,
-        show_current_context_start = true,
+      local highlight = {
+        'CursorColumn',
+        'Whitespace',
+      }
+      require('ibl').setup {
+        indent = {
+          char = '▏',
+        },
+        -- whitespace = {
+        --   highlight = highlight,
+        --   remove_blankline_trail = false,
+        -- },
+        scope = {
+          enabled = true,
+          show_start = false,
+          show_end = false,
+          char = '▏',
+        },
       }
     end,
   },
@@ -80,8 +95,8 @@ return {
             ['if'] = '@function.inner',
             ['ac'] = '@class.outer',
             ['ic'] = '@class.inner',
-            ['ad'] = '@conditional.outer',
-            ['id'] = '@conditional.inner',
+            ['ai'] = '@conditional.outer',
+            ['ii'] = '@conditional.inner',
             ['al'] = '@loop.outer', -- a loop (for, while, etc.)
             ['il'] = '@loop.inner', -- inner part of a loop
             ['as'] = { query = '@local.scope', query_group = 'locals', desc = 'Select language scope' },

@@ -40,8 +40,7 @@ return {
           ['l'] = 'goto-symbol',
         },
       })
-      vim.keymap.set('n', ',s', '<cmd> Symbols<CR>')
-      vim.keymap.set('n', ',S', '<cmd> SymbolsClose<CR>')
+      vim.keymap.set('n', ',s', '<cmd> SymbolsToggle<CR>')
     end,
   },
   {
