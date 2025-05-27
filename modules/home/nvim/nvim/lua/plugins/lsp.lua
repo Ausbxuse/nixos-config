@@ -191,8 +191,13 @@ return {
             settings = {
               basedpyright = {
                 analysis = {
-                  typeCheckingMode = 'basic',
+                  typeCheckingMode = 'off',
                   logLevel = 'error',
+                  diagnosticSeverityOverrides = {
+                    reportAttributeAccessIssue = 'none',
+                  },
+
+                  inlayHints = { variableTypes = true, functionReturnTypes = true },
                 },
               },
               hints = {
