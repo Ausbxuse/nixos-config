@@ -104,27 +104,28 @@ return {
           source = 'if_many',
           prefix = '●',
         },
-        signs = {
-          active = true, -- turn _on_ your custom signs
-          text = { -- here are your icons
-            [vim.diagnostic.severity.ERROR] = '',
-            [vim.diagnostic.severity.WARN] = '',
-            [vim.diagnostic.severity.INFO] = '',
-            [vim.diagnostic.severity.HINT] = '',
-          },
-          texthl = { -- make sure the highlight groups line up, too
-            [vim.diagnostic.severity.ERROR] = 'DiagnosticError',
-            [vim.diagnostic.severity.WARN] = 'DiagnosticWarn',
-            [vim.diagnostic.severity.INFO] = 'DiagnosticInfo',
-            [vim.diagnostic.severity.HINT] = 'DiagnosticHint',
-          },
-          numhl = {
-            [vim.diagnostic.severity.WARN] = 'DiagnosticWarn',
-            [vim.diagnostic.severity.ERROR] = 'DiagnosticError',
-            [vim.diagnostic.severity.INFO] = 'DiagnosticInfo',
-            [vim.diagnostic.severity.HINT] = 'DiagnosticHint',
-          },
-        },
+        -- signs = {
+        --   active = true, -- turn _on_ your custom signs
+        --   text = { -- here are your icons
+        --     [vim.diagnostic.severity.ERROR] = '',
+        --     [vim.diagnostic.severity.WARN] = '',
+        --     [vim.diagnostic.severity.INFO] = '',
+        --     [vim.diagnostic.severity.HINT] = '',
+        --   },
+        --   texthl = { -- make sure the highlight groups line up, too
+        --     [vim.diagnostic.severity.ERROR] = 'DiagnosticError',
+        --     [vim.diagnostic.severity.WARN] = 'DiagnosticWarn',
+        --     [vim.diagnostic.severity.INFO] = 'DiagnosticInfo',
+        --     [vim.diagnostic.severity.HINT] = 'DiagnosticHint',
+        --   },
+        --   numhl = {
+        --     [vim.diagnostic.severity.WARN] = 'DiagnosticWarn',
+        --     [vim.diagnostic.severity.ERROR] = 'DiagnosticError',
+        --     [vim.diagnostic.severity.INFO] = 'DiagnosticInfo',
+        --     [vim.diagnostic.severity.HINT] = 'DiagnosticHint',
+        --   },
+        -- },
+        signs = false,
         severity_sort = true,
       }
       -- require('lspconfig').harper_ls.setup {
