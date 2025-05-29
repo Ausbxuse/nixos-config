@@ -27,6 +27,7 @@
     # gnomeExtensions.just-perfection
     gnomeExtensions.status-area-horizontal-spacing
     gnomeExtensions.no-overview
+    gnomeExtensions.another-window-session-manager
     amberol
     powertop
     xiccd

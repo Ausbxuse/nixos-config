@@ -7,7 +7,7 @@
       cursorTheme = "capitaine-cursors-white";
     };
   };
-  services.xserver.libinput.enable = true;
+  services.libinput.enable = true;
   # TODO: separate hyprland
   # programs.hyprland.enable = true;
   # programs.iio-hyprland.enable = true;

@@ -9,12 +9,11 @@
       just
       nixos-anywhere
       home-manager
-      lua
       lua-language-server
       stylua
       nixpkgs-fmt
-      nix-index
-      nix-prefetch-git
+      # nix-index
+      # nix-prefetch-git
       nixos-generators
     ];
   };

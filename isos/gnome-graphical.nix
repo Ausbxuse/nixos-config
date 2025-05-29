@@ -17,7 +17,6 @@
     wget
     disko
   ];
-  programs.direnv.enable = true;
   # override installation-cd-base and enable wpa and sshd start at boot
   systemd.services.wpa_supplicant.wantedBy = lib.mkForce ["multi-user.target"];
   systemd.services.sshd.wantedBy = lib.mkForce ["multi-user.target"];

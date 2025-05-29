@@ -17,7 +17,13 @@
     stylua
     black
     isort
-    devenv
     tig
+    tealdeer
+    sshfs
   ];
+
+  programs.direnv = {
+    enable = true;
+    enableZshIntegration = true;
+  };
 }

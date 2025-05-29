@@ -5,6 +5,9 @@ $HOME/.local/bin/duo watch-displays &>/dev/null 2>&1 &
 $HOME/.local/bin/duo watch-rotation &>/dev/null 2>&1 &
 $HOME/.local/bin/duo watch-backlight &>/dev/null 2>&1 &
 $HOME/.local/bin/duo bat-limit &>/dev/null 2>&1 &
+
+tmux new-session -d &
+
 $HOME/.local/bin/setlight
 
 dbus-monitor --session "type='signal',interface='org.gnome.ScreenSaver'" |
@@ -15,3 +18,4 @@ dbus-monitor --session "type='signal',interface='org.gnome.ScreenSaver'" |
 		esac
 	done &
 sct 3700
+
