@@ -3,6 +3,8 @@
   inputs,
   options,
   pkgs,
+  lib,
+  hostname,
   ...
 }: {
   imports = [
@@ -10,7 +12,6 @@
     ./env.nix
     ./nix.nix
     ./user.nix
-    ./locale.nix
     ./bootloader.nix
   ];
   system.stateVersion = "24.05";
@@ -49,4 +50,8 @@
     unzip
     # pass
   ];
+
+  networking.hostName = "${hostname}";
+  networking.networkmanager.enable = true;
+  networking.firewall.enable = lib.mkDefault false;
 }
