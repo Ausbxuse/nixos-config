@@ -194,9 +194,9 @@ return {
                 analysis = {
                   typeCheckingMode = 'off',
                   logLevel = 'error',
-                  diagnosticSeverityOverrides = {
-                    reportAttributeAccessIssue = 'none',
-                  },
+                  -- diagnosticSeverityOverrides = {
+                  --   reportAttributeAccessIssue = 'none',
+                  -- },
 
                   inlayHints = { variableTypes = true, functionReturnTypes = true },
                 },

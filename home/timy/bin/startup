@@ -6,7 +6,7 @@ $HOME/.local/bin/duo watch-rotation &>/dev/null 2>&1 &
 $HOME/.local/bin/duo watch-backlight &>/dev/null 2>&1 &
 $HOME/.local/bin/duo bat-limit &>/dev/null 2>&1 &
 
-# tmux new-session -Ad -s main
+tmux new-session -Ad -s main
 
 $HOME/.local/bin/setlight
 

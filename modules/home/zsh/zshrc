@@ -51,6 +51,8 @@ bindkey -M viins '^f' fzf-file-widget
 bindkey -M viins '^w' backward-kill-word
 bindkey -M vicmd 'k' history-substring-search-up
 bindkey -M vicmd 'j' history-substring-search-down
+bindkey -M vicmd '^e' edit-command-line
+bindkey -M viins '^e' edit-command-line
 
 function lf() {
   local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"

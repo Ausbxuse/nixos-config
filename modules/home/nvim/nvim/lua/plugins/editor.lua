@@ -71,6 +71,12 @@ return {
     event = 'InsertEnter',
     config = function()
       require('copilot').setup {
+
+        filetypes = {
+          yaml = false, -- allow specific filetype
+          -- typescript = true, -- allow specific filetype
+          -- ["*"] = false, -- disable for all other filetypes and ignore default `filetypes`
+        },
         suggestion = {
           enabled = true,
           auto_trigger = true,
