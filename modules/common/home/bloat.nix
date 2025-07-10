@@ -11,8 +11,6 @@
     gnome-graphs
     thunderbird-bin
     brave
-    discord
-    spotify
     spotify-tray
     libreoffice
     texliveFull
@@ -25,6 +23,9 @@
     quickemu
     sct
     gnome-monitor-config
+    discord
+    spotify
+    wechat-uos
   ];
 
   services.syncthing = {

@@ -192,7 +192,7 @@ return {
             settings = {
               basedpyright = {
                 analysis = {
-                  typeCheckingMode = 'off',
+                  typeCheckingMode = 'basic',
                   logLevel = 'error',
                   -- diagnosticSeverityOverrides = {
                   --   reportAttributeAccessIssue = 'none',

@@ -39,7 +39,7 @@
     wirelesstools
     iw
     neovim
-    ncdu
+    gdu #ncdu alternative
     lsof
     wget
     git
@@ -49,9 +49,20 @@
     killall
     unzip
     # pass
+    # via
   ];
 
   networking.hostName = "${hostname}";
   networking.networkmanager.enable = true;
   networking.firewall.enable = lib.mkDefault false;
+  # hardware.keyboard.qmk.enable = true;
+  # services.udev = {
+  #   packages = with pkgs; [
+  #     qmk
+  #     qmk-udev-rules # the only relevant
+  #     qmk_hid
+  #     via
+  #     vial
+  #   ]; # packages
+  # }; # udev
 }
