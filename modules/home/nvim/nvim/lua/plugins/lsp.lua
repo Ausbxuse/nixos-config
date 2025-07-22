@@ -82,15 +82,15 @@ vim.diagnostic.config {
   underline = true,
   update_in_insert = false,
 
-  virtual_lines = {
-    -- Only show virtual line diagnostics for the current cursor line
-    current_line = true,
-  },
-  -- virtual_text = {
-  --   spacing = 4,
-  --   source = 'if_many',
-  --   prefix = '●',
+  -- virtual_lines = {
+  --   -- Only show virtual line diagnostics for the current cursor line
+  --   current_line = true,
   -- },
+  virtual_text = {
+    spacing = 4,
+    source = 'if_many',
+    prefix = '●',
+  },
   signs = {
     active = true, -- turn _on_ your custom signs
     text = { -- here are your icons
