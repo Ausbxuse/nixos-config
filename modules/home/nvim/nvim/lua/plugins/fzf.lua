@@ -28,6 +28,13 @@ return {
           preview = {
             border = { ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' },
           },
+          treesitter = {
+            enabled = true,
+            fzf_colors = {
+              -- ['hl'] = { 'fg', 'Debug' }, -- match colour
+              -- ['hl+'] = { 'fg', 'Debug' }, -- selected match
+            },
+          },
         },
         buffers = {
           previewer = false,
