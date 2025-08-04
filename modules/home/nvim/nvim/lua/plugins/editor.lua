@@ -51,10 +51,13 @@ return {
       require('codecompanion').setup {
         strategies = {
           chat = {
-            adapter = 'anthropic',
+            adapter = {
+              name = 'gemini',
+              model = 'gemini-2.5-flash',
+            },
           },
           inline = {
-            adapter = 'anthropic',
+            adapter = 'gemini',
           },
         },
       }

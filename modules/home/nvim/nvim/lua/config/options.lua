@@ -47,7 +47,9 @@ local default_options = {
   winblend = 10, -- keep notify transparent
   colorcolumn = '', -- fixes indentline for now
   shada = "!,'10000,<50,s10,h,:10000",
-  completeopt = { 'fuzzy', 'menu', 'menuone', 'noselect' }, -- mostly just for cmp
+  completeopt = { 'fuzzy', 'menu', 'menuone', 'noselect' },
+  omnifunc = '',
+  completefunc = '',
 }
 
 opt.shortmess:append 'c'

@@ -427,7 +427,7 @@ with lib.hm.gvariant; {
 
     "org/gnome/shell/extensions/caffeine" = lib.mkDefault {
       indicator-position-max = 2;
-      toggle-state = false;
+      toggle-state = true;
     };
 
     "org/gnome/shell/extensions/color-picker" = {
