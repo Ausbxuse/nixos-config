@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
 $HOME/.local/bin/duo bat-limit &>/dev/null 2>&1 &
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'

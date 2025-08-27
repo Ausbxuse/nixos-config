@@ -14,7 +14,7 @@
     gnomeExtensions.media-controls
     # gnomeExtensions.gnome-bedtime
     gnomeExtensions.night-light-slider-updated
-    gnomeExtensions.hide-cursor
+    # gnomeExtensions.hide-cursor
     gnomeExtensions.unite
     gnomeExtensions.blur-my-shell
     gnomeExtensions.forge

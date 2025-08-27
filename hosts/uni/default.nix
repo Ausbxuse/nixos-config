@@ -8,6 +8,7 @@
     ../../modules/nixos/grub.nix
     ../../modules/nixos/silent-boot.nix
     ../../modules/nixos/vm.nix
+    ../../modules/nixos/gui/gaming.nix
   ];
 
   environment.systemPackages = with pkgs; [
