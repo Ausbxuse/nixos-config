@@ -25,7 +25,7 @@
     MANPAGER = "nvim +Man!";
     NPM_PACKAGES = "${config.home.homeDirectory}/.local/share/npm";
     NODE_PATH = "$NPM_PACKAGES/lib/node_modules:$NODE_PATH";
-    PATH = "$PATH:$(du ${config.home.homeDirectory}/.local/bin/ | cut -f2 | paste -sd ':')";
+    PATH = "${config.home.homeDirectory}/.nix-profile/bin:$PATH:$(du ${config.home.homeDirectory}/.local/bin/ | cut -f2 | paste -sd ':')";
     ZK_NOTEBOOK_DIR = "${config.home.homeDirectory}/Documents/Notes";
     NOTMUCH_CONFIG = "${config.xdg.configHome}/notmuch-config";
     WGETRC = "${config.xdg.configHome}/wget/wgetrc";
