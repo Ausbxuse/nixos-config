@@ -1,3 +1,4 @@
+local lsp_utils = require 'utils.lsp_utils'
 local function goto_buffer(n)
   local bufs = vim.fn.getbufinfo { buflisted = 1 }
   if bufs[n] then
@@ -30,6 +31,9 @@ vim.keymap.set('n', '<leader>u', '<cmd> UndotreeToggle <cr>', { desc = 'Toggle U
 vim.keymap.set('x', 'K', ":move '<-2<CR>gv=gv")
 vim.keymap.set('x', 'J', ":move '>+1<CR>gv=gv")
 vim.keymap.set('x', 'p', 'P', { desc = 'Better paste' })
+vim.keymap.set('n', '<leader>ut', function()
+  lsp_utils.toggle_basedpyright_settings()
+end, { desc = 'Toggle BasedPyright Settings' })
 
 local prefixes = "m'"
 local letters = 'abcdefghijklmnopqrstuvwxyz'

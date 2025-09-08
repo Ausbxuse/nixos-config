@@ -5,10 +5,8 @@ export PATH=$PATH:$HOME/.local/bin
 mkdir -p .local/bin
 cd .local/bin
 
-# Download nix-portable
 curl -L "https://github.com/DavHau/nix-portable/releases/latest/download/nix-portable-$(uname -m)" > ./nix-portable
 
-# Generate symlinks for seamless integration
 chmod +x nix-portable
 ln -s nix-portable nix
 ln -s nix-portable nix-channel
@@ -28,7 +26,6 @@ NP_RUNTIME=bwrap nix-portable nix shell nixpkgs#{bashInteractive,nix} <<EOF
 nix run github:nix-community/home-manager -- switch --flake .#zhenyu@earthy
 EOF
 
-# Make new sessions use the shell automatically
 cat >~/.bashrc <<EOF
 export PATH=\$PATH:\$HOME/.local/bin
 
