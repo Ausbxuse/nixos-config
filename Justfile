@@ -9,17 +9,11 @@ gitgc:
 dconf: 
 	rsync -av ~/.config/dconf/ ./hosts/base/home/gnome/dconf
 
-uni:
-	nixos-rebuild switch --flake .#uni --use-remote-sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000
+build-host:
+	nixos-rebuild switch --flake .#$(hostname) --use-remote-sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000
 
-timy:
-	nixos-rebuild switch --flake .#timy --use-remote-sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000
-
-spacy:
-	nixos-rebuild switch --flake .#spacy --use-remote-sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000
-
-milkyway:
-  nixos-rebuild switch --flake .#milkyway --use-remote-sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000 --target-host root@zhenyuzhao.com
+build-home:
+  home-manager switch --flake .#$(whoami)@$(hostname)
 
 debug: 
 	nixos-rebuild switch --flake . --use-remote-sudo --show-trace --verbose
@@ -28,7 +22,6 @@ debug:
 # usage: make upp i=home-manager
 upp:
 	nix flake lock --update-input $(i)
-
 
 history:
 	nix profile history --profile /nix/var/nix/profiles/system
@@ -44,5 +37,3 @@ gc:
 	# Garbage collect all unused nix store entries
 	sudo nix-collect-garbage --delete-old
 
-hm:
-    home-manager switch --flake .#$(whoami)@$(hostname)

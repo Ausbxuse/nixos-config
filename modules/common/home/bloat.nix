@@ -25,7 +25,7 @@
     gnome-monitor-config
     discord
     spotify
-    wechat-uos
+    # wechat-uos
   ];
 
   services.syncthing = {
