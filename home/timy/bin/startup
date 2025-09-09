@@ -8,7 +8,7 @@ $HOME/.local/bin/duo bat-limit &>/dev/null 2>&1 &
 
 tmux new-session -Ad -s main
 
-$HOME/.local/bin/setlight
+# $HOME/.local/bin/setlight
 
 dbus-monitor --session "type='signal',interface='org.gnome.ScreenSaver'" |
 	while read x; do

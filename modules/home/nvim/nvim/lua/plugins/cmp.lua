@@ -10,7 +10,6 @@ return {
           kind_icon = '',
         },
       },
-      'rafamadriz/friendly-snippets',
     },
 
     version = '*',
@@ -18,12 +17,14 @@ return {
     ---@type blink.cmp.Config
     opts = {
       signature = { enabled = true },
+
+      cmdline = { enabled = true },
       completion = {
         menu = {
           winblend = 10, -- WARN: causes different nerfont icon sizes
-          -- auto_show = function(ctx)
-          --   return not vim.tbl_contains({ '/', '?' }, vim.fn.getcmdtype())
-          -- end,
+          auto_show = function(ctx)
+            return not vim.tbl_contains({ '/', '?' }, vim.fn.getcmdtype())
+          end,
           draw = {
             -- columns = { { 'label', 'label_description', gap = 1 }, { 'kind_icon', 'kind', gap = 1 } },
             treesitter = { 'lsp' },
@@ -32,21 +33,20 @@ return {
         ghost_text = {
           enabled = true,
         },
-        trigger = { prefetch_on_insert = false },
+        -- auto_show = true,
+        -- trigger = { prefetch_on_insert = false },
       },
       -- TODO: better tab for snippets jump
       keymap = {
-        preset = 'super-tab',
-        -- ['<Tab>'] = {
-        --   function(cmp)
-        --     if cmp.snippet_active() then
-        --       return cmp.accept()
-        --     elseif cmp.is_menu_visible() then
-        --       return cmp.select_and_accept()
-        --     end
-        --   end,
-        --   'fallback',
-        -- },
+        preset = 'default',
+        ['<Tab>'] = {
+          function(cmp)
+            if cmp.is_menu_visible() then
+              return cmp.select_and_accept()
+            end
+          end,
+          'fallback',
+        },
 
         ['<C-s>'] = { 'show', 'show_documentation', 'hide_documentation' },
         -- ['<c-e>'] = { 'snippet_forward', 'fallback' },

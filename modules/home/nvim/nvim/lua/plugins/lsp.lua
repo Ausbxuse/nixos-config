@@ -20,7 +20,6 @@
 --     if client:supports_method 'textDocument/completion' then
 --       vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
 --     end
---     client.server_capabilities.semanticTokensProvider = nil
 --   end,
 -- })
 
@@ -250,15 +249,15 @@ vim.lsp.enable 'bashls'
 
 -- Web-dev {{{
 -- TSServer {{{
-vim.lsp.config.ts_ls = {
-  cmd = { 'typescript-language-server', '--stdio' },
-  filetypes = { 'javascript', 'javascriptreact', 'javascript.jsx', 'typescript', 'typescriptreact', 'typescript.tsx' },
-  root_markers = { 'tsconfig.json', 'jsconfig.json', 'package.json', '.git' },
-
-  init_options = {
-    hostInfo = 'neovim',
-  },
-}
+-- vim.lsp.config.ts_ls = {
+--   cmd = { 'typescript-language-server', '--stdio' },
+--   filetypes = { 'javascript', 'javascriptreact', 'javascript.jsx', 'typescript', 'typescriptreact', 'typescript.tsx' },
+--   root_markers = { 'tsconfig.json', 'jsconfig.json', 'package.json', '.git' },
+--
+--   init_options = {
+--     hostInfo = 'neovim',
+--   },
+-- }
 -- }}}
 
 -- CSSls {{{
@@ -323,8 +322,19 @@ vim.lsp.config.tailwindcssls = {
 
 -- }}}
 
-vim.lsp.enable { 'ts_ls', 'cssls', 'tailwindcssls', 'htmlls' }
+vim.lsp.enable { 'cssls', 'tailwindcssls' }
 
+vim.lsp.config.astro = {
+  cmd = { 'astro-ls', '--stdio' },
+  filetypes = { 'astro' },
+  -- root_markers = { 'astro.config.mjs', 'package.json', '.git', vim.uv.cwd() },
+  init_options = {
+    typescript = {
+      tsdk = vim.fn.getcwd() .. '/node_modules/typescript/lib',
+    },
+  },
+}
+vim.lsp.enable 'astro'
 -- }}}
 
 -- }}}
@@ -380,7 +390,7 @@ vim.lsp.config.ltex_ls_plus = {
   },
 }
 
-vim.lsp.enable 'ltex_ls_plus'
+-- vim.lsp.enable 'ltex_ls_plus'
 
 vim.lsp.config.typos = {
   cmd = { 'typos-lsp' },
@@ -396,13 +406,13 @@ vim.lsp.config.typos = {
     },
   },
 }
--- vim.lsp.enable 'typos'
+vim.lsp.enable 'typos'
 
 vim.lsp.config.harper = {
   cmd = { 'harper-ls', '-s' },
   filetypes = { 'markdown', 'text', 'rst' },
 }
--- vim.lsp.enable 'harper'
+vim.lsp.enable 'harper'
 
 return {
   {
