@@ -14,7 +14,6 @@
 
   networking = {
     hostName = "nixos-iso";
-    wireless.enable = true;
   };
 
   hardware.graphics = {
@@ -24,7 +23,7 @@
   };
 
   services.logind = {
-    lidSwitch = "suspend";
+    settings.Login.HandleLidSwitch = "suspend";
   };
 
   networking.firewall = {
