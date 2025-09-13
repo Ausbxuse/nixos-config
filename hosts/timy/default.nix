@@ -3,8 +3,7 @@
   imports = [
     ./kernel.nix
     ./hardware-configuration.nix
-    # ./disk.nix
-    ../../modules/nixos/luks.nix
+    ./disk.nix
     ../../modules/common/system/minimal-gui.nix
     ../../modules/nixos/grub.nix
     ../../modules/nixos/silent-boot.nix
