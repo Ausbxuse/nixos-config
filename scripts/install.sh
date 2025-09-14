@@ -1,63 +1,38 @@
 #!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
 
-set -e
+die() { echo "ERROR: $*" >&2; exit 1; }
 
-boot_size="512MiB"
-swap_size="512MiB"
-disk_dev="/dev/sda"
-disk_percent_space_for_os=100
-host="spacy"
+lsblk -ndo PATH,TYPE,RM,SIZE,MODEL,TRAN | awk '$2=="disk" && $3==0 {print $0}'
+read -rp "Enter target disk path (e.g. /dev/nvme0n1): " TARGET_DISK
+[[ -n "${TARGET_DISK:-}" ]] || die "No input provided."
+[[ -b "$TARGET_DISK" ]] || die "Not a block device: $TARGET_DISK"
+[[ "$(lsblk -ndo TYPE "$TARGET_DISK")" == "disk" ]] || die "Not a whole disk: $TARGET_DISK"
 
-if [ $disk_dev == "/dev/nvme0n1" ] || [ $disk_dev == "/dev/nvme1n1" ]; then
-  part_boot="${disk_dev}p1"
-  part_root="${disk_dev}p2"
-else
-  part_boot="${disk_dev}1"
-  part_root="${disk_dev}2"
-fi
+DISK=$TARGET_DISK
 
-echo ""
-echo "####################################"
-echo "########### Confirmation ###########"
-echo "####################################"
-echo ""
-lsblk
-echo "${disk_percent_space_for_os}% of $disk_dev will be used for installing NixOS"
-echo "Are you sure you want to preceed? [y/N] "
-read ans
-if [ $ans != "y" ]; then
-  echo "aborted, exiting..."
-  exit 4
-fi
+sed -i "s|@DISK@|$DISK|" constants.nix
+echo "Using: $DISK"
 
-#####################################
-#### partitioning and formatting ####
-#####################################
 
-parted ${disk_dev} -- mklabel gpt
-parted ${disk_dev} -- mkpart ESP fat32 1MiB $boot_size # make boot partition first
-parted ${disk_dev} -- set 1 boot on
-parted ${disk_dev} -- mkpart primary $boot_size "${disk_percent_space_for_os}%" # allocate remaining size
-cryptsetup luksFormat ${part_root}
-cryptsetup luksOpen ${part_root} crypted
+DEFAULT_TARGET=".#spacy"
+DEFAULT_LUKS_PW="1"
 
-pvcreate /dev/mapper/crypted
-vgcreate vg /dev/mapper/crypted
-lvcreate -L $swap_size -n swap vg  # allocate swap with size=$swap_size
-lvcreate -l '100%FREE' -n nixos vg # allocate remaining space for nixos root
+read -e -i "$DEFAULT_TARGET" -rp "Enter flake target: " TARGET
+HOST="${TARGET##*#}"
+echo "Host is: $HOST"
 
-mkfs.fat -F 32 -n boot ${part_boot}
-mkfs.ext4 -L nixos /dev/vg/nixos
-mkswap -L swap /dev/vg/swap
-mount /dev/disk/by-label/nixos /mnt
-mkdir -p /mnt/boot
-mount /dev/disk/by-label/boot /mnt/boot
-swapon /dev/vg/swap
+read -e -i "$DEFAULT_LUKS_PW" -rp "Enter LUKS disk password: " LUKS_PW
+echo "Using LUKS password: $LUKS_PW"
 
-#####################################
-########### Install Nixos ###########
-#####################################
+echo $LUKS_PW > /tmp/secret.key
 
-nixos-generate-config --root /mnt
-cp /mnt/etc/nixos/hardware-configuration.nix ./hosts/${host}/hardware-configuration.nix
-cd /mnt && nixos-install
+sudo nix run github:nix-community/disko -- --mode destroy,format,mount --flake "${TARGET}"
+sudo nixos-generate-config --no-filesystems --root /mnt
+install -D -m 0644 /mnt/etc/nixos/hardware-configuration.nix "./hosts/${HOST}/hardware-configuration.nix"
+
+sudo nixos-install --root /mnt --flake "${TARGET}"
+
+mkdir -p /mnt/home/zhenyu/src/public/
+rsync -avPz ./ /mnt/home/zhenyu/src/public/nixos-config

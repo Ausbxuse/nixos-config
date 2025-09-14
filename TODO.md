@@ -3,8 +3,10 @@
 - declare direnv config in ~/.config/direnv/direnv.toml
 
 - Fresh Installation issues:
-  - Having to manually check lsblk run disko
-  - Having to manually generate copy hardware config
-  - Having to manually set user passwd
-  - Having to manually load old .ssh and sops
-  - Having to manually rsync my personal files
+  - generate copy hardware config
+  - set user passwd
+  - load old .ssh and sops
+  - rsync my personal files
+  - timezone
+  - bluetooth
+- server nixos pkgs cache

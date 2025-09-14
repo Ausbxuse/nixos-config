@@ -414,6 +414,12 @@ vim.lsp.config.harper = {
 }
 vim.lsp.enable 'harper'
 
+vim.lsp.config.nil_lsp = {
+  cmd = { 'nil', '--stdio' },
+  filetypes = { 'nix' },
+}
+vim.lsp.enable 'nil_lsp'
+
 return {
   {
     'folke/lazydev.nvim',

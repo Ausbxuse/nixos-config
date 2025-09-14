@@ -11,6 +11,7 @@
       home-manager
       lua-language-server
       stylua
+      nil
       nixpkgs-fmt
       # nix-index
       # nix-prefetch-git

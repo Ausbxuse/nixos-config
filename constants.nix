@@ -5,4 +5,5 @@
   email = "peterzhaozzy@gmail.com";
   private-hosts = ["uni" "timy"];
   public-hosts = ["spacy"];
+  disk = "@DISK@";
 }

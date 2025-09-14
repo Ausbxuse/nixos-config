@@ -26,7 +26,6 @@
     inputs.wallpapers.homeManagerModules.wallpaper
     inputs.stardict.homeManagerModules.stardict
   ];
-  nixpkgs.config.allowUnfree = true;
 
   programs.zsh.initContent = builtins.readFile ./zshrc;
   programs.tmux.extraConfig = builtins.readFile ./tmux.conf;

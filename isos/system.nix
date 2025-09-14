@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  inputs,
   ...
 }: {
   nixpkgs.config.allowUnfree = true;
@@ -32,4 +33,9 @@
   };
 
   system.stateVersion = "24.05";
+
+  environment.etc."age/keys.txt".source = "${inputs.bootstrap-keys}/age.txt";
+  environment.etc."ssh/id_ed25519".source = "${inputs.bootstrap-keys}/id_ed25519";
+
+  sops.age.keyFile = "/etc/age/keys.txt";
 }

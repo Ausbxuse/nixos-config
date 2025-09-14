@@ -1,5 +1,18 @@
 {
   "nodes": {
+    "bootstrap-keys": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1757878231,
+        "narHash": "sha256-sn+x/CT+c5lwZNQL3FRj8o+V0rZRK3OYL+zWnUUKEMg=",
+        "path": "/home/zhenyu/.local/src/secrets",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/zhenyu/.local/src/secrets",
+        "type": "path"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -192,6 +205,7 @@
     },
     "root": {
       "inputs": {
+        "bootstrap-keys": "bootstrap-keys",
         "disko": "disko",
         "grub2-theme": "grub2-theme",
         "home-manager": "home-manager",

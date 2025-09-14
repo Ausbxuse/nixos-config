@@ -14,8 +14,9 @@
   users.defaultUserShell = pkgs.zsh;
   users.users.${const.username} = {
     isNormalUser = true;
-    extraGroups = ["wheel" "networkmanager" "video"]; # Enable ‘sudo’ for the user.
+    extraGroups = ["wheel" "networkmanager" "video"];
     home = "/home/${const.username}";
+    initialHashedPassword = "";
     createHome = true;
   };
 

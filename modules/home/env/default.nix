@@ -40,7 +40,7 @@
     NPM_CONFIG_USERCONFIG = "${config.xdg.configHome}/npm/npmrc";
     PYLINTHOME = "${config.xdg.dataHome}/pylint";
     RUSTUP_HOME = "${config.xdg.dataHome}/rustup";
-    CONDARC = "${config.xdg.configHome}/conda/condarc";
+    # CONDARC = "${config.xdg.configHome}/conda/condarc";
     DICS = "${config.xdg.dataHome}/stardict/dic/";
     LC_ALL = "en_US.UTF-8";
     LANGUAGE = "en_US.UTF-8";

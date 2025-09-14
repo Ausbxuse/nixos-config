@@ -27,6 +27,10 @@
       url = "git+ssh://git@zhenyuzhao.com/var/lib/git-server/nix-secrets";
       flake = false;
     };
+    bootstrap-keys = {
+      url = "path:/home/zhenyu/.local/src/secrets";
+      flake = false;
+    };
   };
 
   outputs = {nixpkgs, ...} @ inputs: let
@@ -45,6 +49,22 @@
         extraSpecialArgs = {inherit inputs hostname const;};
       };
 
+    mkNixosWithHome = modules: hostname:
+      nixpkgs.lib.nixosSystem {
+        modules =
+          modules
+          ++ [
+            inputs.home-manager.nixosModules.home-manager
+            {
+              home-manager.users.${const.username} = import (./home + "/${hostname}");
+              home-manager.extraSpecialArgs = {inherit inputs hostname const;};
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+            }
+          ];
+        specialArgs = {inherit inputs hostname const;};
+      };
+
     system = const.system;
     pkgs = import nixpkgs {inherit system;};
 
@@ -58,8 +78,8 @@
     packages.${system} = import ./isos {inherit pkgs inputs;};
 
     nixosConfigurations = builtins.listToAttrs (map (host: {
-        name = host;
-        value = mkNixos [./hosts/${host}] host;
+        name = "${host}";
+        value = mkNixosWithHome [./hosts/${host}] host;
       })
       nixosHosts);
 

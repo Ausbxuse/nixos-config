@@ -1,10 +1,9 @@
-# disko.nix
-{
+{const, ...}: {
   disko.devices = {
     disk = {
       main = {
         type = "disk";
-        device = "/dev/vda";
+        device = "${const.disk}";
         content = {
           type = "gpt";
           partitions = {
