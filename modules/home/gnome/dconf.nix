@@ -571,7 +571,7 @@ with lib.hm.gvariant; {
     };
 
     "org/gnome/shell/extensions/user-theme" = {
-      name = "Orchis-dark";
+      name = "Snappy";
     };
 
     "org/gnome/shell/extensions/vitals" = {
