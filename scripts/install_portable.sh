@@ -2,8 +2,8 @@
 
 set -ex
 export PATH=$PATH:$HOME/.local/bin
-mkdir -p .local/bin
-cd .local/bin
+mkdir -p ~/.local/bin
+cd ~/.local/bin
 
 curl -L "https://github.com/DavHau/nix-portable/releases/latest/download/nix-portable-$(uname -m)" > ./nix-portable
 
@@ -22,26 +22,16 @@ ln -s nix-portable nix-hash
 ln -s nix-portable nix-shell
 
 cd ~/src/public/nixos-config
+rm ~/.bashrc ~/.profile
 NP_RUNTIME=bwrap nix-portable nix shell nixpkgs#{bashInteractive,nix} <<EOF
 nix run github:nix-community/home-manager -- switch --flake .#zhenyu@earthy
 EOF
 
-cat >~/.bashrc <<EOF
-export PATH=\$PATH:\$HOME/.local/bin
+cat >~/hm-env <<EOF
+#!/usr/bin/env bash
 
-if [ -z "\$__NIX_PORTABLE_ACTIVATED" ]; then
-        export __NIX_PORTABLE_ACTIVATED=1
-        NP_RUNTIME=bwrap nix-portable nix run nixpkgs#bashInteractive --offline
-        exit
-else
-        . \$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
-fi
-
-# If not running interactively, don't do anything
-[[ \$- != *i* ]] && return
-
-# Set something for the cmd line
-PS1='[\u@\h \W]\\\$ '
+NP_RUNTIME=bwrap $HOME/.local/bin/nix-portable nix run nixpkgs#zsh
 EOF
 
-echo 'Please remember to relogin so that the environment gets activated'
+chmod +x ~/hm-env
+./hm-env

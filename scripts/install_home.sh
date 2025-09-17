@@ -31,7 +31,7 @@ sed -i \
   -e "s/hostname = \"[^\"]*\";/hostname = \"$(hostname)\";/g" \
   ./constants.nix
 mkdir -p ~/.config/nix && echo 'extra-experimental-features = nix-command flakes' >>~/.config/nix/nix.conf
-nix run nixpkgs#home-manager -- switch --flake .#earthy
+nix run nixpkgs#home-manager -- switch --flake .#spacy
 
 if ! grep -q "$(command -v zsh)" /etc/shells; then
     echo "Authorizing Zsh as a valid shell..."

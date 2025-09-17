@@ -33,7 +33,11 @@
     };
   };
 
-  outputs = {nixpkgs, ...} @ inputs: let
+  outputs = {
+    self,
+    nixpkgs,
+    ...
+  } @ inputs: let
     inherit (nixpkgs) lib;
 
     const = import ./constants.nix;
@@ -75,7 +79,11 @@
 
     devShells.${system} = import ./shell.nix {inherit pkgs;};
 
-    packages.${system} = import ./isos {inherit pkgs inputs;};
+    packages.${system} = import ./isos {
+      inherit pkgs inputs;
+      nixosConfigurations = self.nixosConfigurations;
+      seedHostNames = nixosHosts;
+    };
 
     nixosConfigurations = builtins.listToAttrs (map (host: {
         name = "${host}";

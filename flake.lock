@@ -92,11 +92,11 @@
     "nix-secrets": {
       "flake": false,
       "locked": {
-        "lastModified": 1745516962,
-        "narHash": "sha256-06N91wd1dJHWFFKP6xGpFmT5Oy1xsETVo1/SvJmt1bo=",
+        "lastModified": 1757963031,
+        "narHash": "sha256-uzzs3uSuodsKF3+qUEp1u5ERau9tg+EH3kmkcsSsV5Y=",
         "ref": "refs/heads/master",
-        "rev": "b1026137a5b921d0835ccad8d7c9eacf1f2b229f",
-        "revCount": 3,
+        "rev": "3e5c96cfd1660d440be1f8235a4e0d6402798b11",
+        "revCount": 5,
         "type": "git",
         "url": "ssh://git@zhenyuzhao.com/var/lib/git-server/nix-secrets"
       },

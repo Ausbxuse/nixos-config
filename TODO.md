@@ -10,3 +10,4 @@
   - timezone
   - bluetooth
 - server nixos pkgs cache
+- ssh priv installation

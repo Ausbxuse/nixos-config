@@ -28,7 +28,7 @@ echo "Using LUKS password: $LUKS_PW"
 
 echo $LUKS_PW > /tmp/secret.key
 
-sudo nix run github:nix-community/disko -- --mode destroy,format,mount --flake "${TARGET}"
+sudo disko --mode destroy,format,mount --flake "${TARGET}"
 sudo nixos-generate-config --no-filesystems --root /mnt
 install -D -m 0644 /mnt/etc/nixos/hardware-configuration.nix "./hosts/${HOST}/hardware-configuration.nix"
 
