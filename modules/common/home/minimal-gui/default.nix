@@ -18,16 +18,13 @@
     # ../../../home/fcitx5
 
     ../../../home/autostart
-    ../../../home/applications
     ../../../home/xdg.nix
-    ../../../home/themes
-    ../../../home/fonts
+    ../../../home/de
 
     inputs.wallpapers.homeManagerModules.wallpaper
     inputs.stardict.homeManagerModules.stardict
   ];
 
-  programs.zsh.initContent = builtins.readFile ./zshrc;
   programs.tmux.extraConfig = builtins.readFile ./tmux.conf;
 
   home.pointerCursor = {

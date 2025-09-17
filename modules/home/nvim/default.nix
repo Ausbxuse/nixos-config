@@ -44,8 +44,4 @@ in {
     #   "${lib.makeSearchPathOutput "dev" "lib/pkgconfig" [stdenv.cc.cc zlib]}"
     # ];
   };
-
-  # home.activation.installNvim = lib.hm.dag.entryAfter ["writeBoundary"] ''
-  #   ${pkgs.rsync}/bin/rsync -avz --chmod=D2755,F744 ${./nvim}/ ${config.xdg.configHome}/nvim/
-  # '';
 }

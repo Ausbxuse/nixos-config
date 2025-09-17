@@ -49,8 +49,4 @@
   home.file.".gdbinit".text = ''
     set auto-load safe-path /nix/store
   '';
-
-  home.activation.installScripts = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    ${pkgs.rsync}/bin/rsync -avz --chmod=D2755,F744 ${./bin}/ ${config.home.homeDirectory}/.local/bin/
-  '';
 }

@@ -9,5 +9,16 @@
   - rsync my personal files
   - timezone
   - bluetooth
+  - ssh priv key + sops
 - server nixos pkgs cache
 - ssh priv installation
+
+- swap `rsync -avz` for nix styled declaration
+  - [ ] fcitx
+  - [x] ghostty
+  - [x] zsh
+  - [ ] tmux -- FIXME: continuum should load last
+  - [x] ~/.local/bin/ \* 2 (one in env, one in homemanager host specific)
+  - [x] fonts
+  - [x] themes
+  - [x] applications

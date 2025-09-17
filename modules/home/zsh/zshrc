@@ -6,13 +6,13 @@ hash -d dt=$HOME/.local/share
 hash -d m=$HOME/Media
 hash -d sc=$HOME/.local/bin
 
-source "$HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
-#source "$HOME/.config/zsh/plugins/zsh-system-clipboard/zsh-system-clipboard.zsh"
-source "$HOME/.config/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
-source "$HOME/.config/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh"
-source "$HOME/.config/zsh/plugins/zsh-nix-shell/nix-shell.plugin.zsh"
-source "$HOME/.config/zsh/plugins/fzf-tab/fzf-tab.zsh"
-source "$HOME/.config/zsh/plugins/better-prompt/better-prompt.zsh"
+# source "$HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+# #source "$HOME/.config/zsh/plugins/zsh-system-clipboard/zsh-system-clipboard.zsh"
+# source "$HOME/.config/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
+# source "$HOME/.config/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh"
+# source "$HOME/.config/zsh/plugins/zsh-nix-shell/nix-shell.plugin.zsh"
+# source "$HOME/.config/zsh/plugins/fzf-tab/fzf-tab.zsh"
+# source "$HOME/.config/zsh/plugins/better-prompt/better-prompt.zsh"
 
 export HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=true
 bindkey '^[[A' history-substring-search-up

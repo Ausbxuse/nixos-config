@@ -4,6 +4,7 @@
   pkgs,
   const,
   hostname,
+  inputs,
   ...
 }: {
   home.packages = with pkgs; [
@@ -153,10 +154,42 @@
           . /etc/profile.d/nix.sh
       fi
     '';
+    plugins = [
+      {
+        name = "zsh-better-prompt";
+        src = inputs.zsh-better-prompt.packages.${pkgs.system}.default;
+        file = "share/better-prompt/better-prompt.zsh";
+      }
+      # fast-syntax-highlighting
+      {
+        name = "fast-syntax-highlighting";
+        src = pkgs.zsh-fast-syntax-highlighting;
+        file = "share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh";
+      }
+
+      {
+        name = "fzf-tab";
+        src = pkgs.zsh-fzf-tab;
+        file = "share/fzf-tab/fzf-tab.plugin.zsh";
+      }
+      {
+        name = "zsh-autosuggestions";
+        src = pkgs.zsh-autosuggestions;
+        file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh";
+      }
+
+      {
+        name = "zsh-history-substring-search";
+        src = pkgs.zsh-history-substring-search;
+        file = "share/zsh-history-substring-search/zsh-history-substring-search.zsh";
+      }
+
+      {
+        name = "zsh-nix-shell";
+        src = pkgs.zsh-nix-shell;
+        file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
+      }
+    ];
     # source ~/.nix-profile/etc/profile.d/nix.sh
   };
-  # installs zsh plugins
-  home.activation.installZshPlugins = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    ${pkgs.rsync}/bin/rsync -avz --chmod=D2755,F744 ${./zsh}/ ${config.xdg.configHome}/zsh/
-  '';
 }

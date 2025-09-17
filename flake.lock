@@ -13,6 +13,23 @@
         "type": "path"
       }
     },
+    "de": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1758101933,
+        "narHash": "sha256-ByWVqxbRmt0gPQBrVk5W5XuL8iGYzJrDwkH3YL/5CRU=",
+        "path": "/home/zhenyu/src/public/de",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/zhenyu/src/public/de",
+        "type": "path"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -206,6 +223,7 @@
     "root": {
       "inputs": {
         "bootstrap-keys": "bootstrap-keys",
+        "de": "de",
         "disko": "disko",
         "grub2-theme": "grub2-theme",
         "home-manager": "home-manager",
@@ -215,7 +233,8 @@
         "nixpkgs": "nixpkgs_3",
         "sops-nix": "sops-nix",
         "stardict": "stardict",
-        "wallpapers": "wallpapers"
+        "wallpapers": "wallpapers",
+        "zsh-better-prompt": "zsh-better-prompt"
       }
     },
     "sops-nix": {
@@ -269,6 +288,23 @@
         "owner": "ausbxuse",
         "repo": "wallpapers",
         "type": "github"
+      }
+    },
+    "zsh-better-prompt": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1758097237,
+        "narHash": "sha256-lnLstnHprE4xAbcwkL4OKAdnjgnsDGA1kOrgjvlhGQY=",
+        "path": "/home/zhenyu/src/public/zsh-better-prompt",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/zhenyu/src/public/zsh-better-prompt",
+        "type": "path"
       }
     }
   },

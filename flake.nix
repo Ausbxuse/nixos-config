@@ -31,6 +31,14 @@
       url = "path:/home/zhenyu/.local/src/secrets";
       flake = false;
     };
+    zsh-better-prompt = {
+      url = "path:/home/zhenyu/src/public/zsh-better-prompt";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    de = {
+      url = "path:/home/zhenyu/src/public/de";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
