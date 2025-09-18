@@ -4,7 +4,7 @@ IFS=$'\n\t'
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
-git clone https://github.com/ausbxuse/nixos-config
+git clone https://github.com/ausbxuse/nixos-config -b feature/install-hm
 cd nixos-config
 
 lsblk -ndo PATH,TYPE,RM,SIZE,MODEL,TRAN | awk '$2=="disk" && $3==0 {print $0}'
