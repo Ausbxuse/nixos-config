@@ -1,8 +1,4 @@
-{
-  pkgs,
-  inputs,
-  ...
-}: {
+{pkgs, ...}: {
   imports = [
     ../minimal.nix
 
@@ -20,12 +16,9 @@
     ../../../home/autostart
     ../../../home/xdg.nix
     ../../../home/de
-
-    inputs.wallpapers.homeManagerModules.wallpaper
-    inputs.stardict.homeManagerModules.stardict
   ];
 
-  programs.tmux.extraConfig = builtins.readFile ./tmux.conf;
+  # programs.tmux.extraConfig = builtins.readFile ./tmux.conf;
 
   home.pointerCursor = {
     name = "capitaine-cursors-white";

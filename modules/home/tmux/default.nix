@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   programs.tmux = {
     enable = true;
   };
@@ -30,29 +25,6 @@
     plugins = with pkgs.tmuxPlugins; [
       sensible
       {
-        plugin = prefix-highlight;
-        extraConfig = ''
-
-          set -g @prefix_highlight_show_copy_mode 'on'
-          set -g @prefix_highlight_copy_mode_attr 'fg=#f4bf75,bg=default,bold' # default is 'fg=default,bg=yellow'
-          set -g @prefix_highlight_show_sync_mode 'on'
-          set -g @prefix_highlight_sync_mode_attr 'fg=black,bg=green' # default is 'fg=default,bg=yellow'
-
-          set -g @prefix_highlight_fg '#62d8f1' # default is 'colour231'
-          set -g @prefix_highlight_bg 'default'  # default is 'colour04'
-          set -g @prefix_highlight_empty_prompt ' #[fg=#9ece6a,bg=default,bold]TMUX '
-          set -g @prefix_highlight_prefix_prompt '#[bold]PREV'
-          set -g @prefix_highlight_copy_prompt '#[bold]COPY'
-          set -g @prefix_highlight_sync_prompt '#[bold]SYNC'
-        '';
-      }
-      {
-        plugin = fingers;
-        extraConfig = ''
-          set -g @fingers-key y
-        '';
-      }
-      {
         plugin = resurrect;
         extraConfig = ''
 
@@ -66,6 +38,29 @@
       {
         plugin = continuum; # needs resurrect present
         extraConfig = ''
+            set -g status-interval 60         # update the status bar every 10 seconds
+            set -g status-justify centre
+            set -g status-position top
+            set -g status-style 'bg=default'  # transparent background
+            set -g status-left-length 50
+            set -g status-right-length 70
+            set -g status-bg 'default'
+            set -g status-left ' #{?client_prefix,^ ,}#[fg=#2b2a30,bg=default]#[fg=#b4befe,bg=default]#S#[fg=#2b2a30,bg=default] #[fg=#dfdcd8,bg=default]#(~/.config/tmux/truncate_path.sh #{pane_current_path})'
+
+            # set -g status-right '#[fg=#4fc1ff,bg=default,bold]#{?window_zoomed_flag,+, }#[fg=#daeafa,nobold]%H:%M #[bg=default]'
+            set -g status-right '#[fg=#4fc1ff,bg=default,bold]#{?window_zoomed_flag,+, }#[fg=#b4befe,bold]#[nobold] #[nobold]#(duo status)#(cpu) #(memory) #[bg=default]#(battery) #[fg=#a9b1d6,bg=default,nobold,noitalics]#(forecast) #[fg=#daeafa,nobold]%H:%M #[bg=default]'
+            set -g window-status-current-style 'fg=#89ddff,bg=default'
+            set -g window-status-format '#[fg=#5c626e,bg=default,italics]#I: #[fg=#5c626e,bg=default,noitalics,bold]#W#[fg=#2b2a30,bg=default] '
+            set -g window-status-current-format '#[fg=#ae81ff,bg=default,]#[italics]#I: #[fg=#dfdcd8,bg=default]#[bold,noitalics]#W#[fg=#2b2a30,bg=default] '
+            set -g window-status-last-style 'fg=#a9b1d6,bg=default'
+            set -g window-status-activity-style 'fg=#9ece6a,bg=default'
+            set -g pane-border-style 'fg=#b4befe'
+            set -g pane-active-border-style 'fg=#b4befe'
+            set -g message-command-style "bg=default,fg=#a9b1d6"
+            set -g message-style "bg=default,fg=#a9b1d6"
+            set -g mode-style "bg=#292e42"
+
+
             set -g @continuum-restore 'on'
             set -g @continuum-save-interval '5'
             set -g @continuum-boot 'on'

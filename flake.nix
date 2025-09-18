@@ -32,11 +32,11 @@
       flake = false;
     };
     zsh-better-prompt = {
-      url = "path:/home/zhenyu/src/public/zsh-better-prompt";
+      url = "github:ausbxuse/zsh-better-prompt";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     de = {
-      url = "path:/home/zhenyu/src/public/de";
+      url = "github:ausbxuse/de";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

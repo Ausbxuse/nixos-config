@@ -30,9 +30,13 @@ echo $LUKS_PW > /tmp/secret.key
 
 sudo disko --mode destroy,format,mount --flake "${TARGET}"
 sudo nixos-generate-config --no-filesystems --root /mnt
-install -D -m 0644 /mnt/etc/nixos/hardware-configuration.nix "./hosts/${HOST}/hardware-configuration.nix"
 
-sudo nixos-install --root /mnt --flake "${TARGET}"
+sudo rm -rf /mnt/etc/nixos
+sudo git clone https://github.com/ausbxuse/nixos-config /mnt/etc/nixos
+
+sudo install -D -m 0644 /mnt/etc/nixos/hardware-configuration.nix "/mnt/etc/nixos/hosts/${HOST}/hardware-configuration.nix"
+
+sudo nixos-install --root /mnt --flake "/mnt/etc/nixos#${HOST}"
 
 mkdir -p /mnt/home/zhenyu/src/public/
 rsync -avPz ./ /mnt/home/zhenyu/src/public/nixos-config

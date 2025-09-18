@@ -20,14 +20,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1758101933,
-        "narHash": "sha256-ByWVqxbRmt0gPQBrVk5W5XuL8iGYzJrDwkH3YL/5CRU=",
-        "path": "/home/zhenyu/src/public/de",
-        "type": "path"
+        "lastModified": 1758169266,
+        "narHash": "sha256-L/sae0QaLcQD0FAsk2k3l9W1KX+iQaq0eZbjsTINdyg=",
+        "owner": "ausbxuse",
+        "repo": "de",
+        "rev": "55eec9a85625932de65f270d4c5808a88dfd603e",
+        "type": "github"
       },
       "original": {
-        "path": "/home/zhenyu/src/public/de",
-        "type": "path"
+        "owner": "ausbxuse",
+        "repo": "de",
+        "type": "github"
       }
     },
     "disko": {
@@ -297,14 +300,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1758097237,
-        "narHash": "sha256-lnLstnHprE4xAbcwkL4OKAdnjgnsDGA1kOrgjvlhGQY=",
-        "path": "/home/zhenyu/src/public/zsh-better-prompt",
-        "type": "path"
+        "lastModified": 1758103320,
+        "narHash": "sha256-ByZv/v86iH3rIipEbUqjozeLoHe4POTm6P1Lu2eikzk=",
+        "owner": "ausbxuse",
+        "repo": "zsh-better-prompt",
+        "rev": "181a750ff248cdce77fb5e28c2e57965753b4879",
+        "type": "github"
       },
       "original": {
-        "path": "/home/zhenyu/src/public/zsh-better-prompt",
-        "type": "path"
+        "owner": "ausbxuse",
+        "repo": "zsh-better-prompt",
+        "type": "github"
       }
     }
   },
