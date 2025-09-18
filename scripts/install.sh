@@ -4,6 +4,9 @@ IFS=$'\n\t'
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
+git clone https://github.com/ausbxuse/nixos-config
+cd nixos-config
+
 lsblk -ndo PATH,TYPE,RM,SIZE,MODEL,TRAN | awk '$2=="disk" && $3==0 {print $0}'
 read -rp "Enter target disk path (e.g. /dev/nvme0n1): " TARGET_DISK
 [[ -n "${TARGET_DISK:-}" ]] || die "No input provided."
@@ -31,12 +34,9 @@ echo $LUKS_PW > /tmp/secret.key
 sudo disko --mode destroy,format,mount --flake "${TARGET}"
 sudo nixos-generate-config --no-filesystems --root /mnt
 
-sudo rm -rf /mnt/etc/nixos
-sudo git clone https://github.com/ausbxuse/nixos-config /mnt/etc/nixos
+sudo install -D -m 0644 /mnt/etc/nixos/hardware-configuration.nix "./hosts/${HOST}/hardware-configuration.nix"
 
-sudo install -D -m 0644 /mnt/etc/nixos/hardware-configuration.nix "/mnt/etc/nixos/hosts/${HOST}/hardware-configuration.nix"
-
-sudo nixos-install --root /mnt --flake "/mnt/etc/nixos#${HOST}"
+sudo nixos-install --root /mnt --flake ".#${HOST}"
 
 mkdir -p /mnt/home/zhenyu/src/public/
 rsync -avPz ./ /mnt/home/zhenyu/src/public/nixos-config
