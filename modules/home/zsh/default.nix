@@ -18,6 +18,7 @@
     btop
     chafa
     fastfetch
+    sdcv
   ];
 
   programs.fzf = {
