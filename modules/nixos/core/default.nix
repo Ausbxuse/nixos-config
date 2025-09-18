@@ -52,6 +52,12 @@
   ];
 
   networking.hostName = "${hostname}";
-  networking.networkmanager.enable = true;
+  networking.networkmanager = {
+    enable = true;
+    plugins = with pkgs; [
+      networkmanager-openconnect
+      networkmanager-openvpn
+    ];
+  };
   networking.firewall.enable = lib.mkDefault false;
 }

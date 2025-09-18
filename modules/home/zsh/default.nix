@@ -74,10 +74,6 @@
     };
   };
 
-  programs.bash = {
-    enable = true;
-    historySize = 10000000;
-  };
   programs.zsh = {
     enable = true;
     dotDir = "${config.home.homeDirectory}/.config/zsh";

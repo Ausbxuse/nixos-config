@@ -9,10 +9,10 @@ gitgc:
 dconf: 
 	rsync -av ~/.config/dconf/ ./hosts/base/home/gnome/dconf
 
-build-host:
+sys:
 	nixos-rebuild switch --flake .#$(hostname) --use-remote-sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000
 
-build-home:
+hm:
   home-manager switch --flake .#$(whoami)@$(hostname)
 
 debug: 

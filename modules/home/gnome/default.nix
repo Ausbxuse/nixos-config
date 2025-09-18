@@ -6,6 +6,7 @@
   home.packages = with pkgs; [
     # pinentry
     gnome-shell-extensions
+    gnome-monitor-config
     networkmanager-openvpn
     # gnome-extension-manager
     gnome-tweaks
