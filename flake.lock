@@ -209,20 +209,6 @@
         "type": "github"
       }
     },
-    "nixpkgs_4": {
-      "locked": {
-        "lastModified": 1757034884,
-        "narHash": "sha256-PgLSZDBEWUHpfTRfFyklmiiLBE1i1aGCtz4eRA3POao=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "ca77296380960cd497a765102eeb1356eb80fed0",
-        "type": "github"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
-      }
-    },
     "root": {
       "inputs": {
         "bootstrap-keys": "bootstrap-keys",
@@ -235,8 +221,6 @@
         "nixos-generators": "nixos-generators",
         "nixpkgs": "nixpkgs_3",
         "sops-nix": "sops-nix",
-        "stardict": "stardict",
-        "wallpapers": "wallpapers",
         "zsh-better-prompt": "zsh-better-prompt"
       }
     },
@@ -257,39 +241,6 @@
       "original": {
         "owner": "Mic92",
         "repo": "sops-nix",
-        "type": "github"
-      }
-    },
-    "stardict": {
-      "locked": {
-        "lastModified": 1735089887,
-        "narHash": "sha256-bxdN9XHaeJDu5ti5tUMIknwrB44g/txMYK/CwgxiE2M=",
-        "owner": "ausbxuse",
-        "repo": "stardict",
-        "rev": "8d9a12ea878bbaf777f1b7a98af8231ae1c29635",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ausbxuse",
-        "repo": "stardict",
-        "type": "github"
-      }
-    },
-    "wallpapers": {
-      "inputs": {
-        "nixpkgs": "nixpkgs_4"
-      },
-      "locked": {
-        "lastModified": 1735088802,
-        "narHash": "sha256-NnrxaqJ5Ha7MQ2aa13mgGYJgSlTaZiqSWJbpOsMx3pI=",
-        "owner": "ausbxuse",
-        "repo": "wallpapers",
-        "rev": "f2d00bc17e089f3cd4d9c0fe15e650ee81fe7db1",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ausbxuse",
-        "repo": "wallpapers",
         "type": "github"
       }
     },

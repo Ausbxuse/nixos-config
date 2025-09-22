@@ -3,8 +3,6 @@
     grub2-theme.url = "github:vinceliuice/grub2-themes";
     minegrub.url = "github:Lxtharia/minegrub-theme";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    wallpapers.url = "github:ausbxuse/wallpapers";
-    stardict.url = "github:ausbxuse/stardict";
 
     home-manager = {
       url = "github:nix-community/home-manager";

@@ -12,5 +12,5 @@
 
 - swap `rsync -avz` for nix styled declaration
   - [ ] fcitx
-  - [x] nvim using store
+  - [ ] nvim using store
   - [ ] installer script hosting
