@@ -19,6 +19,9 @@
     chafa
     fastfetch
     sdcv
+    wl-clipboard
+    xsel
+    gdu
   ];
 
   programs.fzf = {
@@ -187,6 +190,5 @@
         file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
       }
     ];
-    # source ~/.nix-profile/etc/profile.d/nix.sh
   };
 }

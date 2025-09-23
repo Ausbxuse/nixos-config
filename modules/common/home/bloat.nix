@@ -18,7 +18,7 @@
     # font-manager
     foliate
     obs-studio
-    scrcpy
+    # scrcpy
     calibre
     quickemu
     sct

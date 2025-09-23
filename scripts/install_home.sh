@@ -45,3 +45,5 @@ chsh -s "$(command -v zsh)"
 # setxkbmap -option ctrl:nocaps
 
 echo "Installation and setup complete!"
+
+gnome-extensions disable ubuntu-dock@ubuntu.com

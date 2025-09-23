@@ -97,7 +97,7 @@ with lib.hm.gvariant; {
       gtk-theme = "Adwaita";
       icon-theme = "Adwaita";
       locate-pointer = false;
-      scaling-factor = mkUint32 1;
+      scaling-factor = mkUint32 2;
       show-battery-percentage = true;
       text-scaling-factor = 1.0;
       toolbar-style = "text";
@@ -222,7 +222,7 @@ with lib.hm.gvariant; {
     };
 
     "org/gnome/settings-daemon/plugins/color" = {
-      night-light-enabled = true;
+      night-light-enabled = false;
       night-light-last-coordinates = mkTuple [30.582886232884718 114.2681];
       night-light-schedule-automatic = false;
       night-light-schedule-from = 16.0;
@@ -283,7 +283,7 @@ with lib.hm.gvariant; {
     "org/gnome/shell" = {
       command-history = ["lg" "xiccdf" "xiccd"];
       disable-user-extensions = false;
-      disabled-extensions = ["light-style@gnome-shell-extensions.gcampax.github.com" "native-window-placement@gnome-shell-extensions.gcampax.github.com" "tiling-assistant@leleat-on-github" "Rounded_Corners@lennart-k" "auto-move-windows@gnome-shell-extensions.gcampax.github.com" "Vitals@CoreCoding.com" "netspeedsimplified@prateekmedia.extension" "apps-menu@gnome-shell-extensions.gcampax.github.com" "cronomix@zagortenay333" "gnomebedtime@ionutbortis.gmail.com" "system-monitor@gnome-shell-extensions.gcampax.github.com" "places-menu@gnome-shell-extensions.gcampax.github.com" "paperwm@paperwm.github.com" "rounded-window-corners@fxgn" "gtk4-ding@smedius.gitlab.com" "window-list@gnome-shell-extensions.gcampax.github.com"];
+      disabled-extensions = ["ubuntu-dock@ubuntu.com" "light-style@gnome-shell-extensions.gcampax.github.com" "native-window-placement@gnome-shell-extensions.gcampax.github.com" "tiling-assistant@leleat-on-github" "Rounded_Corners@lennart-k" "auto-move-windows@gnome-shell-extensions.gcampax.github.com" "Vitals@CoreCoding.com" "netspeedsimplified@prateekmedia.extension" "apps-menu@gnome-shell-extensions.gcampax.github.com" "cronomix@zagortenay333" "gnomebedtime@ionutbortis.gmail.com" "system-monitor@gnome-shell-extensions.gcampax.github.com" "places-menu@gnome-shell-extensions.gcampax.github.com" "paperwm@paperwm.github.com" "rounded-window-corners@fxgn" "gtk4-ding@smedius.gitlab.com" "window-list@gnome-shell-extensions.gcampax.github.com"];
       enabled-extensions = ["screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com" "drive-menu@gnome-shell-extensions.gcampax.github.com" "kimpanel@kde.org" "gsconnect@andyholmes.github.io" "night-light-slider-updated@vilsbeg.codeberg.org" "color-picker@tuberry" "caffeine@patapon.info" "Bluetooth-Battery-Meter@maniacx.github.com" "monitor@astraext.github.io" "workspace-indicator@gnome-shell-extensions.gcampax.github.com" "unite@hardpixel.eu" "mediacontrols@cliffniff.github.com" "system-monitor-next@paradoxxx.zero.gmail.com" "forge@jmmaranan.com" "no-overview@fthx" "user-theme@gnome-shell-extensions.gcampax.github.com" "azwallpaper@azwallpaper.gitlab.com" "blur-my-shell@aunetx"];
       favorite-apps = ["org.gnome.Settings.desktop" "org.gnome.Nautilus.desktop" "org.gnome.Extensions.desktop" "org.gnome.Calendar.desktop" "firefox.desktop" "steam.desktop" "org.wezfurlong.wezterm.desktop" "com.github.xournalpp.xournalpp.desktop"];
       last-selected-power-profile = "power-saver";

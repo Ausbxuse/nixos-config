@@ -1,7 +1,6 @@
 {...}: {
   programs = {
     ghostty = {
-      # TODO: finish configs
       enable = true;
       themes = {
         snappy = {
@@ -28,7 +27,7 @@
           foreground = "#dfdcd8";
           cursor-color = "#dfdcd8";
           cursor-text = "#000000";
-          # cursor-invert-fg-bg = true; # uncomment if you want it active
+          # cursor-invert-fg-bg = true;
           selection-background = "#626880";
           selection-foreground = "#c6d0f5";
         };

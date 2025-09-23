@@ -4,6 +4,7 @@
   ];
 
   home.packages = with pkgs; [
+    capitaine-cursors
     # pinentry
     gnome-shell-extensions
     gnome-monitor-config
