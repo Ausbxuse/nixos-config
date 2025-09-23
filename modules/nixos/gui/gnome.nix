@@ -48,7 +48,7 @@
     gnome-photos
     # gnome-screenshot
     gnome-system-monitor
-    # gnome-weather
+    gnome-weather
     gnome-disk-utility
   ];
 
