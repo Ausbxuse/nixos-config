@@ -19,6 +19,12 @@ need_sudo() {
   fi
 }
 
+check_git() {
+  if ! command -v git >/dev/null 2>&1; then
+    error "Git is not installed. Please install git and rerun this script."
+  fi
+}
+
 # ─── Install Nix if missing ─────────────────────────────────
 install_nix() {
   if ! command -v nix >/dev/null 2>&1; then
@@ -64,7 +70,7 @@ enable_flakes() {
 hm_switch() {
   info "Running home-manager switch..."
   cd "$REPO_DIR"
-  nix run nixpkgs#home-manager -- switch --flake ".#$FLAKE_NAME"
+  nix run nixpkgs#home-manager -- switch --flake ".#$(whoami)@$FLAKE_NAME"
 }
 
 # ─── Setup Zsh as default shell ─────────────────────────────
@@ -137,6 +143,7 @@ EOF
 # ─── Main ──────────────────────────────────────────────────
 main() {
   need_sudo
+  check_git
   install_nix
   clone_repo
   patch_constants

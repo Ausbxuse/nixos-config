@@ -12,7 +12,7 @@
 
   home.activation.make-zsh-default-shell = lib.hm.dag.entryAfter ["writeBoundary"] ''
     PATH="/usr/bin:/bin:$PATH"
-    ZSH_PATH=$(command -v zsh)
+    ZSH_PATH="/home/${const.username}/.nix-profile/bin/zsh"
 
     # only run if current shell is not ZSH_PATH
     if [[ $(getent passwd ${const.username}) != *"$ZSH_PATH" ]]; then
@@ -28,7 +28,6 @@
       run chsh -s "$ZSH_PATH" ${const.username}
       echo "zsh is now set as default shell!"
     fi
-    gnome-extensions disable ubuntu-dock@ubuntu.com
   '';
 
   nixGL.packages = import inputs.nixgl {inherit pkgs;};
