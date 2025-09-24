@@ -3,7 +3,10 @@
     grub2-theme.url = "github:vinceliuice/grub2-themes";
     minegrub.url = "github:Lxtharia/minegrub-theme";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixgl.url = "github:nix-community/nixGL";
+    nixgl = {
+      url = "github:nix-community/nixGL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
