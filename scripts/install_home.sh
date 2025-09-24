@@ -23,9 +23,7 @@ need_sudo() {
 install_nix() {
   if ! command -v nix >/dev/null 2>&1; then
     info "Installing Nix..."
-    sh <(curl -L "$NIX_INSTALL_URL") --daemon
-    # Load Nix into the current shell
-    . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+    sh <(curl --proto '=https' --tlsv1.2 -L "$NIX_INSTALL_URL") --daemon
     exec "$SHELL" "$0"  # restart script in new shell env
   else
     info "Nix already installed."
