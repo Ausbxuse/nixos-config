@@ -240,7 +240,7 @@ with lib.hm.gvariant; {
       rotate-video-lock-static = ["<Super>o" "XF86RotationLockToggle"];
       screenreader = [];
       screensaver = ["<Super>Delete"];
-      search = ["<Super>d"];
+      # search = ["<Super>d"];
       volume-down = ["<Super>comma"];
       volume-mute = ["<Super>m"];
       volume-up = ["<Super>period"];
@@ -585,6 +585,7 @@ with lib.hm.gvariant; {
     "org/gnome/shell/keybindings" = {
       focus-active-notification = ["<Super>n"];
       shift-overview-down = ["<Super><Alt>Down"];
+      toggle-overview = ["<Super>d"];
       shift-overview-up = ["<Super><Alt>Up"];
       show-screenshot-ui = ["<Super>p"];
       toggle-application-view = [];
