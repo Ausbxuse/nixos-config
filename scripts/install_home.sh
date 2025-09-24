@@ -30,7 +30,11 @@ install_nix() {
   if ! command -v nix >/dev/null 2>&1; then
     info "Installing Nix..."
     sh <(curl --proto '=https' --tlsv1.2 -L "$NIX_INSTALL_URL") --daemon
-    exec "$SHELL" "$0"  # restart script in new shell env
+    if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+      . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    else
+      warn "Could not find nix-daemon.sh. You may need to restart your shell session."
+    fi
   else
     info "Nix already installed."
   fi
