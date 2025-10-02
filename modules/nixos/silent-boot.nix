@@ -9,6 +9,7 @@
   ];
   boot.plymouth.enable = true;
   boot.plymouth.theme = "breeze";
+  boot.initrd.systemd.enable = true;
   # boot.consoleLogLevel = 0;
   # boot.initrd.verbose = false;
 }

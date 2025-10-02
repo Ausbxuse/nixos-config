@@ -47,6 +47,7 @@
     # pkg-config
     killall
     unzip
+    fwupd
     # pass
     # via
   ];
@@ -60,4 +61,5 @@
     ];
   };
   networking.firewall.enable = lib.mkDefault false;
+  services.fwupd.enable = true;
 }

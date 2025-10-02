@@ -61,6 +61,12 @@
     ];
   };
 
+  programs.ssh = {
+    startAgent = false; # we want gpg-agent, not ssh-agent
+    enableAskPassword = false; # don’t ever set SSH_ASKPASS
+    askPassword = "";
+  };
+
   services.interception-tools = {
     enable = true;
     plugins = [

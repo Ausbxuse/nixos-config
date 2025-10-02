@@ -2,6 +2,7 @@
   imports = [
     ./minimal.nix
     ../../nixos/gui/gnome.nix
+    ../../nixos/keyd.nix
     ../../nixos/hardware/sound.nix
     ../../nixos/hardware/printing.nix
     ../../nixos/hardware/usb.nix
