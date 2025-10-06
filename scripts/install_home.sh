@@ -99,7 +99,6 @@ setup_zsh() {
   fi
 }
 
-# ─── Optional: Interception-tools setup ─────────────────────
 setup_interception_tools() {
   read -rp "👉 Do you want to set CapsLock = Ctrl when held, Esc when tapped? [y/N] " ans
   case "$ans" in
@@ -107,20 +106,13 @@ setup_interception_tools() {
       need_sudo
       info "Installing interception-tools..."
       sudo apt update
-      sudo apt install -y interception-tools interception-tools-plugins
+      sudo apt install -y interception-tools interception-caps2esc
 
-      info "Writing dual-function-keys config..."
-      sudo tee /etc/dual-function-keys.yaml >/dev/null <<'EOF'
-MAPPINGS:
-  - KEY: KEY_CAPSLOCK
-    TAP: KEY_ESC
-    HOLD: KEY_LEFTCTRL
-EOF
-
+      info "Writing caps2esc config..."
       sudo mkdir -p /etc/interception/udevmon.d
-      sudo tee /etc/interception/udevmon.d/dual-function-keys.yaml >/dev/null <<'EOF'
-- JOB: "intercept -g $DEVNODE \
-       | dual-function-keys -c /etc/dual-function-keys.yaml \
+      sudo tee /etc/interception/udevmon.d/caps2esc.yaml >/dev/null <<'EOF'
+- JOB: "interception -g $DEVNODE \
+       | caps2esc \
        | uinput -d $DEVNODE"
   DEVICE:
     EVENTS:

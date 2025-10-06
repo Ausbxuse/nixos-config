@@ -33,7 +33,7 @@
         };
       };
       settings = {
-        theme = "dark:snappy,light:Tomorrow";
+        theme = "snappy";
 
         font-family = "JetBrainsMono NF";
         font-family-italic = "Operator Mono Book";
