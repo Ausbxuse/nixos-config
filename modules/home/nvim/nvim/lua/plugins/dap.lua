@@ -1,6 +1,7 @@
 return {
   {
     'mfussenegger/nvim-dap',
+    enabled = false,
     event = 'VeryLazy',
     config = function()
       local dap = require 'dap'
@@ -165,6 +166,7 @@ return {
 
   {
     'rcarriga/nvim-dap-ui',
+    enabled = false,
     dependencies = { 'mfussenegger/nvim-dap', 'nvim-neotest/nvim-nio' },
     config = function()
       local dap, dapui = require 'dap', require 'dapui'

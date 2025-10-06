@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   programs.tmux = {
     enable = true;
   };
@@ -7,12 +11,9 @@
     lm_sensors
   ];
 
-  # home.activation.installTmux = lib.hm.dag.entryAfter ["writeBoundary"] ''
-  #   ${pkgs.rsync}/bin/rsync -avz --chmod=D2755,F744 ${./tmux}/ ${config.xdg.configHome}/tmux/
-  # '';
-
   programs.tmux = {
     extraConfig = builtins.readFile ./tmux.conf;
+    shortcut = lib.mkDefault "f";
     keyMode = "vi";
     baseIndex = 1;
     escapeTime = 20;
@@ -45,7 +46,7 @@
             set -g status-left-length 50
             set -g status-right-length 70
             set -g status-bg 'default'
-            set -g status-left ' #{?client_prefix,^ ,}#[fg=#2b2a30,bg=default]#[fg=#b4befe,bg=default]#S#[fg=#2b2a30,bg=default] #[fg=#dfdcd8,bg=default]#(~/.config/tmux/truncate_path.sh #{pane_current_path})'
+            set -g status-left ' #{?client_prefix,^ ,}#[fg=#2b2a30,bg=default]#[fg=#b4befe,bg=default]#S#[fg=#2b2a30,bg=default] #[fg=#dfdcd8,bg=default]#(~/.local/bin/tmux/truncate_path.sh #{pane_current_path})'
 
             # set -g status-right '#[fg=#4fc1ff,bg=default,bold]#{?window_zoomed_flag,+, }#[fg=#daeafa,nobold]%H:%M #[bg=default]'
             set -g status-right '#[fg=#4fc1ff,bg=default,bold]#{?window_zoomed_flag,+, }#[fg=#b4befe,bold]#[nobold] #[nobold]#(duo status)#(cpu) #(memory) #[bg=default]#(battery) #[fg=#a9b1d6,bg=default,nobold,noitalics]#(forecast) #[fg=#daeafa,nobold]%H:%M #[bg=default]'

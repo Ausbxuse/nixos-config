@@ -4,8 +4,7 @@
 
 - Fresh Installation issues:
   - load old .ssh and sops
-  - timezone
-  - bluetooth
   - ssh priv key + sops
 - server nixos pkgs cache
 - ssh priv installation
+- install_nix-portable: de PATH envvar setting so that tmux can use "forecast" for statusbar

@@ -342,15 +342,18 @@ vim.lsp.enable 'astro'
 vim.lsp.config.basedpyright = {
   cmd = { 'basedpyright-langserver', '--stdio' },
   filetypes = { 'python' },
-  -- root_markers = { 'pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', 'Pipfile', 'pyrightconfig.json', '.git' },
+  root_markers = { 'pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', 'Pipfile', 'pyrightconfig.json', '.git' },
   settings = {
+    python = {
+      pythonPath = vim.fn.getcwd() .. '/.venv/bin/python',
+    },
     basedpyright = {
       analysis = {
         autoSearchPaths = true,
         autoImportCompletions = true,
         useLibraryCodeForTypes = true,
         diagnosticMode = 'openFilesOnly', -- or "workspace"
-        typeCheckingMode = 'basic', -- "off" | "basic" | "standard" | "strict"
+        typeCheckingMode = 'standard', -- "off" | "basic" | "standard" | "strict"
         inlayHints = {
           variableTypes = true,
           callArgumentNames = true,
@@ -419,7 +422,7 @@ vim.lsp.config.nil_lsp = {
   filetypes = { 'nix' },
 }
 vim.lsp.enable 'nil_lsp'
-
+vim.lsp.enable 'copilot'
 return {
   {
     'folke/lazydev.nvim',

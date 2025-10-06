@@ -40,6 +40,9 @@ return {
       keymap = {
         preset = 'default',
         ['<Tab>'] = {
+          function()
+            return require('sidekick').nes_jump_or_apply()
+          end,
           function(cmp)
             if cmp.is_menu_visible() then
               return cmp.select_and_accept()

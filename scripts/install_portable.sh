@@ -33,5 +33,7 @@ cat >~/hm-env <<EOF
 NP_RUNTIME=bwrap $HOME/.local/bin/nix-portable nix run nixpkgs#zsh
 EOF
 
+echo "exec zsh" >> ~/.bash_profile
+
 chmod +x ~/hm-env
 ./hm-env

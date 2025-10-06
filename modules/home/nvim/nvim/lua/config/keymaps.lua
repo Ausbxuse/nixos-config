@@ -17,6 +17,7 @@ end
 
 vim.keymap.set('i', '<c-c>', '<Esc>')
 vim.keymap.set('n', '<Esc>', '<cmd>nohl<cr>')
+vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], { noremap = true })
 vim.keymap.set('n', '<leader>x', '<cmd>bd<cr>')
 vim.keymap.set('n', 'n', 'nzzzv')
 vim.keymap.set('n', 'N', 'Nzzzv')
