@@ -70,3 +70,7 @@ fi
 setopt appendhistory
 setopt INC_APPEND_HISTORY  
 setopt SHARE_HISTORY
+# TODO: workaround
+if [ "$TERM" = "xterm-ghostty" ]; then
+  export TERM="xterm-256color"
+fi
