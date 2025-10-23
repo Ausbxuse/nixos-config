@@ -24,7 +24,7 @@ ln -s nix-portable nix-shell
 cd ~/src/public/nixos-config
 rm ~/.bashrc ~/.profile
 NP_RUNTIME=bwrap nix-portable nix shell nixpkgs#{bashInteractive,nix} <<EOF
-nix run github:nix-community/home-manager -- switch --flake .#zhenyu@earthy
+nix run --experimental-features "nix-command flakes" github:nix-community/home-manager -- switch --experimental-features "nix-command flakes"  --flake .#zhenyu@earthy
 EOF
 
 cat >~/hm-env <<EOF

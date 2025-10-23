@@ -44,6 +44,7 @@
     DICS = "${config.xdg.dataHome}/stardict/dic/";
     LC_ALL = "en_US.UTF-8";
     LANGUAGE = "en_US.UTF-8";
+    TERM = "xterm-256color";
   };
 
   home.file.".gdbinit".text = ''

@@ -39,7 +39,8 @@
     RUSTUP_HOME = "${XDG_DATA_HOME}/rustup";
     # CONDARC = "${XDG_CONFIG_HOME}/conda/condarc";
     DICS = "/usr/share/stardict/dic/";
-    MUTTER_DEBUG = "color";
+    # MUTTER_DEBUG = "color";
     MAMBA_ROOT_PREFIX = "${XDG_CACHE_HOME}/micromamba";
+    TERM = "xterm-256color";
   };
 }
