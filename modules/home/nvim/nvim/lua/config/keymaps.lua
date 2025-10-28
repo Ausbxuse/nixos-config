@@ -1,18 +1,8 @@
 local lsp_utils = require 'utils.lsp_utils'
-local function goto_buffer(n)
-  local bufs = vim.fn.getbufinfo { buflisted = 1 }
-  if bufs[n] then
-    vim.api.nvim_cmd({ cmd = 'buffer', args = { bufs[n].bufnr } }, {})
-  else
-    vim.notify 'No such buffer'
-  end
-end
 
 local keys = { 'q', 'w', 'e', 'r', 't', '1', '2', '3', '4', '5' }
 for i, key in ipairs(keys) do
-  vim.keymap.set('n', '<leader>' .. key, function()
-    goto_buffer(i)
-  end, { silent = true })
+  vim.keymap.set('n', '<leader>' .. key, string.format('<cmd>argu %d|args<CR>', i), { silent = true })
 end
 
 vim.keymap.set('i', '<c-c>', '<Esc>')
@@ -24,8 +14,6 @@ vim.keymap.set('n', 'N', 'Nzzzv')
 vim.keymap.set('n', '<leader><leader>', '<cmd>ls<cr>:b ')
 vim.keymap.set('n', '<c-d>', '<c-d>zz')
 vim.keymap.set('n', '<c-u>', '<c-u>zz')
-vim.keymap.set('n', 'H', '<cmd>bp<cr>')
-vim.keymap.set('n', 'L', '<cmd>bn<cr>')
 vim.keymap.set('n', 'J', 'mzJ`z')
 vim.keymap.set('n', '<leader><tab>', '<C-^>', { desc = 'Alt-tab prev buffer' })
 vim.keymap.set('n', '<leader>u', '<cmd> UndotreeToggle <cr>', { desc = 'Toggle Undotree' })
@@ -83,3 +71,9 @@ function Add_formatting_comments()
 end
 
 vim.keymap.set('n', '<leader>fc', Add_formatting_comments, { noremap = true, silent = true, desc = 'Add disable-formatting comments around current line' })
+
+vim.keymap.set('n', '<leader>a', '<cmd>$arge %<bar>argded<bar>args<cr>', { desc = 'Add current buff to arglist' })
+vim.keymap.set('n', '<leader>d', '<cmd>argd %<bar>args<cr>', { desc = 'Delete current buff to arglist' })
+vim.keymap.set('n', '<leader>D', '<cmd>argd %<bar>args<cr>', { desc = 'Delete current buff to arglist' })
+vim.keymap.set('n', 'H', '<cmd>prev | args<CR>', { desc = 'Go to left buffer in arglist' })
+vim.keymap.set('n', 'L', '<cmd>next | args<CR>', { desc = 'Go to right buffer in arglist' })
