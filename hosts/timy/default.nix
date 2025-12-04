@@ -12,5 +12,5 @@
     ../../modules/nixos/gui/gaming.nix
   ];
 
-  nixpkgs.overlays = [(import ../../overlays/mutter.nix)]; # NOTE: gnome 47 fix, should be fixed in 49
+  # nixpkgs.overlays = [(import ../../overlays/mutter.nix)]; # NOTE: gnome 47 fix, should be fixed in 49
 }

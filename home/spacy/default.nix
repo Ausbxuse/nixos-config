@@ -30,8 +30,8 @@
     fi
   '';
 
-  nixGL.packages = import inputs.nixgl {inherit pkgs;};
-  nixGL.defaultWrapper = "mesa";
-  nixGL.installScripts = ["mesa"];
+  targets.genericLinux.nixGL.packages = import inputs.nixgl {inherit pkgs;};
+  targets.genericLinux.nixGL.defaultWrapper = "mesa";
+  targets.genericLinux.nixGL.installScripts = ["mesa"];
   programs.ghostty.package = config.lib.nixGL.wrap pkgs.ghostty;
 }

@@ -45,7 +45,7 @@
         adjust-cursor-thickness = 2;
         cursor-style = "bar";
 
-        gtk-adwaita = false;
+        # gtk-adwaita = false;
         resize-overlay = "never";
 
         window-decoration = false;

@@ -514,7 +514,7 @@ with lib.hm.gvariant; {
       show-control-icons-previous = false;
       show-control-icons-seek-backward = false;
       show-control-icons-seek-forward = false;
-      show-label = true;
+      show-label = false;
     };
 
     "org/gnome/shell/extensions/netspeedsimplified" = {

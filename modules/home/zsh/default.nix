@@ -59,21 +59,26 @@
 
   programs.git = {
     enable = true;
-
-    userName = const.name;
-    userEmail = const.email;
-    delta = {
-      enable = true;
-      options = {
-        # decorations = {
-        #   commit-decoration-style = "bold yellow box ul";
-        #   file-decoration-style = "none";
-        #   file-style = "bold yellow ul";
-        # };
-        side-by-side = true;
-        features = "decorations";
-        whitespace-error-style = "22 reverse";
+    settings = {
+      user = {
+        name = const.name;
+        email = const.email;
       };
+    };
+  };
+
+  programs.delta = {
+    enable = true;
+    enableGitIntegration = true;
+    options = {
+      # decorations = {
+      #   commit-decoration-style = "bold yellow box ul";
+      #   file-decoration-style = "none";
+      #   file-style = "bold yellow ul";
+      # };
+      side-by-side = true;
+      features = "decorations";
+      whitespace-error-style = "22 reverse";
     };
   };
 
@@ -81,11 +86,11 @@
     enable = true;
     dotDir = "${config.home.homeDirectory}/.config/zsh";
     enableCompletion = true;
-    autosuggestion.enable = false;
-    syntaxHighlighting.enable = false;
-    syntaxHighlighting.styles = {
-      path = "fg=magenta,bold";
-    };
+    # autosuggestion.enable = false;
+    # syntaxHighlighting.enable = false;
+    # syntaxHighlighting.styles = {
+    #   path = "fg=magenta,bold";
+    # };
     historySubstringSearch.enable = false;
     shellAliases = {
       ncdu = "ncdu --color dark -e -q -L";
@@ -157,14 +162,14 @@
     plugins = [
       {
         name = "zsh-better-prompt";
-        src = inputs.zsh-better-prompt.packages.${pkgs.system}.default;
+        src = inputs.zsh-better-prompt.packages.${pkgs.stdenv.hostPlatform.system}.default;
         file = "share/better-prompt/better-prompt.zsh";
       }
       # fast-syntax-highlighting
       {
         name = "fast-syntax-highlighting";
         src = pkgs.zsh-fast-syntax-highlighting;
-        file = "share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh";
+        file = "share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh";
       }
 
       {

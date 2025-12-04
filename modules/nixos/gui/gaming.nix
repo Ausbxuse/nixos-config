@@ -38,7 +38,7 @@
     };
   };
   environment.systemPackages = with pkgs; [
-    protonup
+    protonup-ng
     mangohud # system stats overlay
   ];
 

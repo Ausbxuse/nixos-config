@@ -15,7 +15,7 @@
     wl-clipboard
   ];
 
-  nixpkgs.config.allowUnfree = true;
+  # nixpkgs.config.allowUnfree = true;
 
   home.file."${config.home.homeDirectory}/.local/bin/startup" = {
     text = ''
