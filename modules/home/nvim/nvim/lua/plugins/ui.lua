@@ -6,7 +6,6 @@ local function set_path(file_path)
   return path_variable
 end
 return {
-  { 'nvim-treesitter/nvim-treesitter-textobjects', dependencies = { 'nvim-treesitter/nvim-treesitter' } },
   {
     'lukas-reineke/indent-blankline.nvim',
     main = 'ibl',
@@ -27,106 +26,121 @@ return {
       }
     end,
   },
+  -- lua/plugins/treesitter.lua (or wherever your lazy specs live)
   {
-    'nvim-treesitter/nvim-treesitter',
-    build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
-    opts = {
-      ensure_installed = {
-        'bash',
-        'c',
-        'diff',
-        'html',
-        'lua',
-        'luadoc',
-        'markdown',
-        'markdown_inline',
-        'query',
-        'vim',
-        'vimdoc',
-        'python',
-        'cpp',
-        'just',
-        'nix',
-        'tmux',
-        'yaml',
-        'comment',
-      },
-      auto_install = true,
-      highlight = {
-        enable = true,
-        additional_vim_regex_highlighting = { 'ruby' },
-        disable = { 'gitcommit', 'latex', 'tmux' },
-        language_tree = true,
-        is_supported = function()
-          if vim.fn.strwidth(vim.fn.getline '.') > 300 or vim.fn.getfsize(vim.fn.expand '%') > 1024 * 1024 then
-            return false
-          else
-            return true
-          end
-        end,
-      },
-      indent = { enable = true, disable = { 'ruby' } },
-      incremental_selection = {
-        enable = true,
-        keymaps = {
-          node_incremental = 'v',
-          node_decremental = 'V',
-        },
-      },
+    {
+      "nvim-treesitter/nvim-treesitter",
+      branch = "main",
+      lazy = false, -- main branch: "does not support lazy-loading" :contentReference[oaicite:5]{index=5}
+      build = ":TSUpdate",
+      config = function()
+        local ts = require("nvim-treesitter")
 
-      -- textobjects for selection and movement
-      textobjects = {
-        select = {
-          enable = true,
-          lookahead = true,
-          keymaps = {
-            ['ah'] = '@block.outer', -- around the current block
-            ['ih'] = '@block.inner', -- inside the current block
-            ['af'] = '@function.outer',
-            ['if'] = '@function.inner',
-            ['ac'] = '@class.outer',
-            ['ic'] = '@class.inner',
-            ['ai'] = '@conditional.outer',
-            ['ii'] = '@conditional.inner',
-            ['al'] = '@loop.outer', -- a loop (for, while, etc.)
-            ['il'] = '@loop.inner', -- inner part of a loop
-            ['as'] = { query = '@local.scope', query_group = 'locals', desc = 'Select language scope' },
+        -- Optional: match the README example install_dir :contentReference[oaicite:6]{index=6}
+        ts.setup({
+          install_dir = vim.fn.stdpath("data") .. "/site",
+        })
+
+        -- Equivalent of your old ensure_installed + auto_install:
+        -- install() is a no-op for already-installed parsers. :contentReference[oaicite:7]{index=7}
+        ts.install({
+          "bash", "c", "diff", "html", "lua", "luadoc",
+          "markdown", "markdown_inline", "query", "vim", "vimdoc",
+          "python", "cpp", "just", "nix", "tmux", "yaml",
+        })
+
+        -- Enable TS highlighting (provided by Neovim) :contentReference[oaicite:8]{index=8}
+        vim.api.nvim_create_autocmd("FileType", {
+          pattern = {
+            "bash","c","diff","html","lua","markdown","vim","python","cpp","nix","tmux","yaml","just",
           },
-        },
-        move = {
-          enable = true,
-          set_jumps = true,
-          goto_next_start = {
-            [']f'] = '@function.outer',
-            [']h'] = '@block.outer',
-            [']c'] = '@class.outer',
-            [']i'] = '@conditional.outer',
-            [']l'] = '@loop.outer',
+          callback = function()
+            vim.treesitter.start()
+          end,
+        })
+
+        -- Optional: TS indentation (experimental; provided by nvim-treesitter main) :contentReference[oaicite:9]{index=9}
+        vim.api.nvim_create_autocmd("FileType", {
+          pattern = {
+            "bash","c","html","lua","python","cpp","nix","yaml","just","vim","tmux","markdown",
           },
-          goto_next_end = {
-            [']F'] = '@function.outer',
-            [']H'] = '@block.outer',
-            [']C'] = '@class.outer',
-            [']I'] = '@conditional.outer',
-            [']L'] = '@loop.outer',
+          callback = function()
+            vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end,
+        })
+      end,
+    },
+
+    {
+      "nvim-treesitter/nvim-treesitter-textobjects",
+      branch = "main",
+      lazy = false,
+      init = function()
+        -- From textobjects README main branch :contentReference[oaicite:10]{index=10}
+        vim.g.no_plugin_maps = true
+      end,
+      config = function()
+        -- Configure behavior (lookahead, set_jumps, etc.) :contentReference[oaicite:11]{index=11}
+        require("nvim-treesitter-textobjects").setup({
+          select = {
+            lookahead = true,
+            include_surrounding_whitespace = false,
           },
-          goto_previous_start = {
-            ['[f'] = '@function.outer',
-            ['[h'] = '@block.outer',
-            ['[c'] = '@class.outer',
-            ['[i'] = '@conditional.outer',
-            ['[l'] = '@loop.outer',
+          move = {
+            set_jumps = true,
           },
-          goto_previous_end = {
-            ['[F'] = '@function.outer',
-            ['[H'] = '@block.outer',
-            ['[C'] = '@class.outer',
-            ['[I'] = '@conditional.outer',
-            ['[L'] = '@loop.outer',
-          },
-        },
-      },
+        })
+
+        -- === SELECT keymaps (your mappings) ===
+        local sel = require("nvim-treesitter-textobjects.select")
+        local function xomap(lhs, capture, group)
+          vim.keymap.set({ "x", "o" }, lhs, function()
+            sel.select_textobject(capture, group)
+          end)
+        end
+
+        xomap("ah", "@block.outer", "textobjects")
+        xomap("ih", "@block.inner", "textobjects")
+        xomap("af", "@function.outer", "textobjects")
+        xomap("if", "@function.inner", "textobjects")
+        xomap("ac", "@class.outer", "textobjects")
+        xomap("ic", "@class.inner", "textobjects")
+        xomap("ai", "@conditional.outer", "textobjects")
+        xomap("ii", "@conditional.inner", "textobjects")
+        xomap("al", "@loop.outer", "textobjects")
+        xomap("il", "@loop.inner", "textobjects")
+        xomap("as", "@local.scope", "locals") -- locals group example :contentReference[oaicite:12]{index=12}
+
+        -- === MOVE keymaps (your mappings) ===
+        local mv = require("nvim-treesitter-textobjects.move")
+        local function nxo(lhs, fn)
+          vim.keymap.set({ "n", "x", "o" }, lhs, fn)
+        end
+
+        nxo("]f", function() mv.goto_next_start("@function.outer", "textobjects") end)
+        nxo("]h", function() mv.goto_next_start("@block.outer", "textobjects") end)
+        nxo("]c", function() mv.goto_next_start("@class.outer", "textobjects") end)
+        nxo("]i", function() mv.goto_next_start("@conditional.outer", "textobjects") end)
+        nxo("]l", function() mv.goto_next_start({ "@loop.inner", "@loop.outer" }, "textobjects") end)
+
+        nxo("]F", function() mv.goto_next_end("@function.outer", "textobjects") end)
+        nxo("]H", function() mv.goto_next_end("@block.outer", "textobjects") end)
+        nxo("]C", function() mv.goto_next_end("@class.outer", "textobjects") end)
+        nxo("]I", function() mv.goto_next_end("@conditional.outer", "textobjects") end)
+        nxo("]L", function() mv.goto_next_end({ "@loop.inner", "@loop.outer" }, "textobjects") end)
+
+        nxo("[f", function() mv.goto_previous_start("@function.outer", "textobjects") end)
+        nxo("[h", function() mv.goto_previous_start("@block.outer", "textobjects") end)
+        nxo("[c", function() mv.goto_previous_start("@class.outer", "textobjects") end)
+        nxo("[i", function() mv.goto_previous_start("@conditional.outer", "textobjects") end)
+        nxo("[l", function() mv.goto_previous_start({ "@loop.inner", "@loop.outer" }, "textobjects") end)
+
+        nxo("[F", function() mv.goto_previous_end("@function.outer", "textobjects") end)
+        nxo("[H", function() mv.goto_previous_end("@block.outer", "textobjects") end)
+        nxo("[C", function() mv.goto_previous_end("@class.outer", "textobjects") end)
+        nxo("[I", function() mv.goto_previous_end("@conditional.outer", "textobjects") end)
+        nxo("[L", function() mv.goto_previous_end({ "@loop.inner", "@loop.outer" }, "textobjects") end)
+      end,
     },
   },
   {
