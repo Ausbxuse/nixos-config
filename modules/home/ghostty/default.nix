@@ -33,11 +33,11 @@
         };
       };
       settings = {
-        theme = "snappy";
+        theme = "dark:snappy,light:Catppuccin Latte";
 
         font-family = "JetBrainsMono NF";
         font-family-italic = "Operator Mono Book";
-        font-size = 10;
+        font-size = 12;
         font-thicken = true;
 
         shell-integration-features = "no-cursor,no-sudo,title";

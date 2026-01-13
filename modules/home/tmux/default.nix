@@ -46,8 +46,8 @@
             set -g status-left-length 50
             set -g status-right-length 70
             set -g status-bg 'default'
-            set -g status-left ' #{?client_prefix,^ ,}#[fg=#f4bf75]#(whoami)#[fg=#9ece6a]@#[fg=#62d8f1]#H #[fg=#2b2a30,bg=default]#[fg=#b4befe,bg=default]#S'
-            set -g status-left ' #{?client_prefix,^ ,}#[fg=#f4bf75]#(whoami)#[fg=#9ece6a]@#[fg=#62d8f1]#H #[fg=#2b2a30,bg=default]#[fg=#b4befe,bg=default]#S#[fg=#2b2a30,bg=default] #[fg=#dfdcd8,bg=default]#(~/.local/bin/tmux/truncate_path.sh #{pane_current_path})'
+            set -g status-left ' #{?client_prefix,^ ,}#{?#{==:#{env:SSH_CONNECTION},},#[fg=#9ece6a]local,#[fg=#f4bf75]#(whoami)#[fg=#9ece6a]@#[fg=#62d8f1]#H} #[fg=#2b2a30,bg=default]#[fg=#b4befe,bg=default]#S'
+            set -g status-left ' #{?client_prefix,^ ,}#{?#{==:#{env:SSH_CONNECTION},},#[fg=#9ece6a]local,#[fg=#f4bf75]#(whoami)#[fg=#9ece6a]@#[fg=#62d8f1]#H} #[fg=#2b2a30,bg=default]#[fg=#b4befe,bg=default]#S#[fg=#2b2a30,bg=default] #[fg=#dfdcd8,bg=default]#(~/.local/bin/tmux/truncate_path.sh #{pane_current_path})'
 
             set -g status-right '#[fg=#4fc1ff,bg=default,bold]#{?window_zoomed_flag,+, }#[fg=#b4befe,bold]#[nobold] #[nobold]#(duo status)#(cpu) #(memory) #[bg=default]#(battery) #[fg=#daeafa,nobold]%H:%M #[bg=default]'
             # set -g status-right '#[fg=#4fc1ff,bg=default,bold]#{?window_zoomed_flag,+, }#[fg=#daeafa,nobold]%H:%M #[bg=default]'

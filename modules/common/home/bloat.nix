@@ -24,7 +24,7 @@
     sct
     discord
     spotify
-    code-cursor
+    codex
     # wechat-uos
   ];
 
