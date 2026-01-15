@@ -67,6 +67,8 @@ return {
         vim.api.nvim_create_autocmd('FileType', {
           pattern = {
             'bash',
+            'sh',
+            'zsh',
             'c',
             'diff',
             'html',
@@ -89,6 +91,8 @@ return {
         vim.api.nvim_create_autocmd('FileType', {
           pattern = {
             'bash',
+            'sh',
+            'zsh',
             'c',
             'html',
             'lua',
