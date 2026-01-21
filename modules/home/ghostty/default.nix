@@ -23,7 +23,7 @@
             "15=#b5bfe2"
           ];
 
-          background = "#121212";
+          background = "#1a1b26";
           foreground = "#dfdcd8";
           cursor-color = "#dfdcd8";
           cursor-text = "#000000";
@@ -49,7 +49,7 @@
         resize-overlay = "never";
 
         window-decoration = false;
-        background-opacity = 0.7;
+        background-opacity = 1;
         link-url = true;
       };
     };
