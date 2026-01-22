@@ -55,6 +55,7 @@ return {
           'query',
           'vim',
           'vimdoc',
+          'comment',
           'python',
           'cpp',
           'just',
