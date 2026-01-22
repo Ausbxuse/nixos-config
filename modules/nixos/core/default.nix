@@ -17,25 +17,11 @@
   system.stateVersion = "24.05";
 
   networking.timeServers = options.networking.timeServers.default ++ ["pool.ntp.org"];
-
-  systemd.services.ip-timezone = {
-    description = "Set system timezone from public IP";
-    wantedBy = ["multi-user.target"];
-    after = ["network-online.target"];
-    wants = ["network-online.target"];
-
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "set-timezone" ''
-        set -euo pipefail
-
-        TZ="$(${pkgs.curl}/bin/curl -fsS --max-time 5 https://ipapi.co/timezone || true)"
-
-        if [ -n "$TZ" ]; then
-          ${pkgs.systemd}/bin/timedatectl set-timezone "$TZ"
-        fi
-      '';
-    };
+  services.automatic-timezoned.enable = true;
+  services.geoclue2 = {
+    enable = true;
+    enableDemoAgent = lib.mkForce true; # replaces gnome's geoclue demo agent
+    enableWifi = true;
   };
   i18n.defaultLocale = "en_US.UTF-8";
 

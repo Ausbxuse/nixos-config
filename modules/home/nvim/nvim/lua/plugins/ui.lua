@@ -262,11 +262,10 @@ return {
     init = function()
       vim.cmd.colorscheme 'snappy'
     end,
-    config = function()
-      require('snappy').setup()
-    end,
+    -- config = function()
+    --   require('snappy').setup()
+    -- end,
   },
-  { 'catppuccin/nvim', name = 'catppuccin', priority = 1000 },
   { 'eandrju/cellular-automaton.nvim' },
   {
     'm4xshen/hardtime.nvim',

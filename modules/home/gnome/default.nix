@@ -3,6 +3,27 @@
     ./dconf.nix
   ];
 
+  systemd.user.services.tmux-theme-watch = {
+    Unit = {
+      Description = "Reload tmux theme on GNOME color-scheme changes";
+      After = ["graphical-session.target"];
+      PartOf = ["graphical-session.target"];
+    };
+    Service = {
+      ExecStart = "%h/.local/bin/tmux/theme-watch.sh";
+      Restart = "always";
+      RestartSec = 1;
+    };
+    Install = {
+      WantedBy = ["graphical-session.target"];
+    };
+  };
+
+  home.file.".local/bin/tmux/theme-watch.sh" = {
+    source = ../tmux/theme-watch.sh;
+    executable = true;
+  };
+
   home.packages = with pkgs; [
     capitaine-cursors
     # pinentry
