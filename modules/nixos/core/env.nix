@@ -37,7 +37,8 @@
     NPM_CONFIG_USERCONFIG = "${XDG_CONFIG_HOME}/npm/npmrc";
     PYLINTHOME = "${XDG_DATA_HOME}/pylint";
     RUSTUP_HOME = "${XDG_DATA_HOME}/rustup";
-    # CONDARC = "${XDG_CONFIG_HOME}/conda/condarc";
+    PYTHON_HISTORY = "${XDG_DATA_HOME}/python_history";
+    CONDARC = "${XDG_CONFIG_HOME}/conda/condarc";
     DICS = "/usr/share/stardict/dic/";
     # MUTTER_DEBUG = "color";
     MAMBA_ROOT_PREFIX = "${XDG_CACHE_HOME}/micromamba";

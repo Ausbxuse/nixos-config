@@ -49,6 +49,7 @@ return {
           'diff',
           'html',
           'lua',
+          'zsh',
           'luadoc',
           'markdown',
           'markdown_inline',

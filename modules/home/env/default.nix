@@ -20,6 +20,8 @@
   };
 
   home.sessionVariables = {
+    ANDROID_SDK_HOME = "${config.xdg.dataHome}/android-sdk";
+    PULSE_COOKIE = "${config.xdg.stateHome}/pulse/cookie";
     XCURSOR_THEME = "capitaine-cursors-white";
     FLAKE = "${config.home.homeDirectory}/src/public/nixos-config";
     MANPAGER = "nvim +Man!";
@@ -38,9 +40,12 @@
     HISTFILE = "${config.xdg.dataHome}/history";
     SQLITE_HISTORY = "${config.xdg.dataHome}/sqlite_history";
     NPM_CONFIG_USERCONFIG = "${config.xdg.configHome}/npm/npmrc";
+    NPM_CONFIG_CACHE = "${config.xdg.cacheHome}/npm";
     PYLINTHOME = "${config.xdg.dataHome}/pylint";
     RUSTUP_HOME = "${config.xdg.dataHome}/rustup";
-    # CONDARC = "${config.xdg.configHome}/conda/condarc";
+    CONDARC = "${config.xdg.configHome}/conda/condarc";
+    PYTHON_HISTORY = "${config.xdg.dataHome}/python_history";
+    IPYTHONDIR = "${config.xdg.configHome}/ipython";
     DICS = "${config.xdg.dataHome}/stardict/dic/";
     LC_ALL = "en_US.UTF-8";
     LANGUAGE = "en_US.UTF-8";

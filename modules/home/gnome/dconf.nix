@@ -68,7 +68,7 @@ with lib.hm.gvariant; {
     };
 
     "org/gnome/desktop/datetime" = {
-      automatic-timezone = true;
+      automatic-timezone = false;
     };
 
     "org/gnome/desktop/file-sharing" = {
