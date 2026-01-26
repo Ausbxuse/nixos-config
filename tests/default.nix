@@ -1,6 +1,6 @@
 {pkgs, lib}: let
   mkTest = {name, modules, testScript}:
-    lib.nixosTest {
+    pkgs.testers.nixosTest {
       inherit name testScript;
       nodes.machine = {config, ...}: {
         imports = modules;
@@ -15,9 +15,9 @@ in {
       ../modules/nixos/gui/gnome.nix
     ];
     testScript = ''
-      machine.wait_for_unit("gdm.service")
+      machine.wait_for_unit("display-manager.service")
       machine.wait_for_unit("graphical.target")
-      machine.succeed("systemctl is-active gdm.service")
+      machine.succeed("systemctl is-active display-manager.service")
     '';
   };
 
