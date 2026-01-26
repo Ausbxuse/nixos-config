@@ -21,6 +21,11 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache
+          sudo apt-get clean
+
       - name: Eval
         run: nix flake show --all-systems $NIX_OVERRIDES
 
@@ -28,12 +33,10 @@ jobs:
         run: |
           nix shell nixpkgs#alejandra -c alejandra --check .
 
-      - name: Build system closures
+      - name: Build earthy home closure
         run: |
-          HOSTS=$(nix eval --json .#nixosConfigurations --apply 'builtins.attrNames' $NIX_OVERRIDES | jq -r '.[]')
-          for host in $HOSTS; do
-            nix build .#nixosConfigurations.${host}.config.system.build.toplevel $NIX_OVERRIDES
-          done
+          USERNAME=$(nix eval --raw --impure --expr 'let const = import ./constants.nix; in const.username')
+          nix build .#homeConfigurations.\"${USERNAME}@earthy\".activationPackage $NIX_OVERRIDES
 
       - name: NixOS VM tests (major services)
         run: |
