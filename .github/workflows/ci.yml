@@ -24,9 +24,9 @@ jobs:
       - name: Eval
         run: nix flake show --all-systems $NIX_OVERRIDES
 
-      - name: Lint (nixpkgs-fmt)
+      - name: Lint (alejandra)
         run: |
-          nix shell nixpkgs#nixpkgs-fmt -c nixpkgs-fmt --check .
+          nix shell nixpkgs#alejandra -c alejandra --check .
 
       - name: Build system closures
         run: |

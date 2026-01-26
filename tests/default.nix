@@ -1,5 +1,12 @@
-{pkgs, lib}: let
-  mkTest = {name, modules, testScript}:
+{
+  pkgs,
+  lib,
+}: let
+  mkTest = {
+    name,
+    modules,
+    testScript,
+  }:
     pkgs.testers.nixosTest {
       inherit name testScript;
       nodes.machine = {config, ...}: {
