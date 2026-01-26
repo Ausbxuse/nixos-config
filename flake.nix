@@ -93,6 +93,8 @@
       seedHostNames = nixosHosts;
     };
 
+    checks.${system} = import ./tests {inherit pkgs lib;};
+
     nixosConfigurations = builtins.listToAttrs (map (host: {
         name = "${host}";
         value = mkNixosWithHome [./hosts/${host}] host;
