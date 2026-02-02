@@ -47,6 +47,8 @@ return {
           'bash',
           'c',
           'diff',
+          'typescript',
+          'tsx',
           'html',
           'lua',
           'zsh',
@@ -68,6 +70,8 @@ return {
         -- Enable TS highlighting (provided by Neovim) :contentReference[oaicite:8]{index=8}
         vim.api.nvim_create_autocmd('FileType', {
           pattern = {
+            'typescript',
+            'tsx',
             'bash',
             'sh',
             'zsh',
@@ -92,6 +96,8 @@ return {
         -- Optional: TS indentation (experimental; provided by nvim-treesitter main) :contentReference[oaicite:9]{index=9}
         vim.api.nvim_create_autocmd('FileType', {
           pattern = {
+            'typescript',
+            'tsx',
             'bash',
             'sh',
             'zsh',
@@ -228,7 +234,7 @@ return {
   },
   {
     'catgoose/nvim-colorizer.lua',
-    event = 'VeryLazy',
+    event = { 'BufReadPost', 'BufNewFile' },
     opts = { -- set to setup table
       lazy_load = true,
       user_default_options = {

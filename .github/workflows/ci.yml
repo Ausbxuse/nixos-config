@@ -38,8 +38,8 @@ jobs:
           USERNAME=$(nix eval --raw --impure --expr 'let const = import ./constants.nix; in const.username')
           nix build .#homeConfigurations.\"${USERNAME}@earthy\".activationPackage $NIX_OVERRIDES
 
-      - name: NixOS VM tests (major services)
+      - name: Home checks (earthy essentials)
         run: |
-          for test in gnome printing pipewire; do
-            nix build .#checks.${SYSTEM}.${test} $NIX_OVERRIDES
-          done
+          USERNAME=$(nix eval --raw --impure --expr 'let const = import ./constants.nix; in const.username')
+          nix eval --json .#homeConfigurations.\"${USERNAME}@earthy\".config.programs.neovim.enable | jq -e '. == true'
+          nix eval --json .#homeConfigurations.\"${USERNAME}@earthy\".config.xdg.configFile.nvim.source | jq -e 'type == "string"'

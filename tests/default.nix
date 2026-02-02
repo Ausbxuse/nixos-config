@@ -34,8 +34,8 @@ in {
       ../modules/nixos/hardware/printing.nix
     ];
     testScript = ''
-      machine.wait_for_unit("cups.service")
-      machine.succeed("systemctl is-active cups.service")
+      machine.wait_for_unit("cups.socket")
+      machine.succeed("systemctl is-active cups.socket")
     '';
   };
 
