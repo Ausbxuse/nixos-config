@@ -9,3 +9,9 @@
 - ssh priv installation
 - install_nix-portable: de PATH envvar setting so that tmux can use "forecast" for statusbar
 - earthy: add extra-experimental features nix-command and flakes to ~/.config/nix
+
+# urgent
+
+- [ ] aarch64 installation issue when using install_home.sh
+- [ ] super + z for zoom got conflict in forge
+- [ ] direnv
