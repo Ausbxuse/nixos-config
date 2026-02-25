@@ -48,9 +48,9 @@
             set -g status-left-length 50
             set -g status-right-length 70
             set -g status-bg 'default'
-            if-shell 'command -v gsettings >/dev/null 2>&1 && gsettings get org.gnome.desktop.interface color-scheme | grep -q prefer-dark' \
-              'source-file ~/.config/tmux/theme-dark.conf' \
-              'source-file ~/.config/tmux/theme-light.conf'
+            if-shell 'command -v gsettings >/dev/null 2>&1 && gsettings get org.gnome.desktop.interface color-scheme | grep -q prefer-light' \
+              'source-file ~/.config/tmux/theme-light.conf' \
+              'source-file ~/.config/tmux/theme-dark.conf'
 
 
             set -g @continuum-restore 'on'
