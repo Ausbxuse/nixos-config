@@ -23,6 +23,7 @@
     wl-clipboard
     xsel
     gdu
+    codex
   ];
 
   programs.fzf = {
