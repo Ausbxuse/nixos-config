@@ -17,6 +17,7 @@
     eza
     btop
     chafa
+    timg
     fastfetch
     sdcv
     wl-clipboard
@@ -43,6 +44,23 @@
     settings = {
       log = {
         enabled = false;
+      };
+      opener = {
+        video = [
+          {
+            run = ''sh -c 'if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then xdg-open "$@"; else timg -p k "$@"; fi' --'';
+            block = true;
+            for = "unix";
+          }
+        ];
+      };
+      open = {
+        rules = [
+          {
+            mime = "video/*";
+            use = "video";
+          }
+        ];
       };
       manager = {
         linemode = "mtime";
