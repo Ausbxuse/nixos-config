@@ -1,4 +1,6 @@
 {...}: {
+  xdg.configFile."ghostty/shaders/cursor_warp.glsl".source = ./cursor_warp.glsl;
+
   programs = {
     ghostty = {
       enable = true;
@@ -63,6 +65,7 @@
       };
       settings = {
         theme = "dark:snappy,light:snappy_light";
+        custom-shader = "shaders/cursor_warp.glsl";
 
         font-family = "JetBrainsMono NF";
         font-family-italic = "Operator Mono Book";
