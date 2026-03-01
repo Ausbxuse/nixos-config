@@ -12,7 +12,7 @@ dconf:
 sys:
 	nixos-rebuild switch --flake .#$(hostname) --use-remote-sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000
 
-hm:
+home:
   home-manager switch --flake .#$(whoami)@$(hostname)
 
 debug: 

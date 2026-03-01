@@ -41,6 +41,7 @@
 
   programs.yazi = {
     enable = true;
+    shellWrapperName = "y";
     enableZshIntegration = true;
     settings = {
       log = {
@@ -63,7 +64,7 @@
           }
         ];
       };
-      manager = {
+      mgr = {
         linemode = "mtime";
         show_symlink = true;
         scrolloff = 5;

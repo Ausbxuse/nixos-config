@@ -15,3 +15,4 @@
 - [ ] aarch64 installation issue when using install_home.sh
 - [ ] super + z for zoom got conflict in forge
 - [ ] direnv
+- [ ] uni tmux statusbar color

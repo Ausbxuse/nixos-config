@@ -78,7 +78,10 @@
       };
 
     system = const.system;
-    pkgs = import nixpkgs {inherit system;};
+    pkgs = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+    };
 
     nixosHosts = lib.attrNames (builtins.readDir ./hosts);
     homeHosts = lib.attrNames (builtins.readDir ./home);

@@ -234,11 +234,22 @@ return {
   },
   {
     'catgoose/nvim-colorizer.lua',
-    event = { 'BufReadPost', 'BufNewFile' },
-    opts = { -- set to setup table
+    event = { 'BufReadPre', 'BufNewFile' },
+    opts = {
       lazy_load = true,
-      user_default_options = {
-        names = false,
+      options = {
+        parsers = {
+          css = true,
+          names = {
+            enable = false,
+          },
+          hsl = {
+            enable = false,
+          },
+          oklch = {
+            enable = false,
+          },
+        },
       },
     },
   },
