@@ -19,8 +19,48 @@
     };
   };
 
+  systemd.user.services.gnome-monitor-profile = {
+    Unit = {
+      Description = "Apply GNOME monitor profile";
+      After = ["graphical-session.target"];
+      PartOf = ["graphical-session.target"];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "%h/.local/bin/gnome/apply-monitor-profile.sh";
+    };
+    Install = {
+      WantedBy = ["graphical-session.target"];
+    };
+  };
+
   home.file.".local/bin/tmux/theme-watch.sh" = {
     source = ../tmux/theme-watch.sh;
+    executable = true;
+  };
+
+  home.file.".local/bin/gnome/apply-monitor-profile.sh" = {
+    text = ''
+      #!/usr/bin/env bash
+      set -eu
+
+      # Wait for GNOME display stack to settle after login/resume.
+      sleep 2
+
+      GMC='${pkgs.gnome-monitor-config}/bin/gnome-monitor-config'
+
+      monitors="$($GMC list 2>/dev/null || true)"
+      if ! printf '%s\n' "$monitors" | grep -Fq 'Monitor [ eDP-1 ] ON'; then
+        exit 0
+      fi
+      if ! printf '%s\n' "$monitors" | grep -Fq 'Monitor [ HDMI-1 ] ON'; then
+        exit 0
+      fi
+
+      $GMC set --logical-layout-mode \
+        -L -M eDP-1 -m '3840x2160@120.043' -x 0 -y 0 -s 3 -t normal \
+        -L -M HDMI-1 -m '3840x2160@143.982' -x 1280 -y 0 -s 2 -t normal -p
+    '';
     executable = true;
   };
 

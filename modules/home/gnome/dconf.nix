@@ -196,7 +196,7 @@ with lib.hm.gvariant; {
     };
 
     "org/gnome/mutter" = {
-      experimental-features = lib.mkDefault [];
+      experimental-features = lib.mkDefault ["scale-monitor-framebuffer" "xwayland-native-scaling"];
       attach-modal-dialogs = false;
       dynamic-workspaces = false;
       edge-tiling = false;
@@ -464,7 +464,7 @@ with lib.hm.gvariant; {
     };
 
     "org/gnome/shell/extensions/forge/keybindings" = {
-      con-split-horizontal = ["<Super>z"];
+      con-split-horizontal = [];
       con-split-layout-toggle = ["<Super>g"];
       con-split-vertical = ["<Super>v"];
       con-stacked-layout-toggle = ["<Shift><Super>s"];
