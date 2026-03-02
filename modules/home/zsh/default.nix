@@ -48,6 +48,20 @@
         enabled = false;
       };
       opener = {
+        edit = [
+          {
+            run = ''sh -c 'nvim "$@"' --'';
+            block = true;
+            for = "unix";
+          }
+        ];
+        open = [
+          {
+            run = ''sh -c 'if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then xdg-open "$@"; else nvim "$@"; fi' --'';
+            orphan = true;
+            for = "unix";
+          }
+        ];
         video = [
           {
             run = ''sh -c 'if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then xdg-open "$@"; else timg -p k "$@"; fi' --'';
@@ -59,8 +73,24 @@
       open = {
         rules = [
           {
+            mime = "text/*";
+            use = "edit";
+          }
+          {
+            mime = "application/json";
+            use = "edit";
+          }
+          {
+            mime = "application/xml";
+            use = "edit";
+          }
+          {
             mime = "video/*";
             use = "video";
+          }
+          {
+            name = "*";
+            use = "open";
           }
         ];
       };

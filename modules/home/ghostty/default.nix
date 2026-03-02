@@ -66,7 +66,7 @@
       };
       settings = {
         theme = "dark:snappy,light:snappy_light";
-        custom-shader = "shaders/cursor_warp.glsl";
+        # custom-shader = "shaders/cursor_warp.glsl";
 
         font-family = "JetBrainsMono NF";
         font-family-italic = "Operator Mono Book";
