@@ -6,5 +6,5 @@ with lib.hm.gvariant; {
     toggle-state = true;
   };
 
-  dconf.settings."org/gnome/mutter".experimental-features = ["scale-monitor-framebuffer"];
+  dconf.settings."org/gnome/mutter".experimental-features = ["scale-monitor-framebuffer" "xwayland-native-scaling"];
 }

@@ -196,7 +196,7 @@ with lib.hm.gvariant; {
     };
 
     "org/gnome/mutter" = {
-      experimental-features = lib.mkDefault ["scale-monitor-framebuffer" "xwayland-native-scaling"];
+      experimental-features = lib.mkDefault [];
       attach-modal-dialogs = false;
       dynamic-workspaces = false;
       edge-tiling = false;

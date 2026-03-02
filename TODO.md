@@ -13,3 +13,6 @@
 # urgent
 
 - [ ] aarch64 installation issue when using install_home.sh
+- [ ] do not do fractional scaling on timy
+- [ ] duo watch-display did not run on startup
+- [ ] yazi does not open anymore
