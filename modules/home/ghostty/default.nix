@@ -25,8 +25,8 @@
             "15=#b5bfe2"
           ];
 
-          # background = "#1a1b26";
-          background = "#121212";
+          background = "#1a1b26";
+          # background = "#121212";
           foreground = "#dfdcd8";
           cursor-color = "#dfdcd8";
           cursor-text = "#000000";
@@ -82,8 +82,8 @@
         resize-overlay = "never";
 
         window-decoration = false;
-        # background-opacity = 1;
-        background-opacity = 0.74;
+        background-opacity = 1;
+        # background-opacity = 0.74;
         link-url = true;
       };
     };

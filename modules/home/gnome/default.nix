@@ -85,12 +85,12 @@
     gnomeExtensions.caffeine
     # gnomeExtensions.coverflow-alt-tab
     gnomeExtensions.color-picker
-    gnomeExtensions.runcat
     gnomeExtensions.bluetooth-battery-meter
     # gnomeExtensions.just-perfection
     gnomeExtensions.status-area-horizontal-spacing
     gnomeExtensions.no-overview
     gnomeExtensions.another-window-session-manager
+    gnomeExtensions.rounded-window-corners-reborn
     amberol
     powertop
     xiccd

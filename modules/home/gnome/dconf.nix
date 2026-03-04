@@ -283,8 +283,8 @@ with lib.hm.gvariant; {
     "org/gnome/shell" = {
       command-history = ["lg" "xiccdf" "xiccd"];
       disable-user-extensions = false;
-      disabled-extensions = ["ubuntu-dock@ubuntu.com" "light-style@gnome-shell-extensions.gcampax.github.com" "native-window-placement@gnome-shell-extensions.gcampax.github.com" "tiling-assistant@leleat-on-github" "Rounded_Corners@lennart-k" "auto-move-windows@gnome-shell-extensions.gcampax.github.com" "Vitals@CoreCoding.com" "netspeedsimplified@prateekmedia.extension" "apps-menu@gnome-shell-extensions.gcampax.github.com" "cronomix@zagortenay333" "gnomebedtime@ionutbortis.gmail.com" "system-monitor@gnome-shell-extensions.gcampax.github.com" "places-menu@gnome-shell-extensions.gcampax.github.com" "paperwm@paperwm.github.com" "rounded-window-corners@fxgn" "gtk4-ding@smedius.gitlab.com" "window-list@gnome-shell-extensions.gcampax.github.com"];
-      enabled-extensions = ["screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com" "drive-menu@gnome-shell-extensions.gcampax.github.com" "kimpanel@kde.org" "gsconnect@andyholmes.github.io" "night-light-slider-updated@vilsbeg.codeberg.org" "color-picker@tuberry" "caffeine@patapon.info" "Bluetooth-Battery-Meter@maniacx.github.com" "monitor@astraext.github.io" "workspace-indicator@gnome-shell-extensions.gcampax.github.com" "unite@hardpixel.eu" "mediacontrols@cliffniff.github.com" "system-monitor-next@paradoxxx.zero.gmail.com" "forge@jmmaranan.com" "no-overview@fthx" "user-theme@gnome-shell-extensions.gcampax.github.com" "azwallpaper@azwallpaper.gitlab.com" "blur-my-shell@aunetx"];
+      disabled-extensions = ["ubuntu-dock@ubuntu.com" "light-style@gnome-shell-extensions.gcampax.github.com" "native-window-placement@gnome-shell-extensions.gcampax.github.com" "tiling-assistant@leleat-on-github" "Rounded_Corners@lennart-k" "auto-move-windows@gnome-shell-extensions.gcampax.github.com" "Vitals@CoreCoding.com" "netspeedsimplified@prateekmedia.extension" "apps-menu@gnome-shell-extensions.gcampax.github.com" "cronomix@zagortenay333" "gnomebedtime@ionutbortis.gmail.com" "system-monitor@gnome-shell-extensions.gcampax.github.com" "places-menu@gnome-shell-extensions.gcampax.github.com" "paperwm@paperwm.github.com" "gtk4-ding@smedius.gitlab.com" "window-list@gnome-shell-extensions.gcampax.github.com"];
+      enabled-extensions = ["screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com" "rounded-window-corners@fxgn" "drive-menu@gnome-shell-extensions.gcampax.github.com" "kimpanel@kde.org" "gsconnect@andyholmes.github.io" "night-light-slider-updated@vilsbeg.codeberg.org" "color-picker@tuberry" "caffeine@patapon.info" "Bluetooth-Battery-Meter@maniacx.github.com" "monitor@astraext.github.io" "workspace-indicator@gnome-shell-extensions.gcampax.github.com" "unite@hardpixel.eu" "mediacontrols@cliffniff.github.com" "system-monitor-next@paradoxxx.zero.gmail.com" "forge@jmmaranan.com" "no-overview@fthx" "user-theme@gnome-shell-extensions.gcampax.github.com" "azwallpaper@azwallpaper.gitlab.com" "blur-my-shell@aunetx"];
       favorite-apps = ["org.gnome.Settings.desktop" "org.gnome.Nautilus.desktop" "org.gnome.Extensions.desktop" "org.gnome.Calendar.desktop" "firefox.desktop" "steam.desktop" "org.wezfurlong.wezterm.desktop" "com.github.xournalpp.xournalpp.desktop"];
       last-selected-power-profile = "power-saver";
       looking-glass-history = ["Flags"];
@@ -389,6 +389,10 @@ with lib.hm.gvariant; {
       whitelist = ["Alacritty" "org.wezfurlong.wezterm" "com.mitchellh.ghostty"];
     };
 
+    "org/gnome/shell/extensions/blur-my-shell/coverflow-alt-tab" = {
+      pipeline = "pipeline_default";
+    };
+
     "org/gnome/shell/extensions/blur-my-shell/dash-to-dock" = {
       blur = true;
       brightness = 0.47;
@@ -425,6 +429,34 @@ with lib.hm.gvariant; {
       sigma = 30;
     };
 
+    "org/gnome/shell/extensions/rounded-window-corners" = {
+      border-width = 1;
+      global-rounded-corner-settings = mkArray (type.dictionaryEntryOf [type.string type.variant]) [
+        (mkDictionaryEntry [
+          "padding"
+          (mkVariant (mkArray (type.dictionaryEntryOf [type.string type.variant]) [
+            (mkDictionaryEntry ["left" (mkVariant (mkUint32 0))])
+            (mkDictionaryEntry ["right" (mkVariant (mkUint32 0))])
+            (mkDictionaryEntry ["top" (mkVariant (mkUint32 0))])
+            (mkDictionaryEntry ["bottom" (mkVariant (mkUint32 0))])
+          ]))
+        ])
+        (mkDictionaryEntry [
+          "keepRoundedCorners"
+          (mkVariant (mkArray (type.dictionaryEntryOf [type.string type.variant]) [
+            (mkDictionaryEntry ["maximized" (mkVariant false)])
+            (mkDictionaryEntry ["fullscreen" (mkVariant false)])
+          ]))
+        ])
+        (mkDictionaryEntry ["borderRadius" (mkVariant (mkUint32 16))])
+        (mkDictionaryEntry ["smoothing" (mkVariant 0.5)])
+        (mkDictionaryEntry ["borderColor" (mkVariant (mkTuple [0.23921568691730499 0.21960784494876862 0.27450981736183167 1.0]))])
+        (mkDictionaryEntry ["enabled" (mkVariant true)])
+      ];
+      settings-version = mkUint32 7;
+      skip-libadwaita-app = false;
+    };
+
     "org/gnome/shell/extensions/caffeine" = lib.mkDefault {
       indicator-position-max = 2;
       toggle-state = true;
@@ -457,7 +489,7 @@ with lib.hm.gvariant; {
       quick-settings-enabled = false;
       split-border-toggle = false;
       tiling-mode-enabled = true;
-      window-gap-hidden-on-single = true;
+      window-gap-hidden-on-single = false;
       window-gap-size = mkUint32 8;
       window-gap-size-increment = mkUint32 1;
       workspace-skip-tile = "";
