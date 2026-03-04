@@ -50,22 +50,29 @@
       opener = {
         edit = [
           {
-            run = ''sh -c 'nvim "$@"' --'';
+            run = ''nvim "$@"'';
             block = true;
             for = "unix";
           }
         ];
         open = [
           {
-            run = ''sh -c 'if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then xdg-open "$@"; else nvim "$@"; fi' --'';
+            run = ''xdg-open "$1"'';
             orphan = true;
             for = "unix";
           }
         ];
         video = [
           {
-            run = ''sh -c 'if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then xdg-open "$@"; else timg -p k "$@"; fi' --'';
+            run = ''xdg-open "$1"'';
             block = true;
+            for = "unix";
+          }
+        ];
+        pdf = [
+          {
+            run = ''zathura "$@"'';
+            orphan = true;
             for = "unix";
           }
         ];
@@ -87,6 +94,10 @@
           {
             mime = "video/*";
             use = "video";
+          }
+          {
+            mime = "application/pdf";
+            use = "pdf";
           }
           {
             name = "*";
@@ -163,7 +174,7 @@
       f = "$FILE";
       e = "$EDITOR";
       v = "$EDITOR";
-      kai = "xdg-open";
+      o = "xdg-open";
       #ref="shortcuts >/dev/null; source ${config.xdg.configHome}/shortcutrc ; source ${config.xdg.configHome}/zshnameddirrc" ;
       weath = "less -S ${config.xdg.cacheHome}/weatherreport";
       # tmux = "tmux -f ${config.xdg.configHome}/tmux/tmux.conf attach -t main || tmux -f ${config.xdg.configHome}/tmux/tmux.conf new-session -s main";
