@@ -4,19 +4,20 @@
   # Load nvidia driver for Xorg and Wayland
   services.xserver.videoDrivers = ["nvidia"];
 
-  boot.kernelParams = ["module_blacklist=i915" "snd-intel-dspcfg.dsp_driver=1"];
-  boot.initrd.kernelModules = ["nvidia"];
+  # boot.kernelParams = ["module_blacklist=i915" "snd-intel-dspcfg.dsp_driver=1"];
+  boot.kernelParams = ["snd-intel-dspcfg.dsp_driver=1"];
+  # boot.initrd.kernelModules = ["nvidia"];
   # boot.extraModulePackages = [config.boot.kernelPackages.nvidia_x11];
   #hardware.nvidia.forceFullCompositionPipeline = true;
 
   hardware.nvidia.prime = {
     # nvidia gpu on all the time
-    sync.enable = true;
+    sync.enable = false;
     # nvidia gpu on only when needed
-    #offload = {
-    #	enable = true;
-    #	enableOffloadCmd = true;
-    #};
+    offload = {
+      enable = true;
+      enableOffloadCmd = true;
+    };
 
     # TODO: get the right bus id using `sudo lshw -c display`
     intelBusId = "PCI:0:2:0";
@@ -36,7 +37,7 @@
 
     # Fine-grained power management. Turns off GPU when not in use.
     # Experimental and only works on modern Nvidia GPUs (Turing or newer).
-    powerManagement.finegrained = false;
+    powerManagement.finegrained = true;
 
     # Use the NVidia open source kernel module (not to be confused with the
     # independent third-party "nouveau" open source driver).
