@@ -17,7 +17,7 @@
       defaultApplications = let
         browser = ["firefox.desktop"];
         editor = ["text.desktop"];
-        pdfviewer = ["org.pwmt.zathura.desktop"];
+        pdfviewer = ["sioyek.desktop"];
         office = ["libreoffice-writer.desktop"];
       in {
         "application/json" = browser;

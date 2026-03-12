@@ -2,7 +2,7 @@
   imports = [
     ../minimal.nix
 
-    ../../../home/zathura
+    ../../../home/sioyek
     ../../../home/firefox
     ../../../home/ghostty
 

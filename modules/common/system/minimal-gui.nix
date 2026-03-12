@@ -16,7 +16,10 @@
     type = "ibus";
     ibus.engines = with pkgs.ibus-engines; [
       libpinyin
-      typing-booster-unwrapped
+      # Disabled: typing-booster-unwrapped caused ~25s GNOME login stalls here by
+      # delaying IBus readiness, which also delayed org.gnome.Shell.Screencast,
+      # xdg-desktop-portal, Ghostty startup, and hid GNOME screen recording.
+      # typing-booster-unwrapped
     ];
   };
 }

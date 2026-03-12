@@ -231,7 +231,7 @@ with lib.hm.gvariant; {
     };
 
     "org/gnome/settings-daemon/plugins/media-keys" = {
-      custom-keybindings = ["/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/" "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/" "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/" "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/" "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/"];
+      custom-keybindings = ["/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/" "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/" "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/"];
       logout = ["<Shift><Super>a"];
       magnifier = ["<Super>slash"];
       magnifier-zoom-in = ["<Super>z"];
@@ -244,18 +244,6 @@ with lib.hm.gvariant; {
       volume-down = ["<Super>comma"];
       volume-mute = ["<Super>m"];
       volume-up = ["<Super>period"];
-    };
-
-    "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
-      binding = "<Super>apostrophe";
-      command = "gdbus call --session --dest org.gnome.SettingsDaemon.Power --object-path /org/gnome/SettingsDaemon/Power --method org.gnome.SettingsDaemon.Power.Screen.StepUp";
-      name = "Bright up";
-    };
-
-    "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1" = {
-      binding = "<Super>semicolon";
-      command = "gdbus call --session --dest org.gnome.SettingsDaemon.Power --object-path /org/gnome/SettingsDaemon/Power --method org.gnome.SettingsDaemon.Power.Screen.StepDown";
-      name = "Bright down";
     };
 
     "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2" = lib.mkDefault {
@@ -616,10 +604,13 @@ with lib.hm.gvariant; {
 
     "org/gnome/shell/keybindings" = {
       focus-active-notification = ["<Super>n"];
+      screenshot = ["<Shift>Print" "<Super>Print"];
+      screen-brightness-down = ["XF86MonBrightnessDown" "<Super>semicolon"];
+      screen-brightness-up = ["XF86MonBrightnessUp" "<Super>apostrophe"];
       shift-overview-down = ["<Super><Alt>Down"];
       toggle-overview = ["<Super>d"];
       shift-overview-up = ["<Super><Alt>Up"];
-      show-screenshot-ui = ["<Super>p"];
+      show-screenshot-ui = ["Print"];
       toggle-application-view = [];
       toggle-message-tray = [];
       toggle-quick-settings = [];

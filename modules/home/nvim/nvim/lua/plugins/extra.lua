@@ -21,7 +21,8 @@ return {
     " for eslint
     "autocmd BufWritePre <buffer> <cmd>EslintFixAll<CR>
 
-    let g:vimtex_view_method='zathura'
+    let g:vimtex_view_method='sioyek'
+    let g:vimtex_view_sioyek_exe='sioyek-run'
     let g:tex_flavor='latex'
     set conceallevel=2
     let g:vimtex_quickfix_enabled=0
