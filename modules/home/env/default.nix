@@ -17,6 +17,10 @@
     configHome = "${config.home.homeDirectory}/.config";
     dataHome = "${config.home.homeDirectory}/.local/share";
     stateHome = "${config.home.homeDirectory}/.local/state";
+    configFile."nix/nix.conf".text = ''
+      substituters = https://cache.nixos.org https://cache.nixos-cuda.org https://ausbxuse.cachix.org https://nix-community.cachix.org
+      trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+    '';
   };
 
   home.sessionVariables = {

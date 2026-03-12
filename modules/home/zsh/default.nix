@@ -162,6 +162,7 @@
       yt = "youtube-dl --add-metadata -i";
       yta = "yt -x -f bestaudio/best";
       ffmpeg = "ffmpeg -hide_banner";
+      gpu = "nvidia-offload";
       # ls="eza --long --git --color=always --no-filesize --icons=always --no-user --no-time --no-permissions --sort=date" ;
       l = "eza --git --color=always --no-filesize --icons=always --no-user --no-time --no-permissions --sort=date";
       ls = "eza --long --git --color=always --icons=always --sort=date";
