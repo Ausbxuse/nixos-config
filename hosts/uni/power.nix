@@ -3,7 +3,9 @@
   services.auto-cpufreq.enable = lib.mkForce false;
 
   services.thermald.enable = true;
-  powerManagement.powertop.enable = true;
+  # Avoid stacking PowerTOP auto-tuning on top of TLP. Both touch USB runtime
+  # PM, and this host has an idle-wake delay on the Logitech mouse receiver.
+  powerManagement.powertop.enable = false;
 
   networking.networkmanager.wifi.powersave = true;
   hardware.bluetooth.powerOnBoot = false;
@@ -28,6 +30,10 @@
       WIFI_PWR_ON_AC = "off";
       WIFI_PWR_ON_BAT = "on";
       USB_AUTOSUSPEND = 1;
+      # Logitech receiver for the PRO X mouse. Leaving it on autosuspend causes
+      # the first movement after idle to wake the receiver before the pointer
+      # starts moving.
+      USB_DENYLIST = "046d:c547";
       SOUND_POWER_SAVE_ON_BAT = 1;
     };
   };
