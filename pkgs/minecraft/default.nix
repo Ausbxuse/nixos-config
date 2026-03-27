@@ -3,6 +3,7 @@
   pkgs,
 }: let
   sources = import ../../modules/home/minecraft/sources.nix;
+  sourcesFile = ../../modules/home/minecraft/sources.nix;
 
   missingPins =
     (lib.optional (sources.baseMrpack.url == "" || sources.baseMrpack.hash == "") "baseMrpack")
@@ -56,7 +57,7 @@
     ];
     text = ''
       set -euo pipefail
-      target=''${1:-modules/home/minecraft/sources.nix}
+      target=''${1:-${lib.escapeShellArg (toString sourcesFile)}}
       exec python3 ${./bootstrap.py} "$target"
     '';
   };
