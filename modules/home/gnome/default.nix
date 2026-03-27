@@ -96,6 +96,7 @@
     xiccd
     moreutils
     gnome-graphs
+    loupe
     mpv
   ];
 }

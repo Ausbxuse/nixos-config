@@ -18,6 +18,8 @@
         browser = ["firefox.desktop"];
         editor = ["text.desktop"];
         pdfviewer = ["sioyek.desktop"];
+        imageviewer = ["org.gnome.Loupe.desktop"];
+        mediaplayer = ["mpv.desktop"];
         office = ["libreoffice-writer.desktop"];
       in {
         "application/json" = browser;
@@ -52,13 +54,30 @@
         "x-scheme-handler/discord" = ["discord.desktop"];
         "x-scheme-handler/tg" = ["org.telegram.desktop.desktop "];
 
-        "audio/*" = ["mpv.desktop"];
-        "video/*" = ["mpv.desktop"];
-        "image/*" = ["img.desktop"];
-        "image/gif" = ["img.desktop"];
-        "image/jpeg" = ["img.desktop"];
-        "image/png" = ["img.desktop"];
-        "image/webp" = ["img.desktop"];
+        "audio/*" = mediaplayer;
+        "video/mp4" = mediaplayer;
+        "video/x-matroska" = mediaplayer;
+        "video/webm" = mediaplayer;
+        "video/quicktime" = mediaplayer;
+        "video/x-msvideo" = mediaplayer;
+        "video/x-ms-wmv" = mediaplayer;
+        "video/mpeg" = mediaplayer;
+        "video/ogg" = mediaplayer;
+        "video/3gpp" = mediaplayer;
+        "video/3gpp2" = mediaplayer;
+        "video/x-flv" = mediaplayer;
+        "video/mp2t" = mediaplayer;
+        "image/*" = imageviewer;
+        "image/gif" = imageviewer;
+        "image/bmp" = imageviewer;
+        "image/avif" = imageviewer;
+        "image/heic" = imageviewer;
+        "image/heif" = imageviewer;
+        "image/jpeg" = imageviewer;
+        "image/png" = imageviewer;
+        "image/svg+xml" = imageviewer;
+        "image/tiff" = imageviewer;
+        "image/webp" = imageviewer;
         "application/msword" = office; # .doc
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = office; # .docx
         "application/vnd.ms-excel" = office; # .xls
@@ -70,8 +89,37 @@
         "application/vnd.oasis.opendocument.presentation" = office; # .odp
       };
 
+      associations.added = let
+        imageviewer = ["org.gnome.Loupe.desktop"];
+        mediaplayer = ["mpv.desktop"];
+      in {
+        "video/mp4" = mediaplayer;
+        "video/x-matroska" = mediaplayer;
+        "video/webm" = mediaplayer;
+        "video/quicktime" = mediaplayer;
+        "video/x-msvideo" = mediaplayer;
+        "video/x-ms-wmv" = mediaplayer;
+        "video/mpeg" = mediaplayer;
+        "video/ogg" = mediaplayer;
+        "video/3gpp" = mediaplayer;
+        "video/3gpp2" = mediaplayer;
+        "video/x-flv" = mediaplayer;
+        "video/mp2t" = mediaplayer;
+        "image/gif" = imageviewer;
+        "image/bmp" = imageviewer;
+        "image/avif" = imageviewer;
+        "image/heic" = imageviewer;
+        "image/heif" = imageviewer;
+        "image/jpeg" = imageviewer;
+        "image/png" = imageviewer;
+        "image/svg+xml" = imageviewer;
+        "image/tiff" = imageviewer;
+        "image/webp" = imageviewer;
+      };
+
       associations.removed = {
-        # ......
+        "video/mp4" = ["org.gnome.Showtime.desktop"];
+        "video/x-matroska" = ["org.gnome.Showtime.desktop"];
       };
     };
 

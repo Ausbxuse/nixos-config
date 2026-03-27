@@ -55,6 +55,13 @@
             for = "unix";
           }
         ];
+        image = [
+          {
+            run = ''xdg-open "$1"'';
+            block = true;
+            for = "unix";
+          }
+        ];
         open = [
           {
             run = ''xdg-open "$1"'';
@@ -90,6 +97,10 @@
           {
             mime = "application/xml";
             use = "edit";
+          }
+          {
+            mime = "image/*";
+            use = "image";
           }
           {
             mime = "video/*";
