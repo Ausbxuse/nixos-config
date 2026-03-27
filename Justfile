@@ -29,6 +29,15 @@ history:
 repl:
 	nix repl -f flake:nixpkgs
 
+fmt:
+	alejandra .
+
+precommit-install:
+	pre-commit install
+
+precommit:
+	pre-commit run --all-files
+
 clean:
 	# Remove all generations older than 7 days
 	sudo nix profile wipe-history --profile /nix/var/nix/profiles/system  --older-than 7d
@@ -36,4 +45,3 @@ clean:
 gc:
 	# Garbage collect all unused nix store entries
 	sudo nix-collect-garbage --delete-old
-

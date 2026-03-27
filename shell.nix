@@ -7,11 +7,13 @@
     nativeBuildInputs = with pkgs; [nix git sops ssh-to-age gnupg age nil];
     packages = with pkgs; [
       just
+      pre-commit
       nixos-anywhere
       home-manager
       lua-language-server
       stylua
       nil
+      alejandra
       nixpkgs-fmt
       # nix-index
       # nix-prefetch-git
