@@ -51,14 +51,14 @@ clone_repo() {
   fi
 }
 
-# ─── Patch constants.nix ────────────────────────────────────
+# ─── Patch globals.nix ────────────────────────────────────
 patch_constants() {
-  info "Patching constants.nix with system values..."
+  info "Patching globals.nix with system values..."
   sed -i \
     -e "s/username = \"[^\"]*\";/username = \"$(whoami)\";/g" \
     -e "s|user-homedir = \"/home/[^\"]*\";|user-homedir = \"$(echo "$HOME")\";|g" \
     -e "s/hostname = \"[^\"]*\";/hostname = \"$(hostname)\";/g" \
-    "$REPO_DIR/constants.nix"
+    "$REPO_DIR/globals.nix"
 }
 
 # ─── Enable flakes in nix.conf ──────────────────────────────

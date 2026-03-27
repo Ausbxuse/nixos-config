@@ -48,7 +48,7 @@
   } @ inputs: let
     inherit (nixpkgs) lib;
 
-    const = import ./constants.nix;
+    const = import ./globals.nix;
     mkNixos = modules: hostname:
       nixpkgs.lib.nixosSystem {
         inherit modules;

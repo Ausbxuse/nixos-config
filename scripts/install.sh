@@ -15,7 +15,7 @@ read -rp "Enter target disk path (e.g. /dev/nvme0n1): " TARGET_DISK
 
 DISK=$TARGET_DISK
 
-sed -i "s|@DISK@|$DISK|" constants.nix
+sed -i "s|@DISK@|$DISK|" globals.nix
 echo "Using: $DISK"
 
 

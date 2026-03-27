@@ -6,6 +6,7 @@
     ../../nixos/hardware/sound.nix
     ../../nixos/hardware/printing.nix
     ../../nixos/hardware/usb.nix
+    ../../nixos/qol.nix
   ];
   environment.systemPackages = with pkgs; [
     openvpn
