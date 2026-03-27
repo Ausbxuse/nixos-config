@@ -70,7 +70,15 @@
     text = ''
       set -euo pipefail
       repo_root=${lib.escapeShellArg (toString ../..)}
-      nix --extra-experimental-features 'nix-command flakes' run "path:$repo_root"#minecraft-bootstrap
+      case "$repo_root" in
+        /nix/store/*)
+          printf '%s\n' "Using pinned Minecraft sources from $repo_root/modules/home/minecraft/sources.nix"
+          ;;
+        *)
+          nix --extra-experimental-features 'nix-command flakes' run "path:$repo_root"#minecraft-bootstrap
+          ;;
+      esac
+
       exec nix --extra-experimental-features 'nix-command flakes' run "path:$repo_root"#minecraft-deploy
     '';
   };
