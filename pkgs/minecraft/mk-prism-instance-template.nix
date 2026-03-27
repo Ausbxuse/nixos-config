@@ -22,6 +22,7 @@
     })
     sources.files;
 
+  modFiles = lib.filter (file: file.path == "mods/") sourceFiles;
   resourcePackFiles = lib.filter (file: file.path == "resourcepacks/") sourceFiles;
 
   resourcePackList =
@@ -123,6 +124,61 @@ in
         cp "${file.src}" "$target_dir/${file.filename}"
         chmod u+w "$target_dir/${file.filename}"
       '') sourceFiles}
+
+      python3 - "$out/minecraft/mods" <<'PY'
+import json
+import pathlib
+import sys
+import zipfile
+
+mods_dir = pathlib.Path(sys.argv[1])
+preferred = set(${builtins.toJSON (map (file: file.filename) modFiles)})
+
+def mod_ids(path: pathlib.Path) -> set[str]:
+    try:
+        with zipfile.ZipFile(path) as archive:
+            if "fabric.mod.json" in archive.namelist():
+                data = json.loads(archive.read("fabric.mod.json"))
+                ids = set()
+                mod_id = data.get("id")
+                if mod_id:
+                    ids.add(mod_id)
+                for provided in data.get("provides", []):
+                    if isinstance(provided, str):
+                        ids.add(provided)
+                    elif isinstance(provided, dict) and provided.get("id"):
+                        ids.add(provided["id"])
+                return ids
+    except Exception:
+        return set()
+    return set()
+
+owners: dict[str, pathlib.Path] = {}
+for path in sorted(mods_dir.glob("*.jar")):
+    ids = mod_ids(path)
+    for mod_id in ids:
+        if mod_id not in owners:
+            owners[mod_id] = path
+            continue
+        current = owners[mod_id]
+        current_preferred = current.name in preferred
+        new_preferred = path.name in preferred
+        if current_preferred and not new_preferred:
+            break
+        if new_preferred and not current_preferred:
+            if current.exists():
+                current.unlink()
+            owners[mod_id] = path
+            continue
+        if path.name > current.name:
+            if current.exists():
+                current.unlink()
+            owners[mod_id] = path
+        else:
+            if path.exists():
+                path.unlink()
+            break
+PY
 
       options_file="$out/minecraft/options.txt"
       python3 - "$options_file" <<'PY'

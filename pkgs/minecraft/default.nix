@@ -32,14 +32,21 @@
     text = ''
       set -euo pipefail
 
-      if [ -f "${mrpack}" ]; then
+      mrpack_store_path=${lib.escapeShellArg (toString mrpack)}
+
+      if [ -f "$mrpack_store_path" ] && [ "''${mrpack_store_path##*.}" != "mrpack" ]; then
         printf '%s\n' "Cannot deploy ${sources.instanceName}: source pins are missing."
         printf '%s\n' "Fill modules/home/minecraft/sources.nix first."
-        cat "${mrpack}"
+        cat "$mrpack_store_path"
         exit 1
       fi
 
-      mrpack_path="$(find "${mrpack}" -maxdepth 1 -type f -name '*.mrpack' | head -n 1)"
+      if [ -f "$mrpack_store_path" ] && [ "''${mrpack_store_path##*.}" = "mrpack" ]; then
+        mrpack_path="$mrpack_store_path"
+      else
+        mrpack_path="$(find -L "$mrpack_store_path" -maxdepth 1 -type f -name '*.mrpack' | head -n 1)"
+      fi
+
       if [ -z "$mrpack_path" ]; then
         printf '%s\n' "Built Minecraft pack is missing its .mrpack artifact."
         exit 1
@@ -57,7 +64,13 @@
     ];
     text = ''
       set -euo pipefail
-      target=''${1:-${lib.escapeShellArg (toString sourcesFile)}}
+      if [ "$#" -ge 1 ]; then
+        target="$1"
+      elif [ -e "$PWD/modules/home/minecraft/sources.nix" ]; then
+        target="$PWD/modules/home/minecraft/sources.nix"
+      else
+        target=${lib.escapeShellArg (toString sourcesFile)}
+      fi
       exec python3 ${./bootstrap.py} "$target"
     '';
   };

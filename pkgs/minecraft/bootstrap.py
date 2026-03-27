@@ -12,9 +12,10 @@ from pathlib import Path
 
 API = "https://api.modrinth.com/v2"
 USER_AGENT = "nixos-config-minecraft-bootstrap/1.0"
-MINECRAFT_VERSION = "1.21.7"
-INSTANCE_NAME = "Fabulously Optimized 1.21.7"
+MINECRAFT_VERSION = "1.21.11"
+INSTANCE_NAME = "Fabulously Optimized 1.21.11"
 BASE_PACK_SLUG = "fabulously-optimized"
+BASE_PACK_VERSION_ID = "5c9UBLgd"
 
 REQUESTS = [
     ("mod", "Jade"),
@@ -215,13 +216,13 @@ def main():
     )
 
     base_project = api_get(f"/project/{BASE_PACK_SLUG}")
-    base_versions = compatible_versions(base_project["id"], "modpack")
-    if not base_versions:
+    base_version = api_get(f"/version/{BASE_PACK_VERSION_ID}")
+    game_versions = set(base_version.get("game_versions", []))
+    if MINECRAFT_VERSION not in game_versions:
         raise RuntimeError(
-            f"No compatible Fabulously Optimized release found for {MINECRAFT_VERSION}"
+            f"Base pack version {BASE_PACK_VERSION_ID} does not target {MINECRAFT_VERSION}"
         )
 
-    base_version = pick_version(base_versions)
     base_file = pick_file(base_version)
     base_bytes = download_bytes(base_file["url"])
     with zipfile.ZipFile(io.BytesIO(base_bytes)) as archive:
@@ -237,7 +238,7 @@ def main():
         raise RuntimeError("Fabulously Optimized version does not expose fabric-loader")
     fabric_loader_version = max(
         fabric_loader_version,
-        "0.17.0",
+        "0.18.2",
         key=parse_numeric_version,
     )
 
