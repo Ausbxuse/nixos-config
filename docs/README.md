@@ -19,3 +19,11 @@
 - [x] Single command remote deployment
 - [x] Support servers running useful services
 - [ ] installation scripts
+
+# Minecraft notes
+
+- Prism + declarative Minecraft currently builds a pinned `.mrpack` from [`modules/home/minecraft/sources.nix`](/home/zhenyu/src/public/nixos-config/modules/home/minecraft/sources.nix).
+- Important failure mode: it is not enough to update `sources.dependencies."fabric-loader"` in Nix. The generated `modrinth.index.json` inside the `.mrpack` must also be rewritten.
+- Symptom: Prism imports the pack, but launch fails with Fabric saying mods like `Chat Heads` or `Visible Traders` require `fabric-loader >= 0.17.0` while `0.16.14` is present.
+- Root cause: the builder was preserving the base Fabulously Optimized pack's dependency block, so the final `.mrpack` still advertised the old loader even after `sources.nix` was updated.
+- Fix: [`pkgs/minecraft/mk-mrpack.nix`](/home/zhenyu/src/public/nixos-config/pkgs/minecraft/mk-mrpack.nix) must rewrite `modrinth.index.json.dependencies`, not just the pack name/version.

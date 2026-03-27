@@ -82,6 +82,7 @@
       inherit system;
       config.allowUnfree = true;
     };
+    minecraft = pkgs.callPackage ./pkgs/minecraft {};
 
     nixosHosts = lib.attrNames (builtins.readDir ./hosts);
     homeHosts = lib.attrNames (builtins.readDir ./home);
@@ -90,10 +91,36 @@
 
     devShells.${system} = import ./shell.nix {inherit pkgs;};
 
-    packages.${system} = import ./isos {
-      inherit pkgs inputs;
-      nixosConfigurations = self.nixosConfigurations;
-      seedHostNames = nixosHosts;
+    packages.${system} =
+      (import ./isos {
+        inherit pkgs inputs;
+        nixosConfigurations = self.nixosConfigurations;
+        seedHostNames = nixosHosts;
+      })
+      // {
+        minecraftClient = minecraft.mrpack;
+        minecraftDeploy = minecraft.deploy;
+        minecraftBootstrap = minecraft.bootstrap;
+        minecraftSync = minecraft.sync;
+      };
+
+    apps.${system} = {
+      minecraft = {
+        type = "app";
+        program = "${minecraft.sync}/bin/sync-minecraft-client";
+      };
+      "minecraft-bootstrap" = {
+        type = "app";
+        program = "${minecraft.bootstrap}/bin/bootstrap-minecraft-client";
+      };
+      "minecraft-deploy" = {
+        type = "app";
+        program = "${minecraft.deploy}/bin/deploy-minecraft-client";
+      };
+      default = {
+        type = "app";
+        program = "${minecraft.sync}/bin/sync-minecraft-client";
+      };
     };
 
     checks.${system} = import ./tests {inherit pkgs lib;};

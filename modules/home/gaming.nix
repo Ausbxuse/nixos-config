@@ -1,5 +1,9 @@
 # https://github.com/fufexan/dotfiles/blob/483680e/system/programs/steam.nix
 {pkgs, ...}: {
+  imports = [
+    ./minecraft
+  ];
+
   home.packages = with pkgs; [
     # osu-lazer-bin
     gamescope # SteamOS session compositing window manager
