@@ -52,9 +52,25 @@ clone_repo() {
 }
 
 # ─── Patch globals.nix ────────────────────────────────────
+detect_system() {
+  local arch
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64)  echo "x86_64-linux" ;;
+    aarch64) echo "aarch64-linux" ;;
+    armv7l)  echo "armv7l-linux" ;;
+    i686)    echo "i686-linux" ;;
+    *)       error "Unsupported architecture: $arch" ;;
+  esac
+}
+
 patch_constants() {
+  local nix_system
+  nix_system="$(detect_system)"
+  info "Detected system: $nix_system"
   info "Patching globals.nix with system values..."
   sed -i \
+    -e "s/system = \"[^\"]*\";/system = \"$nix_system\";/g" \
     -e "s/username = \"[^\"]*\";/username = \"$(whoami)\";/g" \
     -e "s|user-homedir = \"/home/[^\"]*\";|user-homedir = \"$(echo "$HOME")\";|g" \
     -e "s/hostname = \"[^\"]*\";/hostname = \"$(hostname)\";/g" \
