@@ -19,9 +19,14 @@
   my.hardware.nvidia.enable = true;
   services.xserver.videoDrivers = ["modesetting"];
 
-  # Optional boot profile without NVIDIA enabled.
+  # With the current MUX setting, the internal panel is not reachable through
+  # the Intel path alone. Keep a low-power NVIDIA profile instead of an
+  # Intel-only profile that boots to a black screen.
   specialisation.nonvidia.configuration = {
-    my.hardware.nvidia.enable = lib.mkForce false;
+    my.hardware.nvidia.enable = lib.mkForce true;
+    services.xserver.videoDrivers = lib.mkForce ["nvidia"];
+    hardware.nvidia.powerManagement.enable = lib.mkForce true;
+    hardware.nvidia.powerManagement.finegrained = lib.mkForce true;
   };
 
   environment.systemPackages = with pkgs; [

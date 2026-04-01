@@ -78,7 +78,7 @@
         ];
         pdf = [
           {
-            run = ''sioyek-run "$@"'';
+            run = ''zathura "$@"'';
             orphan = true;
             for = "unix";
           }

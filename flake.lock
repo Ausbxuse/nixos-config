@@ -3,8 +3,8 @@
     "bootstrap-keys": {
       "flake": false,
       "locked": {
-        "lastModified": 1757926527,
-        "narHash": "sha256-kMT0ZkiOBB/e+f3uR5DDL4AapZKZWCaPUsU3zYHGOhw=",
+        "lastModified": 1770175130,
+        "narHash": "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=",
         "path": "/home/zhenyu/.local/src/secrets",
         "type": "path"
       },

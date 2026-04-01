@@ -1,9 +1,10 @@
 {
   inputs,
+  nix-secrets,
   config,
   ...
 }: let
-  secretspath = builtins.toString inputs.nix-secrets.outPath;
+  secretspath = builtins.toString nix-secrets;
 in {
   imports = [
     inputs.sops-nix.homeManagerModules.sops

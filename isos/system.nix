@@ -1,11 +1,11 @@
 {
   pkgs,
   lib,
-  inputs,
+  bootstrap-keys,
   ...
 }: {
   nixpkgs.config.allowUnfree = true;
-  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  nixpkgs.hostPlatform = lib.mkDefault pkgs.stdenv.hostPlatform.system;
 
   nix.settings = {
     experimental-features = ["nix-command" "flakes"];
@@ -25,5 +25,5 @@
 
   system.stateVersion = "24.05";
 
-  environment.etc."ssh/id_ed25519".source = "${inputs.bootstrap-keys}/id_ed25519";
+  environment.etc."ssh/id_ed25519".source = "${bootstrap-keys}/id_ed25519";
 }

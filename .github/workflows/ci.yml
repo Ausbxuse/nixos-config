@@ -8,7 +8,6 @@ jobs:
   nix:
     runs-on: ubuntu-latest
     env:
-      SYSTEM: x86_64-linux
       NIX_OVERRIDES: >-
         --override-input nix-secrets path:./.ci/nix-secrets
         --override-input bootstrap-keys path:./.ci/bootstrap-keys
@@ -26,20 +25,43 @@ jobs:
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache
           sudo apt-get clean
 
-      - name: Eval
-        run: nix flake show --all-systems $NIX_OVERRIDES
-
-      - name: Lint (alejandra)
+      - name: Install formatter tooling
         run: |
-          nix shell nixpkgs#alejandra -c alejandra --check .
+          nix profile install \
+            nixpkgs#pre-commit \
+            nixpkgs#alejandra \
+            nixpkgs#stylua
 
-      - name: Build earthy home closure
-        run: |
-          USERNAME=$(nix eval --raw --impure --expr 'let const = import ./constants.nix; in const.username')
-          nix build .#homeConfigurations.\"${USERNAME}@earthy\".activationPackage $NIX_OVERRIDES
+      - name: Pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure
 
-      - name: Home checks (earthy essentials)
+      - name: Eval flake outputs
         run: |
-          USERNAME=$(nix eval --raw --impure --expr 'let const = import ./constants.nix; in const.username')
-          nix eval --json .#homeConfigurations.\"${USERNAME}@earthy\".config.programs.neovim.enable | jq -e '. == true'
-          nix eval --json .#homeConfigurations.\"${USERNAME}@earthy\".config.xdg.configFile.nvim.source | jq -e 'type == "string"'
+          nix flake show --all-systems $NIX_OVERRIDES
+          nix eval .#packages.x86_64-linux --apply builtins.attrNames $NIX_OVERRIDES >/dev/null
+          nix eval .#packages.aarch64-linux --apply builtins.attrNames $NIX_OVERRIDES >/dev/null
+          nix eval .#checks.x86_64-linux --apply builtins.attrNames $NIX_OVERRIDES >/dev/null
+          nix eval .#checks.aarch64-linux --apply builtins.attrNames $NIX_OVERRIDES >/dev/null
+
+      - name: Build x86_64 checks and key packages
+        run: |
+          USERNAME=$(nix eval --raw --impure --expr 'let const = import ./globals.nix; in const.username')
+          nix build \
+            .#checks.x86_64-linux \
+            .#packages.x86_64-linux.nvim \
+            .#homeConfigurations.\"${USERNAME}@earthy\".activationPackage \
+            $NIX_OVERRIDES
+
+      - name: Instantiate aarch64 checks and key packages
+        run: |
+          nix build \
+            .#checks.aarch64-linux \
+            .#packages.aarch64-linux.nvim \
+            --dry-run \
+            $NIX_OVERRIDES
+
+      - name: Home checks
+        run: |
+          USERNAME=$(nix eval --raw --impure --expr 'let const = import ./globals.nix; in const.username')
+          nix eval --json .#homeConfigurations.\"${USERNAME}@earthy\".config.programs.neovim.enable $NIX_OVERRIDES | jq -e '. == true'
+          nix eval --json .#homeConfigurations.\"${USERNAME}@earthy\".config.xdg.configFile.nvim.source $NIX_OVERRIDES | jq -e 'type == "string"'

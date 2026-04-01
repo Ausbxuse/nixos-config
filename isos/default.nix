@@ -2,6 +2,7 @@
 {
   pkgs,
   inputs,
+  bootstrap-keys,
   ...
 }: {
   gnome-iso = inputs.nixos-generators.nixosGenerate {
@@ -10,7 +11,7 @@
     customFormats = {iso = import ./gnome-graphical.nix;};
 
     specialArgs = {
-      inherit inputs;
+      inherit inputs bootstrap-keys;
     };
 
     modules = [

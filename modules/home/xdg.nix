@@ -17,7 +17,7 @@
       defaultApplications = let
         browser = ["firefox.desktop"];
         editor = ["text.desktop"];
-        pdfviewer = ["sioyek.desktop"];
+        pdfviewer = ["sioyek.desktop" "org.pwmt.zathura.desktop"];
         imageviewer = ["org.gnome.Loupe.desktop"];
         mediaplayer = ["mpv.desktop"];
         office = ["libreoffice-writer.desktop"];

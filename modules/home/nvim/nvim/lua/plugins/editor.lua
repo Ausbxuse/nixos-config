@@ -167,6 +167,24 @@ return {
       }
     end,
   },
+  {
+    'zk-org/zk-nvim',
+    config = function()
+      require('zk').setup {
+        picker = 'fzf', -- or "telescope" if you use that
+        lsp = {
+          config = {
+            cmd = { 'zk', 'lsp' },
+            name = 'zk',
+          },
+          auto_attach = {
+            enabled = true,
+            filetypes = { 'markdown' },
+          },
+        },
+      }
+    end,
+  },
   -- {
   --   'uhs-robert/sshfs.nvim',
   --   opts = {
