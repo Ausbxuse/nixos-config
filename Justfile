@@ -6,7 +6,7 @@ gitgc:
   git reflog expire --expire-unreachable=now --all
   git gc --prune=now
 
-dconf: 
+dconf:
 	rsync -av ~/.config/dconf/ ./hosts/base/home/gnome/dconf
 
 sys:
@@ -15,7 +15,7 @@ sys:
 home:
   home-manager switch --flake .#$(whoami)@$(hostname)
 
-debug: 
+debug:
 	nixos-rebuild switch --flake . --use-remote-sudo --show-trace --verbose
 
 # Update specific input

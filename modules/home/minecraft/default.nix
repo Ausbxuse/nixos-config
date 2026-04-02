@@ -15,9 +15,10 @@
 
   mrpack =
     if hasPins
-    then (pkgs.callPackage ../../../pkgs/minecraft/mk-mrpack.nix {}) {
-      inherit sources;
-    }
+    then
+      (pkgs.callPackage ../../../pkgs/minecraft/mk-mrpack.nix {}) {
+        inherit sources;
+      }
     else null;
 in {
   warnings =

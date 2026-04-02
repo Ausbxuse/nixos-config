@@ -1,20 +1,8 @@
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-
   - repo: local
     hooks:
-      - id: alejandra
-        name: alejandra
-        entry: alejandra
+      - id: nix-flake-check
+        name: nix flake check
+        entry: nix flake check
         language: system
-        files: \.nix$
-
-      - id: stylua
-        name: stylua
-        entry: stylua
-        language: system
-        files: \.lua$
+        pass_filenames: false

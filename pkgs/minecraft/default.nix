@@ -17,10 +17,11 @@
   mrpack =
     if hasPins
     then (pkgs.callPackage ./mk-mrpack.nix {}) {inherit sources;}
-    else pkgs.writeText "minecraft-client-missing-pins" ''
-      Missing Minecraft source pins in modules/home/minecraft/sources.nix:
-      ${lib.concatStringsSep "\n" (map (entry: "- ${entry}") missingPins)}
-    '';
+    else
+      pkgs.writeText "minecraft-client-missing-pins" ''
+        Missing Minecraft source pins in modules/home/minecraft/sources.nix:
+        ${lib.concatStringsSep "\n" (map (entry: "- ${entry}") missingPins)}
+      '';
 
   deploy = pkgs.writeShellApplication {
     name = "deploy-minecraft-client";

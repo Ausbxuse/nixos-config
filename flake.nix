@@ -56,20 +56,23 @@
         inherit system;
         config.allowUnfree = true;
       };
-    mkNixos = modules: hostname:
+    mkNixos = system: modules: hostname:
       nixpkgs.lib.nixosSystem {
+        inherit system;
         inherit modules;
         specialArgs = {inherit inputs hostname const;};
       };
 
-    mkHome = modules: pkgs: hostname:
+    mkHome = system: modules: hostname:
       inputs.home-manager.lib.homeManagerConfiguration {
-        inherit modules pkgs;
+        inherit modules;
+        pkgs = pkgsFor system;
         extraSpecialArgs = {inherit inputs hostname const nix-secrets;};
       };
 
-    mkNixosWithHome = modules: hostname:
+    mkNixosWithHome = system: modules: hostname:
       nixpkgs.lib.nixosSystem {
+        inherit system;
         modules =
           modules
           ++ [
@@ -106,11 +109,11 @@
         home-manager = inputs.home-manager.packages.${system}.default;
       };
     in
-      (import ./isos {
+      (lib.optionalAttrs (system == "x86_64-linux") (import ./isos {
         inherit pkgs inputs bootstrap-keys;
         nixosConfigurations = self.nixosConfigurations;
         seedHostNames = nixosHosts;
-      })
+      }))
       // {
         bootstrap_home = mkBootstrap "earthy";
         bootstrap_home_gui = mkBootstrap "spacy";
@@ -161,19 +164,31 @@
       pkgs = pkgsFor system;
     in
       (import ./tests {inherit pkgs lib;})
+      // lib.optionalAttrs (system == "x86_64-linux") {
+        nvim = self.packages.${system}.nvim;
+        inherit (self.packages.${system}) gnome-iso;
+      }
       // {
         nvim = self.packages.${system}.nvim;
-      });
+        home-earthy = (mkHome system [./home/earthy] "earthy").activationPackage;
+        home-spacy = (mkHome system [./home/spacy] "spacy").activationPackage;
+        home-timy = (mkHome system [./home/timy] "timy").activationPackage;
+        home-uni = (mkHome system [./home/uni] "uni").activationPackage;
+        nixos-spacy = (mkNixosWithHome system [./hosts/spacy] "spacy").config.system.build.toplevel;
+        nixos-timy = (mkNixosWithHome system [./hosts/timy] "timy").config.system.build.toplevel;
+        nixos-uni = (mkNixosWithHome system [./hosts/uni] "uni").config.system.build.toplevel;
+      }
+      );
 
     nixosConfigurations = builtins.listToAttrs (map (host: {
         name = "${host}";
-        value = mkNixosWithHome [./hosts/${host}] host;
+        value = mkNixosWithHome const.system [./hosts/${host}] host;
       })
       nixosHosts);
 
     homeConfigurations = builtins.listToAttrs (map (host: {
         name = "${const.username}@" + host;
-        value = mkHome [./home/${host}] (pkgsFor const.system) host;
+        value = mkHome const.system [./home/${host}] host;
       })
       homeHosts);
   };

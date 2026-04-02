@@ -54,6 +54,8 @@ in {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("loginctl enable-linger alice")
+      machine.wait_for_unit("user@1000.service")
+      machine.wait_until_succeeds("test -S /run/user/1000/bus")
       machine.succeed("su - alice -c 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user start pipewire.service'")
       machine.succeed("su - alice -c 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user is-active pipewire.service'")
     '';

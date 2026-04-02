@@ -25,8 +25,6 @@
   specialisation.nonvidia.configuration = {
     my.hardware.nvidia.enable = lib.mkForce true;
     services.xserver.videoDrivers = lib.mkForce ["nvidia"];
-    hardware.nvidia.powerManagement.enable = lib.mkForce true;
-    hardware.nvidia.powerManagement.finegrained = lib.mkForce true;
   };
 
   environment.systemPackages = with pkgs; [
