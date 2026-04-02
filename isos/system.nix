@@ -5,7 +5,6 @@
   ...
 }: {
   nixpkgs.config.allowUnfree = true;
-  nixpkgs.hostPlatform = lib.mkDefault pkgs.stdenv.hostPlatform.system;
 
   nix.settings = {
     experimental-features = ["nix-command" "flakes"];
