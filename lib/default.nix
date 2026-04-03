@@ -3,7 +3,6 @@
   inputs,
   nixpkgs,
   const,
-  nix-secrets,
 }: rec {
   hostDefs = import ../machines/defs.nix {
     inherit lib const;
@@ -81,7 +80,7 @@
       modules = homeModulesFor hostname;
       pkgs = pkgsFor system;
       extraSpecialArgs = {
-        inherit inputs hostname const hostDefs hostDef nix-secrets username;
+        inherit inputs hostname const hostDefs hostDef username;
       };
     };
 
@@ -106,7 +105,7 @@
         ++ lib.optional (homeDef.enable or false) {
           home-manager.users.${username}.imports = homeModulesFor hostname;
           home-manager.extraSpecialArgs = {
-            inherit inputs hostname const hostDefs hostDef nix-secrets username;
+            inherit inputs hostname const hostDefs hostDef username;
           };
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;

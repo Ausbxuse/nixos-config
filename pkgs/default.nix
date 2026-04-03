@@ -75,6 +75,7 @@
       openssh
       qemu_kvm
       cloud-utils
+      rsync
     ];
   };
 

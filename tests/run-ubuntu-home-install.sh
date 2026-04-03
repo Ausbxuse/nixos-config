@@ -2,12 +2,16 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-readonly REPO_FLAKE="${REPO_FLAKE:-github:ausbxuse/nixos-config}"
+readonly LOCAL_REPO="${LOCAL_REPO:-$PWD}"
+readonly REMOTE_REPO="${REMOTE_REPO:-/home/zhenyu/src/public/nixos-config}"
+readonly REPO_FLAKE="${REPO_FLAKE:-${REMOTE_REPO}}"
 readonly UBUNTU_RELEASE="${UBUNTU_RELEASE:-24.04}"
 readonly UBUNTU_SERIES="${UBUNTU_SERIES:-noble}"
 readonly SSH_PORT="${SSH_PORT:-2222}"
 readonly VM_RAM_MB="${VM_RAM_MB:-4096}"
 readonly VM_CPUS="${VM_CPUS:-4}"
+readonly VM_DISK_SIZE="${VM_DISK_SIZE:-40G}"
+readonly KEEP_VM="${KEEP_VM:-0}"
 readonly HOSTNAME="${HOSTNAME_OVERRIDE:-ubuntu-adhoc}"
 readonly HOME_PROFILE="${HOME_PROFILE:-personal-gnome}"
 readonly DISPLAY_PROFILE="${DISPLAY_PROFILE:-gnome-default}"
@@ -24,6 +28,12 @@ info() { printf '[INFO] %s\n' "$*"; }
 die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
 
 cleanup() {
+  if [[ "$KEEP_VM" == "1" && -f "$PID_FILE" ]]; then
+    info "Keeping Ubuntu VM running for inspection."
+    info "SSH with: ssh -i \"$SSH_KEY\" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p \"$SSH_PORT\" zhenyu@127.0.0.1"
+    info "Workdir: $WORKDIR"
+    return 0
+  fi
   if [[ -f "$PID_FILE" ]]; then
     kill "$(cat "$PID_FILE")" 2>/dev/null || true
   fi
@@ -49,6 +59,17 @@ ssh_cmd() {
     "$@"
 }
 
+rsync_repo() {
+  [[ -f "${LOCAL_REPO}/flake.nix" ]] || die "LOCAL_REPO does not look like a flake checkout: ${LOCAL_REPO}"
+  info "Syncing local repo into Ubuntu guest..."
+  ssh_cmd "mkdir -p \"$(dirname "$REMOTE_REPO")\""
+  rsync -az --delete \
+    --exclude .git \
+    --exclude result \
+    -e "ssh -i \"$SSH_KEY\" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p \"$SSH_PORT\"" \
+    "${LOCAL_REPO}/" "zhenyu@127.0.0.1:${REMOTE_REPO}/"
+}
+
 download_image() {
   mkdir -p "$CACHE_DIR"
   if [[ ! -f "$IMG_CACHE" ]]; then
@@ -62,6 +83,11 @@ make_seed() {
 
   cat >"${WORKDIR}/user-data" <<EOF
 #cloud-config
+growpart:
+  mode: auto
+  devices: ["/"]
+  ignore_growroot_disabled: false
+resize_rootfs: true
 users:
   - default
   - name: zhenyu
@@ -87,6 +113,7 @@ EOF
 
 boot_vm() {
   qemu-img create -f qcow2 -F qcow2 -b "$IMG_CACHE" "$OVERLAY_IMG" >/dev/null
+  qemu-img resize "$OVERLAY_IMG" "$VM_DISK_SIZE" >/dev/null
 
   qemu-system-x86_64 \
     -machine accel=kvm:tcg \
@@ -121,7 +148,7 @@ install_nix() {
 
 run_home_install() {
   info "Running ad hoc home-only install inside Ubuntu guest..."
-  ssh_cmd "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && nix run ${REPO_FLAKE}#install -- --host ${HOSTNAME} --home --no-nixos --home-profile ${HOME_PROFILE} --display-profile ${DISPLAY_PROFILE} --yes"
+  ssh_cmd "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && nix --extra-experimental-features 'nix-command flakes' run ${REPO_FLAKE}#install -- --host ${HOSTNAME} --home --no-nixos --home-profile ${HOME_PROFILE} --display-profile ${DISPLAY_PROFILE} --yes"
 }
 
 verify_guest_state() {
@@ -131,12 +158,13 @@ verify_guest_state() {
 }
 
 main() {
-  require_cmd curl qemu-img qemu-system-x86_64 cloud-localds ssh ssh-keygen
+  require_cmd curl qemu-img qemu-system-x86_64 cloud-localds ssh ssh-keygen rsync
   download_image
   make_seed
   boot_vm
   wait_for_ssh
   install_nix
+  rsync_repo
   run_home_install
   verify_guest_state
   info "Ubuntu home install integration test passed."

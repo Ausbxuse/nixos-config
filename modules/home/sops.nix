@@ -1,11 +1,10 @@
 {
   inputs,
-  nix-secrets,
   config,
   lib,
   ...
 }: let
-  secretspath = builtins.toString nix-secrets;
+  secretspath = builtins.toString ../../secrets/nix-secrets;
   hasSecretsFile = builtins.pathExists "${secretspath}/secrets.yaml";
 in
   {

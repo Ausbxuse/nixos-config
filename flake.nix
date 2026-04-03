@@ -31,10 +31,6 @@
       url = "github:ausbxuse/de";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-secrets = {
-      url = "path:./secrets/nix-secrets";
-      flake = false;
-    };
   };
 
   outputs = {
@@ -45,9 +41,8 @@
     inherit (nixpkgs) lib;
 
     const = import ./globals.nix;
-    nix-secrets = inputs.nix-secrets;
     repo = import ./lib {
-      inherit lib inputs nixpkgs const nix-secrets;
+      inherit lib inputs nixpkgs const;
     };
   in {
     templates = import ./templates;

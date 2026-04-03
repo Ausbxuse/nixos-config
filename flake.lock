@@ -114,18 +114,6 @@
         "type": "github"
       }
     },
-    "nix-secrets": {
-      "flake": false,
-      "locked": {
-        "path": "./secrets/nix-secrets",
-        "type": "path"
-      },
-      "original": {
-        "path": "./secrets/nix-secrets",
-        "type": "path"
-      },
-      "parent": []
-    },
     "nixgl": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -238,7 +226,6 @@
         "grub2-theme": "grub2-theme",
         "home-manager": "home-manager",
         "minegrub": "minegrub",
-        "nix-secrets": "nix-secrets",
         "nixgl": "nixgl",
         "nixos-generators": "nixos-generators",
         "nixpkgs": "nixpkgs_3",

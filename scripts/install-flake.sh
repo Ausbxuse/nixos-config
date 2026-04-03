@@ -231,17 +231,30 @@ resolve_target() {
 
   if host_known "$HOST"; then
     KNOWN_HOST=1
+    # jq filters are intentionally single-quoted here so `$host` is passed to jq via `--arg`.
+    # shellcheck disable=SC2016
     SYSTEM=${SYSTEM:-$(host_query "$HOST" '.[$host].system // empty')}
+    # shellcheck disable=SC2016
     USERNAME=${USERNAME:-$(host_query "$HOST" '.[$host].username // empty')}
+    # shellcheck disable=SC2016
     PLATFORM=${PLATFORM:-$(host_query "$HOST" '.[$host].platform // "ad-hoc"')}
+    # shellcheck disable=SC2016
     VISIBILITY=${VISIBILITY:-$(host_query "$HOST" '.[$host].visibility // "private"')}
+    # shellcheck disable=SC2016
     INSTALL_LAYOUT=${INSTALL_LAYOUT:-$(host_query "$HOST" '.[$host].install.layout // empty')}
+    # shellcheck disable=SC2016
     DISK=${DISK:-$(host_query "$HOST" '.[$host].install.disk // empty')}
+    # shellcheck disable=SC2016
     SWAP_SIZE=${SWAP_SIZE:-$(host_query "$HOST" '.[$host].install.swapSize // empty')}
+    # shellcheck disable=SC2016
     [[ -n "$NIXOS_MODE" ]] || NIXOS_MODE=$(host_bool "$HOST" '.[$host].nixos.enable // false')
+    # shellcheck disable=SC2016
     [[ -n "$HOME_MODE" ]] || HOME_MODE=$(host_bool "$HOST" '.[$host].home.enable // false')
+    # shellcheck disable=SC2016
     [[ -n "$NIXOS_PROFILE" ]] || NIXOS_PROFILE=$(host_query "$HOST" '.[$host].nixos.profile // empty')
+    # shellcheck disable=SC2016
     [[ -n "$HOME_PROFILE" ]] || HOME_PROFILE=$(host_query "$HOST" '.[$host].home.profile // empty')
+    # shellcheck disable=SC2016
     [[ -n "$DISPLAY_PROFILE" ]] || DISPLAY_PROFILE=$(host_query "$HOST" '.[$host].home.displayProfile // empty')
   else
     SYSTEM=${SYSTEM:-$(detect_system)}
