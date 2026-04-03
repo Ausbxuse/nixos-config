@@ -4,6 +4,7 @@
   pkgs,
   const,
   hostname,
+  hostDefs,
   inputs,
   ...
 }: {
@@ -219,7 +220,7 @@
 
     initContent = ''
       ${builtins.readFile ./zshrc}
-      ${lib.optionalString (builtins.elem hostname const.private-hosts && lib.hasAttrByPath ["sops" "secrets" "anthropic"] config && lib.hasAttrByPath ["sops" "secrets" "gemini"] config) ''
+      ${lib.optionalString ((hostDefs.${hostname}.visibility or "private") == "private" && lib.hasAttrByPath ["sops" "secrets" "anthropic"] config && lib.hasAttrByPath ["sops" "secrets" "gemini"] config) ''
         export ANTHROPIC_API_KEY="$(cat ${config.sops.secrets.anthropic.path})"
         export GEMINI_API_KEY="$(cat ${config.sops.secrets.gemini.path})"
       ''}

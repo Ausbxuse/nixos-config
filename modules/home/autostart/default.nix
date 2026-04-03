@@ -1,13 +1,12 @@
 {
   config,
-  const,
   ...
 }: {
   home.file."${config.xdg.configHome}/autostart/startup.desktop" = {
     text = ''
       [Desktop Entry]
       Type=Application
-      Exec=/home/${const.username}/.local/bin/startup
+      Exec=${config.home.homeDirectory}/.local/bin/startup
       Icon=Terminal
       Terminal=false
       Categories=System;TerminalEmulator;
@@ -22,7 +21,7 @@
 
       [Desktop Action New]
       Name=New Terminal
-      Exec=/home/${const.username}/.local/bin/startup
+      Exec=${config.home.homeDirectory}/.local/bin/startup
     '';
     executable = false;
   };

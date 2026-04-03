@@ -12,5 +12,5 @@
 
 # urgent
 
-- [ ] aarch64 installation issue when using install_home.sh
+- [ ] validate aarch64 support in the new `nix run .#install` flow
 - [ ] duo watch-display did not run on startup

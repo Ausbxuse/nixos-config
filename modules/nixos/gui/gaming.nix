@@ -1,6 +1,6 @@
 {
   pkgs,
-  const,
+  username,
   ...
 }: {
   # https://wiki.archlinux.org/title/steam
@@ -43,7 +43,7 @@
   ];
 
   environment.sessionVariables = {
-    STEAM_EXTRA_COMPAT_TOOLS_PATHS = "/home/${const.username}/.local/share/steam/root/compatibilitytools.d";
+    STEAM_EXTRA_COMPAT_TOOLS_PATHS = "/home/${username}/.local/share/steam/root/compatibilitytools.d";
   };
 
   programs.gamemode.enable = true;

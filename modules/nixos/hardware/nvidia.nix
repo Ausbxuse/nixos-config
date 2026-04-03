@@ -10,10 +10,6 @@
 
     services.xserver.videoDrivers = lib.mkDefault ["nvidia"];
 
-    boot.initrd.kernelModules = ["nvidia"];
-    # boot.extraModulePackages = [config.boot.kernelPackages.nvidia_x11];
-    #hardware.nvidia.forceFullCompositionPipeline = true;
-
     hardware.nvidia.prime = {
       # Keep the desktop on NVIDIA; PRIME offload introduced noticeable input latency on `uni`.
       sync.enable = true;

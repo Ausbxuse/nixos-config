@@ -1,32 +1,24 @@
-# A list of useful commands
+# NixOS Config
 
-## Install system
+The canonical installation and bring-up guide is:
+
+- [docs/installation.md](/home/zhenyu/src/public/nixos-config/docs/installation.md)
+
+The short version:
 
 ```bash
-just install <host>
+nix run github:ausbxuse/nixos-config#install -- --host <host>
 ```
 
-# Install nixos
-
-1. Install using graphical installer
-2. remember to make sure hardware configuration and luks setup are correct
-3. Reboot and install my system setup using
+For post-install validation:
 
 ```bash
-nix --flake swith
-nixos-rebuild switch --flake github:ausbxuse/nix-conf#<host-system>
+nix run .#validate-host
 ```
 
-3. Install home setup using
+Useful local commands:
 
 ```bash
-home-manager switch --flake github:ausbxuse/nix-conf#<host-home>
-```
-
-# Build iso
-
-```bash
+nix flake check --no-build
 nix build .#gnome-iso
 ```
-
-> NOTE: For lenovo yoga, add thinkpad-acpi to kernelModules

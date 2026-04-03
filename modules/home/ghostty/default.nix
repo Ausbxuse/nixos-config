@@ -1,4 +1,4 @@
-{...}: {
+{lib, ...}: {
   xdg.configFile."ghostty/shaders/cursor_warp.glsl".source = ./cursor_warp.glsl;
 
   programs = {
@@ -70,7 +70,7 @@
 
         font-family = "JetBrainsMono NF";
         font-family-italic = "Operator Mono Book";
-        font-size = 12;
+        font-size = lib.mkDefault 12;
         font-thicken = true;
 
         shell-integration-features = "no-cursor,no-sudo,title";

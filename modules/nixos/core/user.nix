@@ -1,6 +1,6 @@
 {
   pkgs,
-  const,
+  username,
   ...
 }: {
   programs.zsh.enable = true;
@@ -12,10 +12,10 @@
   };
 
   users.defaultUserShell = pkgs.zsh;
-  users.users.${const.username} = {
+  users.users.${username} = {
     isNormalUser = true;
     extraGroups = ["wheel" "networkmanager" "video" "dialout"];
-    home = "/home/${const.username}";
+    home = "/home/${username}";
     initialHashedPassword = "";
     createHome = true;
   };

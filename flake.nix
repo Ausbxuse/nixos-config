@@ -35,10 +35,6 @@
       url = "path:./secrets/nix-secrets";
       flake = false;
     };
-    bootstrap-keys = {
-      url = "path:/home/zhenyu/.local/src/secrets";
-      flake = false;
-    };
   };
 
   outputs = {
@@ -49,95 +45,25 @@
     inherit (nixpkgs) lib;
 
     const = import ./globals.nix;
-    supportedSystems = ["x86_64-linux" "aarch64-linux"];
-    forAllSystems = lib.genAttrs supportedSystems;
-    pkgsFor = system:
-      import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-      };
-    mkNixos = system: modules: hostname:
-      nixpkgs.lib.nixosSystem {
-        inherit system;
-        inherit modules;
-        specialArgs = {inherit inputs hostname const;};
-      };
-
-    mkHome = system: modules: hostname:
-      inputs.home-manager.lib.homeManagerConfiguration {
-        inherit modules;
-        pkgs = pkgsFor system;
-        extraSpecialArgs = {inherit inputs hostname const nix-secrets;};
-      };
-
-    mkNixosWithHome = system: modules: hostname:
-      nixpkgs.lib.nixosSystem {
-        inherit system;
-        modules =
-          modules
-          ++ [
-            inputs.home-manager.nixosModules.home-manager
-            {
-              home-manager.users.${const.username} = import (./home + "/${hostname}");
-              home-manager.extraSpecialArgs = {inherit inputs hostname const nix-secrets;};
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-            }
-          ];
-        specialArgs = {inherit inputs hostname const;};
-      };
-
-    nixosHosts = lib.attrNames (builtins.readDir ./hosts);
-    homeHosts = lib.attrNames (builtins.readDir ./home);
-
     nix-secrets = inputs.nix-secrets;
-    bootstrap-keys = inputs.bootstrap-keys;
+    repo = import ./lib {
+      inherit lib inputs nixpkgs const nix-secrets;
+    };
   in {
     templates = import ./templates;
 
-    devShells = forAllSystems (system: let
-      pkgs = pkgsFor system;
-    in {
+    devShells = repo.forEachSystem ({pkgs, ...}: {
       default = (import ./shell.nix {inherit pkgs;}).default;
     });
 
-    packages = forAllSystems (system: let
-      pkgs = pkgsFor system;
-      minecraft = pkgs.callPackage ./pkgs/minecraft {};
-      mkBootstrap = import ./bootstrap.nix {
-        inherit pkgs system;
-        home-manager = inputs.home-manager.packages.${system}.default;
-      };
-    in
-      (lib.optionalAttrs (system == "x86_64-linux") (import ./isos {
-        inherit pkgs inputs bootstrap-keys;
+    packages = repo.forEachSystem ({pkgs, ...}:
+      import ./pkgs {
+        inherit lib pkgs self inputs const;
+        inherit (repo) hostDefs nixosHosts;
         nixosConfigurations = self.nixosConfigurations;
-        seedHostNames = nixosHosts;
-      }))
-      // {
-        bootstrap_home = mkBootstrap "earthy";
-        bootstrap_home_gui = mkBootstrap "spacy";
-        minecraftClient = minecraft.mrpack;
-        minecraftDeploy = minecraft.deploy;
-        minecraftBootstrap = minecraft.bootstrap;
-        minecraftSync = minecraft.sync;
-        nvim = let
-          nvimConfig = ./modules/home/nvim/nvim;
-          deps = with pkgs; [nodejs tree-sitter fd ripgrep gcc git];
-          depsPath = pkgs.lib.makeBinPath deps;
-        in
-          pkgs.writeShellScriptBin "nvim" ''
-            NVIM_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
-            if [ ! -e "$NVIM_DIR" ]; then
-              mkdir -p "$(dirname "$NVIM_DIR")"
-              ln -s ${nvimConfig} "$NVIM_DIR"
-            fi
-            export PATH="${depsPath}:$PATH"
-            exec ${pkgs.neovim}/bin/nvim "$@"
-          '';
       });
 
-    apps = forAllSystems (system: let
+    apps = repo.forEachSystem ({system, ...}: let
       minecraft = self.packages.${system}.minecraftSync;
       bootstrap = self.packages.${system}.minecraftBootstrap;
       deploy = self.packages.${system}.minecraftDeploy;
@@ -154,42 +80,52 @@
         type = "app";
         program = "${deploy}/bin/deploy-minecraft-client";
       };
+      "validate-host" = {
+        type = "app";
+        program = "${self.packages.${system}."validate-host"}/bin/validate-host";
+      };
+      install = {
+        type = "app";
+        program = "${self.packages.${system}.install}/bin/install-config";
+      };
+      "ubuntu-home-install-test" = {
+        type = "app";
+        program = "${self.packages.${system}."ubuntu-home-install-test"}/bin/ubuntu-home-install-test";
+      };
       default = {
         type = "app";
         program = "${minecraft}/bin/sync-minecraft-client";
       };
     });
 
-    checks = forAllSystems (system: let
-      pkgs = pkgsFor system;
-    in
-      (import ./tests {inherit pkgs lib;})
-      // lib.optionalAttrs (system == "x86_64-linux") {
-        nvim = self.packages.${system}.nvim;
-        inherit (self.packages.${system}) gnome-iso;
-      }
-      // {
-        nvim = self.packages.${system}.nvim;
-        home-earthy = (mkHome system [./home/earthy] "earthy").activationPackage;
-        home-spacy = (mkHome system [./home/spacy] "spacy").activationPackage;
-        home-timy = (mkHome system [./home/timy] "timy").activationPackage;
-        home-uni = (mkHome system [./home/uni] "uni").activationPackage;
-        nixos-spacy = (mkNixosWithHome system [./hosts/spacy] "spacy").config.system.build.toplevel;
-        nixos-timy = (mkNixosWithHome system [./hosts/timy] "timy").config.system.build.toplevel;
-        nixos-uni = (mkNixosWithHome system [./hosts/uni] "uni").config.system.build.toplevel;
-      }
-      );
+    checks = repo.forEachSystem (
+      {
+        system,
+        pkgs,
+      }:
+        (import ./tests {inherit pkgs lib;})
+        // lib.optionalAttrs (system == "x86_64-linux") {
+          nvim = self.packages.${system}.nvim;
+          inherit (self.packages.${system}) gnome-iso;
+        }
+        // repo.mkChecks "home" (
+          host: (repo.mkHome host).activationPackage
+        ) (repo.hostsForSystem system repo.homeHosts)
+        // repo.mkChecks "nixos" (
+          host: (repo.mkNixosWithHome host).config.system.build.toplevel
+        ) (repo.hostsForSystem system repo.nixosHosts)
+    );
 
-    nixosConfigurations = builtins.listToAttrs (map (host: {
-        name = "${host}";
-        value = mkNixosWithHome const.system [./hosts/${host}] host;
-      })
-      nixosHosts);
+    nixosConfigurations =
+      repo.mkNamedAttrs
+      (host: host)
+      (host: repo.mkNixosWithHome host)
+      repo.nixosHosts;
 
-    homeConfigurations = builtins.listToAttrs (map (host: {
-        name = "${const.username}@" + host;
-        value = mkHome const.system [./home/${host}] host;
-      })
-      homeHosts);
+    homeConfigurations =
+      repo.mkNamedAttrs
+      (host: "${repo.userFor host}@${host}")
+      (host: repo.mkHome host)
+      repo.homeHosts;
   };
 }

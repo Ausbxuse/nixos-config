@@ -1,13 +1,13 @@
 # Generated via dconf2nix: https://github.com/gvolpe/dconf2nix
 {
   lib,
-  const,
+  username,
   ...
 }:
 with lib.hm.gvariant; {
   dconf.settings = {
     "org/freedesktop/tracker/miner/files" = {
-      index-recursive-directories = ["&DESKTOP" "&DOCUMENTS" "&MUSIC" "&PICTURES" "&VIDEOS" "/home/${const.username}/Media/Music"];
+      index-recursive-directories = ["&DESKTOP" "&DOCUMENTS" "&MUSIC" "&PICTURES" "&VIDEOS" "/home/${username}/Media/Music"];
     };
 
     "org/gnome/Totem" = {
@@ -57,8 +57,8 @@ with lib.hm.gvariant; {
     "org/gnome/desktop/background" = {
       color-shading-type = "solid";
       picture-options = "zoom";
-      picture-uri = "file:///home/${const.username}/.local/share/wallpapers/city.jpg";
-      picture-uri-dark = "file:///home/${const.username}/.local/share/wallpapers/city.jpg";
+      picture-uri = "file:///home/${username}/.local/share/wallpapers/city.jpg";
+      picture-uri-dark = "file:///home/${username}/.local/share/wallpapers/city.jpg";
       primary-color = "#3071AE";
       secondary-color = "#000000";
     };
@@ -87,7 +87,7 @@ with lib.hm.gvariant; {
       clock-show-weekday = true;
       color-scheme = "prefer-dark";
       cursor-blink = false;
-      cursor-size = 24;
+      cursor-size = lib.mkDefault 24;
       cursor-theme = "capitaine-cursors-white";
       enable-animations = false;
       enable-hot-corners = false;
@@ -97,9 +97,9 @@ with lib.hm.gvariant; {
       gtk-theme = "Adwaita";
       icon-theme = "Adwaita";
       locate-pointer = false;
-      scaling-factor = mkUint32 2;
+      scaling-factor = lib.mkDefault (mkUint32 2);
       show-battery-percentage = true;
-      text-scaling-factor = 1.0;
+      text-scaling-factor = lib.mkDefault 1.0;
       toolbar-style = "text";
       toolkit-accessibility = false;
     };
@@ -134,7 +134,7 @@ with lib.hm.gvariant; {
       color-shading-type = "solid";
       lock-enabled = true;
       picture-options = "zoom";
-      picture-uri = "file:///home/${const.username}/.local/share/wallpapers/city.jpg";
+      picture-uri = "file:///home/${username}/.local/share/wallpapers/city.jpg";
       primary-color = "#3071AE";
       secondary-color = "#000000";
     };
@@ -272,7 +272,7 @@ with lib.hm.gvariant; {
       command-history = ["lg" "xiccdf" "xiccd"];
       disable-user-extensions = false;
       disabled-extensions = ["ubuntu-dock@ubuntu.com" "light-style@gnome-shell-extensions.gcampax.github.com" "native-window-placement@gnome-shell-extensions.gcampax.github.com" "tiling-assistant@leleat-on-github" "Rounded_Corners@lennart-k" "auto-move-windows@gnome-shell-extensions.gcampax.github.com" "Vitals@CoreCoding.com" "netspeedsimplified@prateekmedia.extension" "apps-menu@gnome-shell-extensions.gcampax.github.com" "cronomix@zagortenay333" "gnomebedtime@ionutbortis.gmail.com" "system-monitor@gnome-shell-extensions.gcampax.github.com" "places-menu@gnome-shell-extensions.gcampax.github.com" "paperwm@paperwm.github.com" "gtk4-ding@smedius.gitlab.com" "window-list@gnome-shell-extensions.gcampax.github.com"];
-      enabled-extensions = ["screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com" "rounded-window-corners@fxgn" "drive-menu@gnome-shell-extensions.gcampax.github.com" "kimpanel@kde.org" "gsconnect@andyholmes.github.io" "night-light-slider-updated@vilsbeg.codeberg.org" "color-picker@tuberry" "caffeine@patapon.info" "Bluetooth-Battery-Meter@maniacx.github.com" "monitor@astraext.github.io" "workspace-indicator@gnome-shell-extensions.gcampax.github.com" "unite@hardpixel.eu" "mediacontrols@cliffniff.github.com" "system-monitor-next@paradoxxx.zero.gmail.com" "forge@jmmaranan.com" "no-overview@fthx" "user-theme@gnome-shell-extensions.gcampax.github.com" "azwallpaper@azwallpaper.gitlab.com" "blur-my-shell@aunetx"];
+      enabled-extensions = ["screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com" "rounded-window-corners@fxgn" "drive-menu@gnome-shell-extensions.gcampax.github.com" "kimpanel@kde.org" "gsconnect@andyholmes.github.io" "night-light-slider-updated@vilsbeg.codeberg.org" "color-picker@tuberry" "caffeine@patapon.info" "Bluetooth-Battery-Meter@maniacx.github.com" "monitor@astraext.github.io" "workspace-indicator@gnome-shell-extensions.gcampax.github.com" "unite@hardpixel.eu" "mediacontrols@cliffniff.github.com" "system-monitor-next@paradoxxx.zero.gmail.com" "forge@jmmaranan.com" "no-overview@fthx" "user-theme@gnome-shell-extensions.gcampax.github.com" "blur-my-shell@aunetx"];
       favorite-apps = ["org.gnome.Settings.desktop" "org.gnome.Nautilus.desktop" "org.gnome.Extensions.desktop" "org.gnome.Calendar.desktop" "firefox.desktop" "steam.desktop" "org.wezfurlong.wezterm.desktop" "com.github.xournalpp.xournalpp.desktop"];
       last-selected-power-profile = "power-saver";
       looking-glass-history = ["Flags"];
@@ -343,14 +343,6 @@ with lib.hm.gvariant; {
       storage-header-show = false;
       storage-indicators-order = "[\"icon\",\"bar\",\"percentage\",\"value\",\"free\",\"IO bar\",\"IO graph\",\"IO speed\"]";
       storage-main = "name-vg-nixos";
-    };
-
-    "org/gnome/shell/extensions/azwallpaper" = {
-      slideshow-current-wallpapper = "city.jpg";
-      slideshow-directory = "/home/${const.username}/.local/share/wallpapers";
-      slideshow-slide-duration = mkTuple [1 0 0];
-      slideshow-timer-remaining = 3600;
-      slideshow-wallpaper-queue = ["\34183\23572\33673\29305\&1.png" "deer.jpg" "\20113\38544\32321\26143\&2.png" "\24052\23665\22812\38632.png"];
     };
 
     "org/gnome/shell/extensions/blur-my-shell" = {

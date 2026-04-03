@@ -3,11 +3,12 @@
   lib,
   pkgs,
   const,
+  username,
   ...
 }: {
   home = {
-    username = "${const.username}";
-    homeDirectory = "/home/${const.username}"; # avoids infinite recursion
+    inherit username;
+    homeDirectory = "/home/${username}"; # avoids infinite recursion
     stateVersion = "24.05";
   };
 

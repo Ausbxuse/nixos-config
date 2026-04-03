@@ -1,7 +1,6 @@
 {
   pkgs,
   lib,
-  bootstrap-keys,
   ...
 }: {
   nixpkgs.config.allowUnfree = true;
@@ -23,6 +22,4 @@
   };
 
   system.stateVersion = "24.05";
-
-  environment.etc."ssh/id_ed25519".source = "${bootstrap-keys}/id_ed25519";
 }
