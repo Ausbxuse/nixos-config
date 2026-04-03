@@ -5,7 +5,6 @@
       profiles.betterfox = {
         extraConfig = builtins.readFile ./user.js;
       };
-      # package = pkgs.firefox-wayland;
     };
   };
 }

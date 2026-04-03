@@ -8,7 +8,7 @@
   config = lib.mkIf config.my.hardware.nvidia.enable {
     hardware.graphics.enable = true;
 
-    services.xserver.videoDrivers = lib.mkForce ["nvidia"];
+    services.xserver.videoDrivers = lib.mkDefault ["nvidia"];
 
     boot.initrd.kernelModules = ["nvidia"];
     # boot.extraModulePackages = [config.boot.kernelPackages.nvidia_x11];
@@ -45,7 +45,8 @@
       # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus
       # Only available from driver 515.43.04+
       # Currently alpha-quality/buggy, so false is currently the recommended setting.
-      open = false;
+      # Blackwell requires the open kernel module flavor.
+      open = lib.mkDefault true;
 
       # Enable the Nvidia settings menu,
       # accessible via `nvidia-settings`.

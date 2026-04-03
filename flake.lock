@@ -130,18 +130,14 @@
     "nix-secrets": {
       "flake": false,
       "locked": {
-        "lastModified": 1769036865,
-        "narHash": "sha256-L+dp5h+nk7X91+bMnvFD5WyW5P8PoF4aLyg+GE2x7gk=",
-        "ref": "refs/heads/master",
-        "rev": "f3fe66aae89d3ab59d9e4fbde3bd51959d197cd4",
-        "revCount": 6,
-        "type": "git",
-        "url": "ssh://git@zhenyuzhao.com/var/lib/git-server/nix-secrets"
+        "path": "./secrets/nix-secrets",
+        "type": "path"
       },
       "original": {
-        "type": "git",
-        "url": "ssh://git@zhenyuzhao.com/var/lib/git-server/nix-secrets"
-      }
+        "path": "./secrets/nix-secrets",
+        "type": "path"
+      },
+      "parent": []
     },
     "nixgl": {
       "inputs": {
@@ -234,11 +230,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1771369470,
-        "narHash": "sha256-0NBlEBKkN3lufyvFegY4TYv5mCNHbi5OmBDrzihbBMQ=",
+        "lastModified": 1775036866,
+        "narHash": "sha256-ZojAnPuCdy657PbTq5V0Y+AHKhZAIwSIT2cb8UgAz/U=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "0182a361324364ae3f436a63005877674cf45efb",
+        "rev": "6201e203d09599479a3b3450ed24fa81537ebc4e",
         "type": "github"
       },
       "original": {

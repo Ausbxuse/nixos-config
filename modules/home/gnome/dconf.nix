@@ -134,7 +134,7 @@ with lib.hm.gvariant; {
       color-shading-type = "solid";
       lock-enabled = true;
       picture-options = "zoom";
-      picture-uri = "file:///run/current-system/sw/share/backgrounds/gnome/adwaita-l.jxl";
+      picture-uri = "file:///home/${const.username}/.local/share/wallpapers/city.jpg";
       primary-color = "#3071AE";
       secondary-color = "#000000";
     };

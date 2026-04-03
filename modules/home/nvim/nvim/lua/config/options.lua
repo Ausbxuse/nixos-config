@@ -1,8 +1,157 @@
 local opt = vim.opt
 local home = vim.fn.expand '$HOME'
+local osc52 = require 'vim.ui.clipboard.osc52'
+local term_program = vim.env.TERM_PROGRAM or ''
+local current_desktop = vim.env.XDG_CURRENT_DESKTOP or ''
+local osc52_cache = {}
+local gnome_clipboard_jobs = {}
+
+local function stop_gnome_clipboard_job(register)
+  local job = gnome_clipboard_jobs[register]
+  if not job or job:is_closing() then
+    gnome_clipboard_jobs[register] = nil
+    return
+  end
+
+  job:kill 'sigterm'
+  gnome_clipboard_jobs[register] = nil
+end
+
+local function gnome_copy(primary)
+  return function(lines)
+    local register = primary and '*' or '+'
+    local text = table.concat(lines, '\n')
+    local cmd = { 'nvim-gnome-clipboard', 'copy' }
+    if primary then
+      table.insert(cmd, 2, '--primary')
+    end
+
+    stop_gnome_clipboard_job(register)
+    gnome_clipboard_jobs[register] = vim.system(cmd, { stdin = text }, function()
+      gnome_clipboard_jobs[register] = nil
+    end)
+  end
+end
+
+local function gnome_paste(primary)
+  return function()
+    local cmd = { 'nvim-gnome-clipboard', 'paste' }
+    if primary then
+      table.insert(cmd, 2, '--primary')
+    end
+
+    local result = vim.system(cmd, { text = true }):wait()
+    if result.code ~= 0 or result.stdout == nil then
+      return {}
+    end
+
+    return vim.split(result.stdout, '\n', { plain = true })
+  end
+end
+
+local function wl_copy(primary)
+  return function(lines)
+    local text = table.concat(lines, '\n')
+    local cmd = { 'wl-copy', '--type', 'text/plain' }
+    if primary then
+      table.insert(cmd, 2, '--primary')
+    end
+
+    vim.system(cmd, { stdin = text, detach = true }, function() end)
+  end
+end
+
+local function wl_paste(primary)
+  return function()
+    local cmd = { 'wl-paste', '--no-newline' }
+    if primary then
+      table.insert(cmd, 2, '--primary')
+    end
+
+    local result = vim.system(cmd, { text = true }):wait()
+    if result.code ~= 0 or not result.stdout then
+      return {}
+    end
+
+    return vim.split(result.stdout, '\n', { plain = true })
+  end
+end
+
+local function osc52_copy_with_cache(register)
+  local copy = osc52.copy(register)
+  return function(lines, regtype)
+    osc52_cache[register] = {
+      lines = vim.deepcopy(lines),
+      regtype = regtype or 'v',
+    }
+    copy(lines)
+  end
+end
+
+local function osc52_paste_from_cache(register)
+  return function()
+    local cached = osc52_cache[register]
+    if not cached then
+      return { {}, 'v' }
+    end
+
+    return { vim.deepcopy(cached.lines), cached.regtype }
+  end
+end
+
+vim.api.nvim_create_autocmd('VimLeavePre', {
+  callback = function()
+    stop_gnome_clipboard_job '+'
+    stop_gnome_clipboard_job '*'
+  end,
+})
 
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
+
+if vim.env.TMUX and vim.env.TMUX ~= '' then
+  vim.g.clipboard = 'tmux'
+elseif current_desktop:match 'GNOME' then
+  vim.g.clipboard = {
+    name = 'gnome-gtk',
+    copy = {
+      ['+'] = gnome_copy(false),
+      ['*'] = gnome_copy(true),
+    },
+    paste = {
+      ['+'] = gnome_paste(false),
+      ['*'] = gnome_paste(true),
+    },
+    cache_enabled = 0,
+  }
+elseif term_program == 'ghostty' or term_program == 'WezTerm' then
+  -- Avoid wl-clipboard popups on compositors like GNOME/Mutter by using terminal OSC 52.
+  vim.g.clipboard = {
+    name = 'terminal-osc52-cache',
+    copy = {
+      ['+'] = osc52_copy_with_cache '+',
+      ['*'] = osc52_copy_with_cache '*',
+    },
+    paste = {
+      ['+'] = osc52_paste_from_cache '+',
+      ['*'] = osc52_paste_from_cache '*',
+    },
+    cache_enabled = 0,
+  }
+else
+  vim.g.clipboard = {
+    name = 'wayland-lua',
+    copy = {
+      ['+'] = wl_copy(false),
+      ['*'] = wl_copy(true),
+    },
+    paste = {
+      ['+'] = wl_paste(false),
+      ['*'] = wl_paste(true),
+    },
+    cache_enabled = 0,
+  }
+end
 
 local default_options = {
   clipboard = 'unnamedplus',

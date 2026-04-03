@@ -10,9 +10,11 @@
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+    wireplumber.enable = true;
   };
 
   environment.systemPackages = with pkgs; [
+    alsa-utils
     pulseaudio # provides `pactl`, which is required by some apps(e.g. sonic-pi)
   ];
   # services.pipewire.wireplumber.extraConfig = {

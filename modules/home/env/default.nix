@@ -27,6 +27,7 @@
     ANDROID_SDK_HOME = "${config.xdg.dataHome}/android-sdk";
     PULSE_COOKIE = "${config.xdg.stateHome}/pulse/cookie";
     XCURSOR_THEME = "capitaine-cursors-white";
+    XCURSOR_SIZE = "24";
     FLAKE = "${config.home.homeDirectory}/src/public/nixos-config";
     MANPAGER = "nvim +Man!";
     NPM_PACKAGES = "${config.home.homeDirectory}/.local/share/npm";
@@ -36,6 +37,7 @@
     NOTMUCH_CONFIG = "${config.xdg.configHome}/notmuch-config";
     WGETRC = "${config.xdg.configHome}/wget/wgetrc";
     INPUTRC = "${config.xdg.configHome}/shell/inputrc";
+    MOZ_ENABLE_WAYLAND = "1";
     PASSWORD_STORE_DIR = "${config.xdg.dataHome}/password-store";
     #TMUX_TMPDIR = "$XDG_RUNTIME_DIR";
     CARGO_HOME = "${config.xdg.dataHome}/cargo";

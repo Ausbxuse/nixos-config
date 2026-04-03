@@ -5,10 +5,30 @@
   ...
 }: let
   nvimPath = "${config.home.homeDirectory}/src/public/nixos-config/modules/home/nvim/nvim";
+  gnomeClipboard = pkgs.stdenv.mkDerivation {
+    pname = "nvim-gnome-clipboard";
+    version = "1";
+    dontUnpack = true;
+    nativeBuildInputs = [
+      pkgs.makeWrapper
+      pkgs.wrapGAppsHook3
+    ];
+    buildInputs = [
+      pkgs.gjs
+      pkgs.gtk3
+    ];
+    installPhase = ''
+      install -Dm644 ${./gnome-clipboard.js} $out/share/nvim-gnome-clipboard/gnome-clipboard.js
+
+      makeWrapper ${pkgs.gjs}/bin/gjs $out/bin/nvim-gnome-clipboard \
+        --add-flags $out/share/nvim-gnome-clipboard/gnome-clipboard.js
+    '';
+  };
 in {
   xdg.configFile."nvim".source = config.lib.file.mkOutOfStoreSymlink nvimPath;
 
   home.packages = with pkgs; [
+    gnomeClipboard
     # lua51Packages.luarocks-nix
     # fortune
     nodejs

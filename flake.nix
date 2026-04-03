@@ -32,7 +32,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-secrets = {
-      url = "git+ssh://git@zhenyuzhao.com/var/lib/git-server/nix-secrets";
+      url = "path:./secrets/nix-secrets";
       flake = false;
     };
     bootstrap-keys = {

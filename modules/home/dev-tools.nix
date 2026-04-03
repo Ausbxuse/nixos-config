@@ -7,7 +7,7 @@
     #nodePackages.npm
     #nodePackages.pnpm
     yarn
-    nodePackages.prettier
+    prettier
     shfmt
     jdk
     cargo

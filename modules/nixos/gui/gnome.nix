@@ -1,4 +1,24 @@
-{pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: let
+  gdmScaling = pkgs.writeTextFile {
+    name = "gdm-scaling-dconf";
+    destination = "/dconf/gdm-custom";
+    text = ''
+      [org/gnome/mutter]
+      experimental-features=['scale-monitor-framebuffer','xwayland-native-scaling']
+    '';
+  };
+
+  gdmScalingDb = pkgs.stdenv.mkDerivation {
+    name = "gdm-scaling-dconf-db";
+    buildCommand = ''
+      ${pkgs.dconf}/bin/dconf compile $out ${gdmScaling}/dconf
+    '';
+  };
+in {
   services.xserver.enable = true;
   services.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;
@@ -15,6 +35,22 @@
   services.gnome.tinysparql.enable = true;
   # services.gnome.tracker.enable = true;
   services.gnome.sushi.enable = true;
+
+  programs.dconf.profiles.gdm = lib.mkForce (pkgs.stdenv.mkDerivation {
+    name = "dconf-gdm-profile";
+    buildCommand = ''
+      if [ "$(head -n 1 ${pkgs.gdm}/share/dconf/profile/gdm)" != "user-db:user" ]; then
+        echo "Unexpected GDM dconf profile format"
+        exit 1
+      fi
+
+      {
+        echo "user-db:user"
+        echo "file-db:${gdmScalingDb}"
+        tail -n +2 ${pkgs.gdm}/share/dconf/profile/gdm
+      } > "$out"
+    '';
+  });
 
   environment.systemPackages = with pkgs; [
     capitaine-cursors

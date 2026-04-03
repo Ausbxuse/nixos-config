@@ -6,6 +6,7 @@
   environment.sessionVariables = {
     EDITOR = "nvim";
     XCURSOR_THEME = "capitaine-cursors-white";
+    XCURSOR_SIZE = "24";
     LESSHISTFILE = "-";
     DICS = "/usr/share/stardict/dic/";
     TERM = "xterm-256color";
