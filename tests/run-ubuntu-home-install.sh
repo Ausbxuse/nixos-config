@@ -2,9 +2,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-readonly LOCAL_REPO="${LOCAL_REPO:-$PWD}"
-readonly REMOTE_REPO="${REMOTE_REPO:-/home/zhenyu/src/public/nixos-config}"
-readonly REPO_FLAKE="${REPO_FLAKE:-${REMOTE_REPO}}"
+readonly REPO_FLAKE="${REPO_FLAKE:-github:ausbxuse/nixos-config}"
 readonly UBUNTU_RELEASE="${UBUNTU_RELEASE:-24.04}"
 readonly UBUNTU_SERIES="${UBUNTU_SERIES:-noble}"
 readonly SSH_PORT="${SSH_PORT:-2222}"
@@ -57,17 +55,6 @@ ssh_cmd() {
     -p "$SSH_PORT" \
     zhenyu@127.0.0.1 \
     "$@"
-}
-
-rsync_repo() {
-  [[ -f "${LOCAL_REPO}/flake.nix" ]] || die "LOCAL_REPO does not look like a flake checkout: ${LOCAL_REPO}"
-  info "Syncing local repo into Ubuntu guest..."
-  ssh_cmd "mkdir -p \"$(dirname "$REMOTE_REPO")\""
-  rsync -az --delete \
-    --exclude .git \
-    --exclude result \
-    -e "ssh -i \"$SSH_KEY\" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p \"$SSH_PORT\"" \
-    "${LOCAL_REPO}/" "zhenyu@127.0.0.1:${REMOTE_REPO}/"
 }
 
 download_image() {
@@ -158,13 +145,12 @@ verify_guest_state() {
 }
 
 main() {
-  require_cmd curl qemu-img qemu-system-x86_64 cloud-localds ssh ssh-keygen rsync
+  require_cmd curl qemu-img qemu-system-x86_64 cloud-localds ssh ssh-keygen
   download_image
   make_seed
   boot_vm
   wait_for_ssh
   install_nix
-  rsync_repo
   run_home_install
   verify_guest_state
   info "Ubuntu home install integration test passed."
