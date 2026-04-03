@@ -135,7 +135,7 @@ install_nix() {
 
 run_home_install() {
   info "Running ad hoc home-only install inside Ubuntu guest..."
-  ssh_cmd "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && nix --extra-experimental-features 'nix-command flakes' run ${REPO_FLAKE}#install -- --host ${HOSTNAME} --home --no-nixos --home-profile ${HOME_PROFILE} --display-profile ${DISPLAY_PROFILE} --yes"
+  ssh_cmd "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && nix --extra-experimental-features 'nix-command flakes' run --refresh ${REPO_FLAKE}#install -- --host ${HOSTNAME} --home --no-nixos --home-profile ${HOME_PROFILE} --display-profile ${DISPLAY_PROFILE} --yes"
 }
 
 verify_guest_state() {

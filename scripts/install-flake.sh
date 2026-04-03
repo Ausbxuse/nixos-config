@@ -35,7 +35,9 @@ cleanup() {
     sudo rm -f "$SECRET_KEY_PATH"
   fi
   if [[ -n "$WORKTREE" && -d "$WORKTREE" ]]; then
-    rm -rf "$WORKTREE"
+    if ! rm -rf "$WORKTREE" 2>/dev/null; then
+      sudo rm -rf "$WORKTREE"
+    fi
   fi
 }
 trap cleanup EXIT
@@ -319,7 +321,7 @@ resolve_disk() {
 
 prepare_worktree() {
   WORKTREE=$(mktemp -d "${TMPDIR:-/tmp}/nixos-installer.XXXXXX")
-  rsync -a --delete "$REPO_SOURCE"/ "$WORKTREE"/
+  rsync -a --delete --chmod=Du+rwx,Dgo+rx,Fu+rw,Fgo+r "$REPO_SOURCE"/ "$WORKTREE"/
 }
 
 write_worktree_host_defs() {
