@@ -29,6 +29,9 @@ WORKTREE=""
 info() { printf '[INFO] %s\n' "$*"; }
 warn() { printf '[WARN] %s\n' "$*" >&2; }
 die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
+export NIX_CONFIG="${NIX_CONFIG:+$NIX_CONFIG
+}experimental-features = nix-command flakes"
+readonly NIX_CMD=(nix --extra-experimental-features "nix-command flakes")
 
 cleanup() {
   if [[ -f "$SECRET_KEY_PATH" ]]; then
@@ -96,6 +99,17 @@ suggest_nixos_profile() {
   else
     printf 'portable-gnome\n'
   fi
+}
+
+home_profile_supports_display_profile() {
+  case "$1" in
+    minimal-gui|personal-gnome)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 host_known() {
@@ -295,7 +309,12 @@ resolve_ad_hoc_profiles() {
     HOME_PROFILE=$(prompt_text "Ad hoc home profile" "personal-gnome")
   fi
 
-  if [[ "$HOME_MODE" == "yes" && -z "$DISPLAY_PROFILE" ]]; then
+  if [[ "$HOME_MODE" == "yes" && -n "$DISPLAY_PROFILE" ]] && ! home_profile_supports_display_profile "$HOME_PROFILE"; then
+    warn "Ignoring display profile for home profile '${HOME_PROFILE}'."
+    DISPLAY_PROFILE=""
+  fi
+
+  if [[ "$HOME_MODE" == "yes" && -z "$DISPLAY_PROFILE" ]] && home_profile_supports_display_profile "$HOME_PROFILE"; then
     DISPLAY_PROFILE=$(prompt_text "Ad hoc display profile" "gnome-default")
   fi
 
@@ -331,9 +350,9 @@ write_worktree_host_defs() {
   mv "$defs_file" "$base_defs"
 
   cat >"$defs_file" <<EOF
-{lib, ...}:
+{lib, const, ...}:
   let
-    defs = import ./defs-known.nix {inherit lib;};
+    defs = import ./defs-known.nix {inherit lib const;};
   in
   defs
   // {
@@ -443,7 +462,7 @@ run_home_install() {
   fi
 
   info "Running Home Manager for ${USERNAME}@${HOST}"
-  nix run nixpkgs#home-manager -- switch --flake "${WORKTREE}#${USERNAME}@${HOST}"
+  "${NIX_CMD[@]}" run nixpkgs#home-manager -- switch --flake "${WORKTREE}#${USERNAME}@${HOST}"
 }
 
 main() {

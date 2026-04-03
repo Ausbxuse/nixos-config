@@ -2,7 +2,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-readonly REPO_FLAKE="${REPO_FLAKE:-github:ausbxuse/nixos-config}"
+readonly LOCAL_REPO="${LOCAL_REPO:-$PWD}"
+readonly REMOTE_REPO="${REMOTE_REPO:-/home/zhenyu/src/public/nixos-config}"
+readonly REPO_FLAKE="${REPO_FLAKE:-${REMOTE_REPO}}"
 readonly UBUNTU_RELEASE="${UBUNTU_RELEASE:-24.04}"
 readonly UBUNTU_SERIES="${UBUNTU_SERIES:-noble}"
 readonly SSH_PORT="${SSH_PORT:-2222}"
@@ -11,8 +13,8 @@ readonly VM_CPUS="${VM_CPUS:-4}"
 readonly VM_DISK_SIZE="${VM_DISK_SIZE:-40G}"
 readonly KEEP_VM="${KEEP_VM:-0}"
 readonly HOSTNAME="${HOSTNAME_OVERRIDE:-ubuntu-adhoc}"
-readonly HOME_PROFILE="${HOME_PROFILE:-personal-gnome}"
-readonly DISPLAY_PROFILE="${DISPLAY_PROFILE:-gnome-default}"
+readonly HOME_PROFILE="${HOME_PROFILE:-minimal}"
+readonly DISPLAY_PROFILE="${DISPLAY_PROFILE:-}"
 readonly CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/nixos-config-tests"
 
 WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/ubuntu-home-install.XXXXXX")"
@@ -57,6 +59,17 @@ ssh_cmd() {
     "$@"
 }
 
+sync_local_repo() {
+  [[ -f "${LOCAL_REPO}/flake.nix" ]] || die "LOCAL_REPO does not look like a flake checkout: ${LOCAL_REPO}"
+  info "Syncing local repo into Ubuntu guest..."
+  ssh_cmd "sudo mkdir -p \"$(dirname "$REMOTE_REPO")\" && sudo chown -R zhenyu:zhenyu /home/zhenyu/src"
+  rsync -az --delete \
+    --exclude .git \
+    --exclude result \
+    -e "ssh -i \"$SSH_KEY\" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p \"$SSH_PORT\"" \
+    "${LOCAL_REPO}/" "zhenyu@127.0.0.1:${REMOTE_REPO}/"
+}
+
 download_image() {
   mkdir -p "$CACHE_DIR"
   if [[ ! -f "$IMG_CACHE" ]]; then
@@ -88,6 +101,7 @@ package_update: false
 package_upgrade: false
 runcmd:
   - mkdir -p /home/zhenyu/src/public
+  - chown -R zhenyu:zhenyu /home/zhenyu/src
 EOF
 
   cat >"${WORKDIR}/meta-data" <<EOF
@@ -135,22 +149,31 @@ install_nix() {
 
 run_home_install() {
   info "Running ad hoc home-only install inside Ubuntu guest..."
-  ssh_cmd "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && nix --extra-experimental-features 'nix-command flakes' run --refresh ${REPO_FLAKE}#install -- --host ${HOSTNAME} --home --no-nixos --home-profile ${HOME_PROFILE} --display-profile ${DISPLAY_PROFILE} --yes"
+  local install_args
+  install_args="--host ${HOSTNAME} --home --no-nixos --home-profile ${HOME_PROFILE} --yes"
+
+  if [[ -n "$DISPLAY_PROFILE" ]]; then
+    install_args="${install_args} --display-profile ${DISPLAY_PROFILE}"
+  fi
+
+  ssh_cmd "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && nix --extra-experimental-features 'nix-command flakes' run --refresh ${REPO_FLAKE}#install -- ${install_args}"
 }
 
 verify_guest_state() {
   info "Verifying guest state..."
-  ssh_cmd "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && home-manager generations >/tmp/hm-generations && grep -q current /tmp/hm-generations"
+  ssh_cmd "test -L ~/.local/state/nix/profiles/home-manager"
+  ssh_cmd "test -e ~/.nix-profile/etc/profile.d/hm-session-vars.sh"
   ssh_cmd "test -d ~/.config || test -L ~/.config"
 }
 
 main() {
-  require_cmd curl qemu-img qemu-system-x86_64 cloud-localds ssh ssh-keygen
+  require_cmd curl qemu-img qemu-system-x86_64 cloud-localds ssh ssh-keygen rsync
   download_image
   make_seed
   boot_vm
   wait_for_ssh
   install_nix
+  sync_local_repo
   run_home_install
   verify_guest_state
   info "Ubuntu home install integration test passed."
