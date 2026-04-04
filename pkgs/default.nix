@@ -9,13 +9,20 @@
   nixosConfigurations,
 }: let
   hostDefsFile = pkgs.writeText "host-defs.json" (builtins.toJSON hostDefs);
-  nixosInstallerVmImage = inputs.nixos-generators.nixosGenerate {
-    system = pkgs.stdenv.hostPlatform.system;
-    format = "qcow";
-    modules = [
-      ../tests/nixos-installer-vm.nix
-    ];
-  };
+  nixosInstallerVmImage =
+    (inputs.nixpkgs.lib.nixosSystem {
+      system = pkgs.stdenv.hostPlatform.system;
+      modules = [
+        ../tests/nixos-installer-vm.nix
+        ({modulesPath, ...}: {
+          imports = [
+            "${modulesPath}/virtualisation/disk-image.nix"
+          ];
+          image.format = "qcow2";
+          image.baseName = "nixos-installer";
+        })
+      ];
+    }).config.system.build.image;
 
   minecraft = pkgs.callPackage ./minecraft {};
 
@@ -98,7 +105,7 @@
       sshpass
     ];
     replacements = {
-      "@vmImage@" = "${nixosInstallerVmImage}/nixos.qcow2";
+      "@vmImage@" = "${nixosInstallerVmImage}/nixos-installer.qcow2";
       "@ovmfCode@" = builtins.toString pkgs.OVMF.firmware;
       "@ovmfVarsTemplate@" =
         lib.replaceStrings ["OVMF_CODE.fd"] ["OVMF_VARS.fd"] (builtins.toString pkgs.OVMF.firmware);

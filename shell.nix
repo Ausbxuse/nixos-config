@@ -17,7 +17,6 @@
       nixpkgs-fmt
       # nix-index
       # nix-prefetch-git
-      nixos-generators
     ];
   };
 }

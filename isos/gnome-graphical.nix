@@ -21,7 +21,5 @@
   systemd.services.wpa_supplicant.wantedBy = lib.mkForce ["multi-user.target"];
   systemd.services.sshd.wantedBy = lib.mkForce ["multi-user.target"];
 
-  formatAttr = "isoImage";
-  fileExtension = ".iso";
   isoImage.squashfsCompression = "gzip -Xcompression-level 1";
 }

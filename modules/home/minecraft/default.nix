@@ -22,15 +22,10 @@
     else null;
 in {
   warnings =
-    (lib.optional (!hasPins) ''
+    lib.optional (!hasPins) ''
       Declarative Minecraft instance is configured, but some Minecraft source pins are missing in
       ${toString ./sources.nix}.
       Fill exact URLs and hashes for:
       ${lib.concatStringsSep "\n" (map (entry: "  - ${entry}") missingPins)}
-    '')
-    ++ (lib.optional hasPins ''
-      Declarative Minecraft now builds a pinned .mrpack instead of syncing a handcrafted Prism instance.
-      Use `nix run .#minecraft` to refresh/import ${sources.instanceName} into Prism Launcher.
-      Built pack: ${mrpack}
-    '');
+    '';
 }

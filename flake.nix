@@ -11,10 +11,6 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -62,39 +58,20 @@
       minecraft = self.packages.${system}.minecraftSync;
       bootstrap = self.packages.${system}.minecraftBootstrap;
       deploy = self.packages.${system}.minecraftDeploy;
+      mkApp = description: program: {
+        type = "app";
+        inherit program;
+        meta.description = description;
+      };
     in {
-      minecraft = {
-        type = "app";
-        program = "${minecraft}/bin/sync-minecraft-client";
-      };
-      "minecraft-bootstrap" = {
-        type = "app";
-        program = "${bootstrap}/bin/bootstrap-minecraft-client";
-      };
-      "minecraft-deploy" = {
-        type = "app";
-        program = "${deploy}/bin/deploy-minecraft-client";
-      };
-      "validate-host" = {
-        type = "app";
-        program = "${self.packages.${system}."validate-host"}/bin/validate-host";
-      };
-      install = {
-        type = "app";
-        program = "${self.packages.${system}.install}/bin/install-config";
-      };
-      "ubuntu-home-install-test" = {
-        type = "app";
-        program = "${self.packages.${system}."ubuntu-home-install-test"}/bin/ubuntu-home-install-test";
-      };
-      "nixos-system-install-test" = {
-        type = "app";
-        program = "${self.packages.${system}."nixos-system-install-test"}/bin/nixos-system-install-test";
-      };
-      default = {
-        type = "app";
-        program = "${minecraft}/bin/sync-minecraft-client";
-      };
+      minecraft = mkApp "Sync the Minecraft client assets." "${minecraft}/bin/sync-minecraft-client";
+      "minecraft-bootstrap" = mkApp "Bootstrap the Minecraft client installation." "${bootstrap}/bin/bootstrap-minecraft-client";
+      "minecraft-deploy" = mkApp "Deploy the Minecraft client artifacts." "${deploy}/bin/deploy-minecraft-client";
+      "validate-host" = mkApp "Validate a host definition from this flake." "${self.packages.${system}."validate-host"}/bin/validate-host";
+      install = mkApp "Install this configuration onto a target host." "${self.packages.${system}.install}/bin/install-config";
+      "ubuntu-home-install-test" = mkApp "Run the Ubuntu home-only install test harness." "${self.packages.${system}."ubuntu-home-install-test"}/bin/ubuntu-home-install-test";
+      "nixos-system-install-test" = mkApp "Run the NixOS system install test harness." "${self.packages.${system}."nixos-system-install-test"}/bin/nixos-system-install-test";
+      default = mkApp "Sync the Minecraft client assets." "${minecraft}/bin/sync-minecraft-client";
     });
 
     checks = repo.forEachSystem (

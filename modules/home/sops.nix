@@ -8,13 +8,10 @@
   hasSecretsFile = builtins.pathExists "${secretspath}/secrets.yaml";
 in
   {
-  imports = [
-    inputs.sops-nix.homeManagerModules.sops
-  ];
-  warnings =
-    lib.optional (!hasSecretsFile)
-    "No nix-secrets/secrets.yaml found; SOPS-managed home secrets are disabled for this build.";
-}
+    imports = [
+      inputs.sops-nix.homeManagerModules.sops
+    ];
+  }
   // lib.optionalAttrs hasSecretsFile {
     sops = {
       age.keyFile = "${config.xdg.configHome}/sops/age/keys.txt"; # must have no password!

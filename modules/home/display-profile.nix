@@ -18,7 +18,7 @@
       textScale = 1.0;
       cursor = 24;
       ghostty = 9;
-      firefox = "0.8";
+      firefox = "1.6";
     };
     laptop-2_5k = {
       scale = 2;

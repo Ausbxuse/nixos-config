@@ -2,20 +2,20 @@
 {
   pkgs,
   inputs,
+  nixosConfigurations,
   ...
-}: {
-  gnome-iso = inputs.nixos-generators.nixosGenerate {
+}: let
+  isoConfig = inputs.nixpkgs.lib.nixosSystem {
     system = pkgs.stdenv.hostPlatform.system;
-    format = "iso";
-    customFormats = {iso = import ./gnome-graphical.nix;};
-
     specialArgs = {
-      inherit inputs;
+      inherit inputs nixosConfigurations;
     };
-
     modules = [
       inputs.sops-nix.nixosModules.sops
       ./system.nix
+      ./gnome-graphical.nix
     ];
   };
+in {
+  gnome-iso = isoConfig.config.system.build.isoImage;
 }
