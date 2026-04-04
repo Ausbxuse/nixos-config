@@ -197,6 +197,10 @@ parse_args() {
         SWAP_SIZE=${2:?missing value for --swap-size}
         shift 2
         ;;
+      --install-layout)
+        INSTALL_LAYOUT=${2:?missing value for --install-layout}
+        shift 2
+        ;;
       --copy-repo)
         COPY_REPO=${2:?missing value for --copy-repo}
         shift 2
@@ -225,6 +229,7 @@ Options:
   --home-profile NAME      Profile file basename under modules/profiles/home/
   --display-profile NAME   Display profile for ad hoc home configs
   --swap-size SIZE         Swapfile size for ad hoc disk configs, e.g. 32G
+  --install-layout NAME    Install layout module basename under modules/nixos/install/
   --copy-repo yes|no       Copy the resulting repo into the installed system
   --repo-dest PATH         Destination for copied repo inside the target root
   -y, --yes                Accept destructive prompts
@@ -278,24 +283,12 @@ resolve_target() {
     PLATFORM=${PLATFORM:-"ad-hoc"}
     VISIBILITY=${VISIBILITY:-"private"}
     INSTALL_LAYOUT=${INSTALL_LAYOUT:-"luks-btrfs"}
-    if [[ -z "$NIXOS_MODE" ]]; then
-      if prompt_bool "Install NixOS for ad hoc host '$HOST'?" yes; then
-        NIXOS_MODE=yes
-      else
-        NIXOS_MODE=no
-      fi
-    fi
-    if [[ -z "$HOME_MODE" ]]; then
-      if prompt_bool "Set up Home Manager for ad hoc host '$HOST'?" yes; then
-        HOME_MODE=yes
-      else
-        HOME_MODE=no
-      fi
-    fi
+    NIXOS_MODE=${NIXOS_MODE:-no}
+    HOME_MODE=${HOME_MODE:-no}
   fi
 
   USERNAME=${USERNAME:-$DEFAULT_USERNAME}
-  [[ "$NIXOS_MODE" == "yes" || "$HOME_MODE" == "yes" ]] || die "Nothing to do: both NixOS and Home Manager modes are disabled."
+  [[ "$NIXOS_MODE" == "yes" || "$HOME_MODE" == "yes" ]] || die "Nothing to do: pass --home and/or --nixos."
 }
 
 resolve_ad_hoc_profiles() {
@@ -388,7 +381,14 @@ write_worktree_host_defs() {
         layout = "${INSTALL_LAYOUT}";
         disk = "${DISK}";
         swapSize = "${SWAP_SIZE}";
-      };
+      }$(
+        if [[ $KNOWN_HOST -eq 0 && "$NIXOS_MODE" == "yes" ]]; then
+          printf ' // {\n'
+          printf '        canTouchEfiVariables = false;\n'
+          printf '        efiInstallAsRemovable = true;\n'
+          printf '      }'
+        fi
+      );
     };
   }
 EOF
@@ -413,12 +413,17 @@ write_secret_key() {
 run_nixos_install() {
   [[ "$NIXOS_MODE" == "yes" ]] || return 0
 
-  write_secret_key
+  local -a disko_args=(--mode "destroy,format,mount" --flake ".#${HOST}")
+
+  if [[ "$INSTALL_LAYOUT" == luks-* ]]; then
+    write_secret_key
+  fi
 
   info "Host: $HOST"
   info "System: $SYSTEM"
   info "Username: $USERNAME"
   info "Disk: $DISK"
+  info "Install layout: $INSTALL_LAYOUT"
   info "Working tree: $WORKTREE"
 
   if ! prompt_bool "This will destroy data on $DISK. Continue?" no; then
@@ -427,7 +432,10 @@ run_nixos_install() {
 
   (
     cd "$WORKTREE"
-    sudo disko --mode destroy,format,mount --flake ".#${HOST}"
+    if [[ $ASSUME_YES -eq 1 ]]; then
+      disko_args=(--yes-wipe-all-disks "${disko_args[@]}")
+    fi
+    sudo disko "${disko_args[@]}"
     sudo nixos-generate-config --no-filesystems --root /mnt
     sudo install -D -m 0644 /mnt/etc/nixos/hardware-configuration.nix "machines/$HOST/hardware-configuration.nix"
     sudo nixos-install --root /mnt --flake ".#${HOST}"

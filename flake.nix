@@ -87,6 +87,10 @@
         type = "app";
         program = "${self.packages.${system}."ubuntu-home-install-test"}/bin/ubuntu-home-install-test";
       };
+      "nixos-system-install-test" = {
+        type = "app";
+        program = "${self.packages.${system}."nixos-system-install-test"}/bin/nixos-system-install-test";
+      };
       default = {
         type = "app";
         program = "${minecraft}/bin/sync-minecraft-client";

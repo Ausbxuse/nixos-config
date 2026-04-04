@@ -9,6 +9,13 @@
   nixosConfigurations,
 }: let
   hostDefsFile = pkgs.writeText "host-defs.json" (builtins.toJSON hostDefs);
+  nixosInstallerVmImage = inputs.nixos-generators.nixosGenerate {
+    system = pkgs.stdenv.hostPlatform.system;
+    format = "qcow";
+    modules = [
+      ../tests/nixos-installer-vm.nix
+    ];
+  };
 
   minecraft = pkgs.callPackage ./minecraft {};
 
@@ -79,6 +86,25 @@
     ];
   };
 
+  nixosSystemInstallTest = mkScriptApp {
+    name = "nixos-system-install-test";
+    src = ../tests/run-nixos-system-install.sh;
+    runtimeInputs = with pkgs; [
+      coreutils
+      openssh
+      OVMF
+      qemu_kvm
+      rsync
+      sshpass
+    ];
+    replacements = {
+      "@vmImage@" = "${nixosInstallerVmImage}/nixos.qcow2";
+      "@ovmfCode@" = builtins.toString pkgs.OVMF.firmware;
+      "@ovmfVarsTemplate@" =
+        lib.replaceStrings ["OVMF_CODE.fd"] ["OVMF_VARS.fd"] (builtins.toString pkgs.OVMF.firmware);
+    };
+  };
+
   nvim = let
     nvimConfig = ../modules/home/nvim/nvim;
     deps = with pkgs; [nodejs tree-sitter fd ripgrep gcc git];
@@ -104,6 +130,7 @@ in
     minecraftBootstrap = minecraft.bootstrap;
     minecraftSync = minecraft.sync;
     "validate-host" = hostValidation;
+    "nixos-system-install-test" = nixosSystemInstallTest;
     "ubuntu-home-install-test" = ubuntuHomeInstallTest;
     inherit install nvim;
   }

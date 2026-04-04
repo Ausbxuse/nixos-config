@@ -191,7 +191,6 @@ nix run github:ausbxuse/nixos-config#install -- --host razer-test --nixos --home
 The installer will ask for:
 
 - target disk
-- whether to enable Home Manager too
 - NixOS profile
 - home profile
 - display profile
@@ -202,8 +201,6 @@ Typical interactive answers for a new laptop might look like:
 
 ```text
 Host name for install or bootstrap: razer-test
-Install NixOS for ad hoc host 'razer-test'? [Y/n]
-Set up Home Manager for ad hoc host 'razer-test'? [Y/n]
 Ad hoc NixOS profile: portable-nvidia-gnome
 Ad hoc home profile: personal-gnome
 Ad hoc display profile: razy-current
@@ -217,6 +214,18 @@ Enter LUKS disk password:
 The installer auto-detects:
 
 - architecture via `uname -m`
+
+For ad hoc hosts, the installer does not infer a mode. Pass `--home`, `--nixos`, or both explicitly.
+
+Examples:
+
+```bash
+nix run github:ausbxuse/nixos-config#install -- --host earthy
+# fails with: Nothing to do: pass --home and/or --nixos.
+
+nix run github:ausbxuse/nixos-config#install -- --host earthy --home --no-nixos
+nix run github:ausbxuse/nixos-config#install -- --host razer-test --nixos --home
+```
 
 The installer may suggest defaults for:
 
