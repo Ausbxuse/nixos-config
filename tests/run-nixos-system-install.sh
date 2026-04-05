@@ -172,15 +172,24 @@ boot_vm() {
   qemu-img resize "$BOOT_OVERLAY" "$BOOT_DISK_SIZE" >/dev/null
   qemu-img create -f qcow2 "$TARGET_DISK" "$TARGET_DISK_SIZE" >/dev/null
 
+  # The installer image is GPT + EFI System Partition, so it requires UEFI
+  # firmware (OVMF). Each invocation needs its own writable OVMF_VARS copy.
+  local installer_ovmf_vars="${WORKDIR}/OVMF_VARS.installer.fd"
+  rm -f "$installer_ovmf_vars"
+  cp "$OVMF_VARS_TEMPLATE" "$installer_ovmf_vars"
+  chmod u+w "$installer_ovmf_vars"
+
   qemu-system-x86_64 \
     -machine accel=kvm:tcg \
     -cpu host \
     -smp "$VM_CPUS" \
     -m "$VM_RAM_MB" \
     -display none \
-    -serial mon:stdio \
+    -serial "file:${SERIAL_LOG}" \
     -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:22" \
     -device virtio-net-pci,netdev=net0 \
+    -drive "if=pflash,format=raw,readonly=on,file=${OVMF_CODE}" \
+    -drive "if=pflash,format=raw,file=${installer_ovmf_vars}" \
     -drive "if=virtio,format=qcow2,file=${BOOT_OVERLAY}" \
     -drive "if=virtio,format=qcow2,file=${TARGET_DISK}" \
     -pidfile "$PID_FILE" \
@@ -212,18 +221,44 @@ verify_guest_state() {
   ssh_cmd "test -f /mnt/etc/nixos/hardware-configuration.nix"
   ssh_cmd "test -e /mnt/nix/store"
   ssh_cmd "sudo cryptsetup status luks >/tmp/cryptsetup-status || true"
+
+  # Install grub at the UEFI removable-media fallback path
+  # (\EFI\BOOT\BOOTX64.EFI). The main repo config sets
+  # boot.loader.grub.efiInstallAsRemovable = false and relies on NVRAM entries
+  # written by efibootmgr at install time — but those entries live in the
+  # *installer VM's* OVMF_VARS, and even persisting that file to phase 2
+  # doesn't reliably produce a working boot on a fresh VM. Copying to the
+  # fallback path makes the target disk self-bootable regardless of NVRAM.
+  info "Ensuring UEFI fallback path (\\EFI\\BOOT\\BOOTX64.EFI) is populated..."
+  # grub-install may or may not write the removable-media fallback depending
+  # on efiInstallAsRemovable. If it's missing, seed it from the grub core
+  # binary so OVMF with empty NVRAM can still find a bootloader.
+  ssh_cmd "sudo mkdir -p /mnt/boot/EFI/BOOT && \
+           if [ ! -f /mnt/boot/EFI/BOOT/BOOTX64.EFI ]; then \
+             src=\$(sudo find /mnt/boot -type f \\( -name grubx64.efi -o -name grub.efi \\) | head -n1); \
+             [ -n \"\$src\" ] && sudo cp \"\$src\" /mnt/boot/EFI/BOOT/BOOTX64.EFI; \
+           fi && sudo test -f /mnt/boot/EFI/BOOT/BOOTX64.EFI"
 }
 
 boot_installed_system() {
   local -a qemu_display
 
-  [[ "$GUI_INSPECT" == "1" ]] || return 0
+  # Run phase 2 whenever we want to inspect the installed system or keep it
+  # alive for downstream use. Without either, the install-only smoke test
+  # skips this phase.
+  [[ "$GUI_INSPECT" == "1" || "$KEEP_VM" == "1" ]] || return 0
 
   info "Shutting down installer VM..."
   ssh_cmd "sudo systemctl poweroff" || true
   wait_for_shutdown
 
   info "Booting installed target disk..."
+  # Use a fresh OVMF_VARS template rather than carrying installer NVRAM
+  # forward. The installer's efibootmgr entries reference /dev/vdb on the
+  # installer VM; in phase 2 the target disk is attached as vda, so those
+  # entries resolve to nonexistent devices. OVMF then tries the next boot
+  # option (PXE) instead of falling back to the removable-media path. With
+  # fresh NVRAM, OVMF auto-discovers \EFI\BOOT\BOOTX64.EFI on the ESP.
   rm -f "$OVMF_VARS"
   cp "$OVMF_VARS_TEMPLATE" "$OVMF_VARS"
   chmod u+w "$OVMF_VARS"
@@ -239,16 +274,20 @@ boot_installed_system() {
     -vga std \
     -serial "file:${SERIAL_LOG}" \
     -netdev "user,id=net0,hostfwd=tcp::${INSTALLED_SSH_PORT}-:22" \
-    -device virtio-net-pci,netdev=net0 \
+    -device virtio-net-pci,netdev=net0,bootindex=2 \
     -drive "if=pflash,format=raw,readonly=on,file=${OVMF_CODE}" \
     -drive "if=pflash,format=raw,file=${OVMF_VARS}" \
-    -drive "if=virtio,format=qcow2,file=${TARGET_DISK}" \
+    -drive "if=none,id=targetdisk,format=qcow2,file=${TARGET_DISK}" \
+    -device virtio-blk-pci,drive=targetdisk,bootindex=1 \
     -pidfile "$PID_FILE" \
     >"$QEMU_LOG" 2>&1 &
 }
 
 wait_for_installed_ssh() {
-  [[ "$GUI_INSPECT" == "1" ]] || return 0
+  # Wait for the installed system's SSH whenever we either want to inspect
+  # it (GUI_INSPECT) or keep it alive for downstream use (KEEP_VM). Without
+  # one of those, the install-only smoke test skips this phase.
+  [[ "$GUI_INSPECT" == "1" || "$KEEP_VM" == "1" ]] || return 0
 
   info "Waiting for installed system SSH..."
   for _ in $(seq 1 120); do
@@ -259,7 +298,7 @@ wait_for_installed_ssh() {
   done
 
   if [[ "$KEEP_VM" == "1" ]]; then
-    warn "Installed system did not become reachable over SSH, but the VM is being kept alive for manual GUI inspection."
+    warn "Installed system did not become reachable over SSH, but the VM is being kept alive for manual inspection."
     return 0
   fi
 

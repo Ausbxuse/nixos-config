@@ -19,6 +19,12 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Stub by default; override with --override-input nix-secrets <path-or-url>
+    # for real builds. See secrets/nix-secrets/README.md.
+    nix-secrets = {
+      url = "path:./secrets/nix-secrets";
+      flake = true;
+    };
     zsh-better-prompt = {
       url = "github:ausbxuse/zsh-better-prompt";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -68,6 +74,8 @@
       "minecraft-bootstrap" = mkApp "Bootstrap the Minecraft client installation." "${bootstrap}/bin/bootstrap-minecraft-client";
       "minecraft-deploy" = mkApp "Deploy the Minecraft client artifacts." "${deploy}/bin/deploy-minecraft-client";
       "validate-host" = mkApp "Validate a host definition from this flake." "${self.packages.${system}."validate-host"}/bin/validate-host";
+      "admit-host" = mkApp "Regenerate nix-secrets/.sops.yaml from machines/defs.nix + machines/operators.nix and re-encrypt secrets.yaml. Pass --set-host-key HOST AGEKEY to patch defs.nix first." "${self.packages.${system}."admit-host"}/bin/admit-host";
+      "provision" = mkApp "Remote-drive a fresh NixOS host into the secrets trust mesh (admit + rsync secrets + nixos-rebuild switch)." "${self.packages.${system}."provision"}/bin/provision";
       install = mkApp "Install this configuration onto a target host." "${self.packages.${system}.install}/bin/install-config";
       "ubuntu-home-install-test" = mkApp "Run the Ubuntu home-only install test harness." "${self.packages.${system}."ubuntu-home-install-test"}/bin/ubuntu-home-install-test";
       "nixos-system-install-test" = mkApp "Run the NixOS system install test harness." "${self.packages.${system}."nixos-system-install-test"}/bin/nixos-system-install-test";

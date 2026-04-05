@@ -16,8 +16,12 @@
 
 # Operations
 
-- Installation and bring-up guide:
+- **New host quick start** (one-page happy path: install → secrets → vault):
+  - [docs/new-host-quickstart.md](/home/zhenyu/src/public/nixos-config/docs/new-host-quickstart.md)
+- Installation and bring-up guide (detailed):
   - [docs/installation.md](/home/zhenyu/src/public/nixos-config/docs/installation.md)
+- Full design / disaster recovery / trust model:
+  - [docs/reproducing-from-scratch.md](/home/zhenyu/src/public/nixos-config/docs/reproducing-from-scratch.md)
 - Machine-specific notes:
   - [docs/razy-bringup.md](/home/zhenyu/src/public/nixos-config/docs/razy-bringup.md)
 

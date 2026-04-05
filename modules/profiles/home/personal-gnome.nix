@@ -8,6 +8,7 @@
     ../../home/sops.nix
     ../../home/programs.nix
     ../../home/gaming.nix
+    ../../home/syncthing.nix
   ];
 
   home.packages = with pkgs; [
@@ -28,6 +29,6 @@
     codex
   ] ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [pkgs.sct];
 
-  services.syncthing.enable = true;
+  # services.syncthing is configured by ../../home/syncthing.nix.
   my.display.profile = lib.mkDefault "gnome-default";
 }

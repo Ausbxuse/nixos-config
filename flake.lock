@@ -114,6 +114,17 @@
         "type": "github"
       }
     },
+    "nix-secrets": {
+      "locked": {
+        "path": "./secrets/nix-secrets",
+        "type": "path"
+      },
+      "original": {
+        "path": "./secrets/nix-secrets",
+        "type": "path"
+      },
+      "parent": []
+    },
     "nixgl": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -190,6 +201,7 @@
         "grub2-theme": "grub2-theme",
         "home-manager": "home-manager",
         "minegrub": "minegrub",
+        "nix-secrets": "nix-secrets",
         "nixgl": "nixgl",
         "nixpkgs": "nixpkgs_3",
         "sops-nix": "sops-nix",

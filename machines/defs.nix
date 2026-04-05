@@ -18,6 +18,11 @@
     username = const.username;
     platform = "razer-blade";
     visibility = "private";
+    sops.ageKey = "age1urr0n9fj9wml5n9act8nh6tlp9zjd3p9jyygsk68ux5lahfwsshsq5pl5h";
+    # Syncthing device identity — null until bootstrap runs (see
+    # docs/reproducing-from-scratch.md §"Phase F: vault bootstrap").
+    # When set, modules/home/syncthing.nix pins cert/key via sops.
+    syncthing.deviceId = null;
     home = {
       enable = true;
       profile = "personal-gnome";

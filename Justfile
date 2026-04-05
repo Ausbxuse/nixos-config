@@ -45,3 +45,17 @@ clean:
 gc:
 	# Garbage collect all unused nix store entries
 	sudo nix-collect-garbage --delete-old
+
+# Regenerate nix-secrets/.sops.yaml from machines/defs.nix + machines/operators.nix
+# and re-encrypt secrets.yaml. Run after editing either file.
+rotate-secrets:
+	nix run .#admit-host
+
+# Provision a fresh NixOS host into the secrets trust mesh.
+# Runs admit-host locally, rsyncs nix-secrets to the target, and triggers
+# nixos-rebuild switch on the target with --override-input nix-secrets.
+# Usage:
+#   just provision adhoc-nixos zhenyu@127.0.0.1:2224
+#   just provision dev-box zhenyu@dev.example.com
+provision HOSTNAME SSHDEST:
+	nix run .#provision -- {{HOSTNAME}} {{SSHDEST}}

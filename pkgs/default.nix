@@ -57,6 +57,35 @@
     ];
   };
 
+  admitHost = mkScriptApp {
+    name = "admit-host";
+    src = ../scripts/admit-host.sh;
+    runtimeInputs = with pkgs; [
+      coreutils
+      jq
+      sops
+      ssh-to-age
+      git
+    ];
+  };
+
+  provision = mkScriptApp {
+    name = "provision";
+    src = ../scripts/provision.sh;
+    runtimeInputs = with pkgs; [
+      coreutils
+      gnugrep
+      gnused
+      jq
+      openssh
+      rsync
+      sops
+      ssh-to-age
+      syncthing
+      admitHost
+    ];
+  };
+
   install = mkScriptApp {
     name = "install-config";
     src = ../scripts/install-flake.sh;
@@ -137,6 +166,8 @@ in
     minecraftBootstrap = minecraft.bootstrap;
     minecraftSync = minecraft.sync;
     "validate-host" = hostValidation;
+    "admit-host" = admitHost;
+    "provision" = provision;
     "nixos-system-install-test" = nixosSystemInstallTest;
     "ubuntu-home-install-test" = ubuntuHomeInstallTest;
     inherit install nvim;

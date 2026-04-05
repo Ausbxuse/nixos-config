@@ -1,6 +1,7 @@
 {
   lib,
   pkgs,
+  const,
   ...
 }: let
   kernel = pkgs.linux_latest.override {
@@ -41,4 +42,12 @@ in {
     install -d -m 0755 -o gdm -g gdm /var/lib/gdm/.config
     install -m 0644 -o gdm -g gdm ${./gdm-monitors.xml} /var/lib/gdm/.config/monitors.xml
   '';
+
+  hardware.openrazer.enable = true;
+  hardware.openrazer.users = [const.username];
+
+  environment.systemPackages = with pkgs; [
+    openrazer-daemon
+    razergenie
+  ];
 }
