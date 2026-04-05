@@ -41,7 +41,12 @@
   inherit (lib) filterAttrs optionalAttrs;
 
   selfDeviceId = hostDef.syncthing.deviceId or null;
-  pinned = selfDeviceId != null;
+  # Pinning requires sops to hand us a decryption identity. Only private
+  # hosts load the real nix-secrets module; public builds use the stub and
+  # have no sops option at all. Gate on hostDef.visibility (from specialArgs,
+  # so purely static — no `config`/`options` access, no recursion risk).
+  hasSops = (hostDef.visibility or "private") == "private";
+  pinned = selfDeviceId != null && hasSops;
 
   # Every host in defs.nix that has a syncthing.deviceId is a trusted peer.
   peers =
@@ -95,7 +100,7 @@ in
       }
       # cert/key pinning only when (a) the host has a recorded deviceId and
       # (b) the sops home-manager module is actually loaded (private build).
-      // optionalAttrs (pinned && (config ? sops)) {
+      // optionalAttrs pinned {
         cert = config.sops.secrets."syncthing-cert-${hostname}".path;
         key = config.sops.secrets."syncthing-key-${hostname}".path;
       };
@@ -105,7 +110,7 @@ in
   # fresh cert/key on the admitting peer and writes them into nix-secrets'
   # secrets.yaml under exactly these keys. Guarded so this module still
   # evaluates on public builds where the sops home-manager module is absent.
-  // optionalAttrs (pinned && (config ? sops)) {
+  // optionalAttrs pinned {
     sops.secrets."syncthing-cert-${hostname}" = {};
     sops.secrets."syncthing-key-${hostname}" = {};
   }

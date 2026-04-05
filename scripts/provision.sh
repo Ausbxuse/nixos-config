@@ -168,18 +168,41 @@ ok "syncthing identity pinned for $HOSTNAME"
 
 # ------------------------------------------------------------------------- 5. rsync nix-secrets
 
-info "step 5/6: rsyncing nix-secrets to target:/tmp/nix-secrets"
+info "step 5/6: rsyncing nix-secrets + refreshing nixos-config on target"
+# IFS is \n\t at the top of this script, so "${SSH_OPTS[*]}" would join with
+# newlines and rsync's -e parser would break on that. Join with spaces.
+ssh_cmd_str=$(IFS=' '; printf 'ssh %s' "${SSH_OPTS[*]}")
+
 rsync -a --delete --exclude=.git \
-  -e "ssh ${SSH_OPTS[*]}" \
+  -e "$ssh_cmd_str" \
   "$NIX_SECRETS_PATH"/ "$ssh_user_host:/tmp/nix-secrets/" \
-  || die "rsync failed"
+  || die "nix-secrets rsync failed"
 ok "nix-secrets synced"
+
+# Refresh the target's copy of nixos-config so the rebuild picks up any
+# module/script changes since the install step wrote the worktree.
+#
+# CAREFUL: the target's defs.nix has its own NEWHOST entry that the peer's
+# defs.nix doesn't (the peer only has the minimal stub admit-host inserted).
+# Overwriting it would strip nixos.enable / profile / install fields and
+# break `.#$HOSTNAME`. Similarly, machines/$HOSTNAME/ holds the generated
+# hardware-configuration.nix which must not be clobbered.
+rsync -a --delete \
+  --exclude='.git' \
+  --exclude='machines/defs.nix' \
+  --exclude="machines/${HOSTNAME}/" \
+  -e "$ssh_cmd_str" \
+  "$NIXOS_CONFIG_PATH"/ "$ssh_user_host:${REMOTE_FLAKE}/" \
+  || die "nixos-config rsync failed"
+ok "nixos-config refreshed on target (defs.nix + machines/${HOSTNAME}/ preserved)"
 
 # ------------------------------------------------------------------------- 5. remote rebuild
 
 info "step 6/6: running nixos-rebuild switch on target"
+# -tt forces TTY allocation even though stdin is a heredoc, so the remote
+# `sudo` can prompt interactively if the wheel user needs a password.
 # shellcheck disable=SC2087
-ssh "${SSH_OPTS[@]}" "$ssh_user_host" bash <<EOF
+ssh -tt "${SSH_OPTS[@]}" "$ssh_user_host" bash <<EOF
 set -euo pipefail
 if [[ ! -d "$REMOTE_FLAKE" ]]; then
   echo "remote flake path not found: $REMOTE_FLAKE" >&2

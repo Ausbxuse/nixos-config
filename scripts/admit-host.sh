@@ -126,6 +126,47 @@ fi
 # Patch machines/defs.nix in place: inside the block `  ${HOST} = {` ... `  };`,
 # either replace an existing `sops.ageKey = "...";` line or insert one right
 # after the opening brace. Uses awk for AST-free but structurally precise edit.
+ensure_host_stub() {
+  # If $1 is not already defined in defs.nix, append a minimal host stub
+  # right before the top-level closing brace. The stub declares no
+  # nixos.enable / home.enable, so lib/default.nix filters it out of
+  # nixosConfigurations/homeConfigurations — it exists only as a sops
+  # recipient. The user can flesh it out later when they want to manage
+  # the host from this peer instead of ad-hoc.
+  local host="$1"
+  if grep -q "^  ${host} = {" "$DEFS_FILE"; then
+    return 0
+  fi
+  info "host '${host}' not found in defs.nix — inserting minimal stub"
+  local tmp
+  tmp=$(mktemp)
+  awk -v host="$host" '
+    { lines[NR] = $0 }
+    END {
+      last_close = 0
+      for (i = NR; i >= 1; i--) {
+        if (lines[i] ~ /^\}[[:space:]]*$/) { last_close = i; break }
+      }
+      if (last_close == 0) { exit 2 }
+      for (i = 1; i <= NR; i++) {
+        if (i == last_close) {
+          print ""
+          print "  " host " = {"
+          print "    system = \"x86_64-linux\";"
+          print "    username = const.username;"
+          print "    platform = \"ad-hoc\";"
+          print "    visibility = \"private\";"
+          print "  };"
+        }
+        print lines[i]
+      }
+    }
+  ' "$DEFS_FILE" > "$tmp" || { rm -f "$tmp"; die "failed to locate top-level brace in $DEFS_FILE"; }
+  cat "$tmp" > "$DEFS_FILE"
+  rm -f "$tmp"
+  ok "defs.nix: inserted stub for ${host}"
+}
+
 patch_host_field() {
   # patch_host_field HOST FIELD_REGEX INSERT_LINE
   # Inside the block `  ${HOST} = {` ... `  };`, replace any existing line
@@ -174,6 +215,7 @@ patch_host_field() {
 
 # Patch machines/defs.nix in place for --set-host-key / --set-host-syncthing.
 if [[ "$MODE" == "set-host-key" ]]; then
+  ensure_host_stub "$SET_HOST"
   info "patching $DEFS_FILE: ${SET_HOST}.sops.ageKey"
   patch_host_field "$SET_HOST" \
     '^[[:space:]]*sops\.ageKey[[:space:]]*=' \
@@ -182,6 +224,7 @@ if [[ "$MODE" == "set-host-key" ]]; then
 fi
 
 if [[ "$MODE" == "set-host-syncthing" ]]; then
+  ensure_host_stub "$SET_HOST"
   info "patching $DEFS_FILE: ${SET_HOST}.syncthing.deviceId"
   patch_host_field "$SET_HOST" \
     '^[[:space:]]*syncthing\.deviceId[[:space:]]*=' \

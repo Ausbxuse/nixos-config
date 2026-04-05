@@ -6,3 +6,12 @@
 5. Reproducible phone setup — Aegis (TOTP), KeePassXC, Signal backup, Syncthing, document recovery steps
 6. documentations for emergency cases
 7. secure boot
+
+# razy specific issues
+
+1. no auto brightness
+2. does not dim before turn off screen
+
+# host
+
+1. rounded corners not applied in new host

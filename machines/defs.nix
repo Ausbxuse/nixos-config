@@ -96,4 +96,28 @@
       swapSize = "32G";
     };
   };
+
+  NEWHOST = {
+    home = {
+      enable = true;
+      profile = "personal-gnome";
+      displayProfile = "gnome-default";
+    };
+    nixos = {
+      enable = true;
+      profile = "portable-nvidia-gnome";
+    };
+    install = {
+      layout = "luks-btrfs";
+      disk = "/dev/vda";
+      swapSize = "2G";
+    };
+
+    syncthing.deviceId = "ZQ7MCCP-U3YSPJM-ISXBFLT-2BAS7K3-SNZTNHZ-LJEZ42N-LD3N2N2-H2W3PA6";
+    sops.ageKey = "age1naw7wgtrszdschtjm34hqy28f99k67ryffvpkgrk8f7apw6zxcgs6rey0k";
+    system = "x86_64-linux";
+    username = const.username;
+    platform = "ad-hoc";
+    visibility = "private";
+  };
 }
