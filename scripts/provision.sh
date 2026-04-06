@@ -4,13 +4,15 @@
 # Runs on a trusted peer (e.g. razy). Given a target hostname (as it appears
 # in flake nixosConfigurations) and an SSH destination, it:
 #
-#   1. reads the target's /etc/ssh/ssh_host_ed25519_key.pub
-#   2. derives its age identity via ssh-to-age
-#   3. admits it locally via admit-host (re-encrypts secrets.yaml)
-#   4. generates a pinned syncthing identity for the target, encrypts cert/key
+#   1. opens one persistent SSH master connection
+#   2. validates remote sudo once and keeps it warm for the duration
+#   3. reads the target's /etc/ssh/ssh_host_ed25519_key.pub
+#   4. derives its age identity via ssh-to-age
+#   5. admits it locally via admit-host (re-encrypts secrets.yaml)
+#   6. generates a pinned syncthing identity for the target, encrypts cert/key
 #      into nix-secrets/secrets.yaml, records the device id in defs.nix
-#   5. rsyncs the private nix-secrets checkout to the target at /tmp/nix-secrets
-#   6. runs nixos-rebuild switch on the target with --override-input nix-secrets
+#   7. rsyncs the private nix-secrets checkout to the target at /tmp/nix-secrets
+#   8. runs nixos-rebuild switch on the target with --override-input nix-secrets
 #
 # Usage:
 #   provision <hostname> <user@host[:port]> [--remote-flake <path>]
@@ -26,7 +28,13 @@
 #                       (default: $HOME/src/private/nix-secrets)
 #   SOPS_AGE_KEY_FILE   recommended: user age identity so admit-host doesn't
 #                       need sudo. Falls through to admit-host's own detection
-#                       otherwise.
+#
+# Notes:
+#   - This script prompts for the SSH password once (to establish the master
+#     connection) and for sudo once on the remote host (sudo -v).
+#   - If the remote sudoers policy has timestamp_timeout=0, sudo will still
+#     require a password each time by policy; this script assumes normal sudo
+#     timestamp caching is enabled.
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -48,7 +56,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --remote-flake) REMOTE_FLAKE="${2:?missing value}"; shift 2 ;;
     --help|-h)
-      sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     --*) die "unknown flag: $1" ;;
@@ -68,6 +76,7 @@ done
 NIXOS_CONFIG_PATH="${NIXOS_CONFIG_PATH:-$PWD}"
 NIX_SECRETS_PATH="${NIX_SECRETS_PATH:-$HOME/src/private/nix-secrets}"
 
+[[ -d "$NIXOS_CONFIG_PATH" ]] || die "nixos-config not found: $NIXOS_CONFIG_PATH"
 [[ -d "$NIX_SECRETS_PATH" ]] || die "nix-secrets not found: $NIX_SECRETS_PATH"
 
 # ------------------------------------------------------------------------- parse ssh dest
@@ -79,28 +88,75 @@ else
   ssh_port="${SSH_DEST##*:}"
 fi
 
-SSH_OPTS=(-p "$ssh_port"
-          -o StrictHostKeyChecking=no
-          -o UserKnownHostsFile=/dev/null
-          -o BatchMode=no)
+# Persistent SSH control socket: authenticate once, reuse everywhere.
+control_dir=$(mktemp -d)
+control_path="$control_dir/ssh-%r@%h:%p"
+SSH_OPTS=(
+  -p "$ssh_port"
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -o BatchMode=no
+  -o ControlMaster=auto
+  -o ControlPersist=30m
+  -o ControlPath="$control_path"
+)
+
+st_tmp=""
+sudo_keepalive_pid=""
+
+cleanup() {
+  set +e
+  if [[ -n "${sudo_keepalive_pid:-}" ]]; then
+    kill "$sudo_keepalive_pid" >/dev/null 2>&1 || true
+    wait "$sudo_keepalive_pid" >/dev/null 2>&1 || true
+  fi
+  ssh -O exit "${SSH_OPTS[@]}" "$ssh_user_host" >/dev/null 2>&1 || true
+  [[ -n "${st_tmp:-}" && -d "$st_tmp" ]] && rm -rf "$st_tmp"
+  [[ -d "$control_dir" ]] && rm -rf "$control_dir"
+}
+trap cleanup EXIT
+
+ssh_cmd() {
+  local remote_cmd="${1:?missing remote command}"
+  # shellcheck disable=SC2029
+  ssh "${SSH_OPTS[@]}" "$ssh_user_host" "$remote_cmd"
+}
+
+# Join SSH args safely for rsync -e.
+build_rsync_ssh_cmd() {
+  local out=() arg
+  out+=(ssh)
+  for arg in "${SSH_OPTS[@]}"; do
+    out+=("$(printf '%q' "$arg")")
+  done
+  printf '%s ' "${out[@]}"
+}
 
 info "target:      $HOSTNAME at $ssh_user_host:$ssh_port"
 info "local cfg:   $NIXOS_CONFIG_PATH"
 info "secrets src: $NIX_SECRETS_PATH"
 info "remote cfg:  $REMOTE_FLAKE"
 
-# ------------------------------------------------------------------------- 1. reachability
+# ------------------------------------------------------------------------- 1. establish master connection + cache sudo
 
-info "step 1/6: checking ssh reachability"
-if ! remote_hostname=$(ssh "${SSH_OPTS[@]}" "$ssh_user_host" 'hostname' 2>&1); then
-  die "ssh to $ssh_user_host:$ssh_port failed: $remote_hostname"
+info "step 1/6: establishing persistent ssh session"
+# This is the single SSH-auth point for the whole script.
+if ! ssh -MNf "${SSH_OPTS[@]}" "$ssh_user_host" 2>/tmp/provision-ssh.err; then
+  err=$(cat /tmp/provision-ssh.err 2>/dev/null || true)
+  rm -f /tmp/provision-ssh.err
+  die "failed to establish persistent ssh session: $err"
+fi
+rm -f /tmp/provision-ssh.err
+
+if ! remote_hostname=$(ssh_cmd 'hostname' 2>&1); then
+  die "ssh to $ssh_user_host:$ssh_port failed after master connection: $remote_hostname"
 fi
 ok "ssh reachable (remote reports hostname: $remote_hostname)"
 
 # ------------------------------------------------------------------------- 2. derive target age identity
 
 info "step 2/6: reading target host pubkey and deriving age identity"
-target_host_pub=$(ssh "${SSH_OPTS[@]}" "$ssh_user_host" 'cat /etc/ssh/ssh_host_ed25519_key.pub' 2>/dev/null) \
+target_host_pub=$(ssh_cmd 'cat /etc/ssh/ssh_host_ed25519_key.pub' 2>/dev/null) \
   || die "could not read /etc/ssh/ssh_host_ed25519_key.pub on target"
 [[ -n "$target_host_pub" ]] || die "empty host pubkey from target"
 
@@ -120,25 +176,15 @@ info "step 3/6: admitting $HOSTNAME to trust mesh"
 ) || die "admit-host failed"
 ok "admission complete"
 
-# ------------------------------------------------------------------------- 4. syncthing identity (Phase F)
-#
-# Generate the target's syncthing cert/key locally on this peer, write them
-# into nix-secrets/secrets.yaml under keys that modules/home/syncthing.nix
-# reads, and record the derived device id in machines/defs.nix. After this
-# step the new host's first rebuild will come up with its syncthing identity
-# already pinned — no post-boot bootstrap dance.
+# ------------------------------------------------------------------------- 4. syncthing identity
 
 info "step 4/6: generating syncthing identity for $HOSTNAME"
 
 st_tmp=$(mktemp -d)
-# shellcheck disable=SC2064
-trap "rm -rf '$st_tmp'" EXIT
 
 syncthing generate --home="$st_tmp" >"$st_tmp/gen.log" 2>&1 \
   || { cat "$st_tmp/gen.log" >&2; die "syncthing generate failed"; }
 
-# syncthing v2 no longer exposes --device-id; the ID appears in the generate
-# log as e.g. "device=ABCDEFG-HIJKLMN-..." — grab it from there.
 devid=$(grep -oE 'device=[A-Z0-9-]+' "$st_tmp/gen.log" | head -1 | sed 's/device=//')
 [[ -n "$devid" ]] || { cat "$st_tmp/gen.log" >&2; die "could not parse syncthing device id from generate output"; }
 [[ -f "$st_tmp/cert.pem" && -f "$st_tmp/key.pem" ]] \
@@ -146,8 +192,6 @@ devid=$(grep -oE 'device=[A-Z0-9-]+' "$st_tmp/gen.log" | head -1 | sed 's/device
 
 ok "device id: $devid"
 
-# sops set --value-file expects the file to contain a JSON-encoded value
-# (i.e. the PEM wrapped in a JSON string literal), not raw PEM.
 jq -Rs . < "$st_tmp/cert.pem" > "$st_tmp/cert.json"
 jq -Rs . < "$st_tmp/key.pem"  > "$st_tmp/key.json"
 
@@ -166,57 +210,70 @@ info "recording device id in defs.nix and re-running admit"
 ) || die "admit-host --set-host-syncthing failed"
 ok "syncthing identity pinned for $HOSTNAME"
 
-# ------------------------------------------------------------------------- 5. rsync nix-secrets
+# ------------------------------------------------------------------------- 5. rsync nix-secrets + nixos-config
 
 info "step 5/6: rsyncing nix-secrets + refreshing nixos-config on target"
-# IFS is \n\t at the top of this script, so "${SSH_OPTS[*]}" would join with
-# newlines and rsync's -e parser would break on that. Join with spaces.
-ssh_cmd_str=$(IFS=' '; printf 'ssh %s' "${SSH_OPTS[*]}")
+rsync_ssh_cmd=$(build_rsync_ssh_cmd)
 
 rsync -a --delete --exclude=.git \
-  -e "$ssh_cmd_str" \
+  -e "$rsync_ssh_cmd" \
   "$NIX_SECRETS_PATH"/ "$ssh_user_host:/tmp/nix-secrets/" \
   || die "nix-secrets rsync failed"
 ok "nix-secrets synced"
 
-# Refresh the target's copy of nixos-config so the rebuild picks up any
-# module/script changes since the install step wrote the worktree.
-#
-# CAREFUL: the target's defs.nix has its own NEWHOST entry that the peer's
-# defs.nix doesn't (the peer only has the minimal stub admit-host inserted).
-# Overwriting it would strip nixos.enable / profile / install fields and
-# break `.#$HOSTNAME`. Similarly, machines/$HOSTNAME/ holds the generated
-# hardware-configuration.nix which must not be clobbered.
 rsync -a --delete \
   --exclude='.git' \
   --exclude='machines/defs.nix' \
   --exclude="machines/${HOSTNAME}/" \
-  -e "$ssh_cmd_str" \
+  -e "$rsync_ssh_cmd" \
   "$NIXOS_CONFIG_PATH"/ "$ssh_user_host:${REMOTE_FLAKE}/" \
   || die "nixos-config rsync failed"
 ok "nixos-config refreshed on target (defs.nix + machines/${HOSTNAME}/ preserved)"
 
-# ------------------------------------------------------------------------- 5. remote rebuild
+# ------------------------------------------------------------------------- 6. remote rebuild
 
 info "step 6/6: running nixos-rebuild switch on target"
-# -tt forces TTY allocation even though stdin is a heredoc, so the remote
-# `sudo` can prompt interactively if the wheel user needs a password.
-# shellcheck disable=SC2087
-ssh -tt "${SSH_OPTS[@]}" "$ssh_user_host" bash <<EOF
+
+ssh_cmd "cat > /tmp/provision-rebuild.sh" <<EOF
+#!/usr/bin/env bash
 set -euo pipefail
+
 if [[ ! -d "$REMOTE_FLAKE" ]]; then
   echo "remote flake path not found: $REMOTE_FLAKE" >&2
   exit 1
 fi
+
 cd "$REMOTE_FLAKE"
-sudo nixos-rebuild switch \
+
+# Authenticate sudo ON THIS EXACT TTY/session.
+sudo -v
+
+# Keep sudo alive for long rebuilds.
+(
+  while true; do
+    sleep 50
+    sudo -n true >/dev/null 2>&1 || exit 0
+  done
+) &
+keepalive_pid=\$!
+
+cleanup() {
+  kill "\$keepalive_pid" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+sudo -n nixos-rebuild switch \
   --flake ".#$HOSTNAME" \
   --override-input nix-secrets path:/tmp/nix-secrets \
   --show-trace
+
 echo
 echo "--- /run/secrets/ ---"
-sudo ls -la /run/secrets/ || true
+sudo -n ls -la /run/secrets/ || true
 EOF
+
+# shellcheck disable=SC2029
+ssh -tt "${SSH_OPTS[@]}" "$ssh_user_host" 'bash /tmp/provision-rebuild.sh'
 ok "remote rebuild succeeded"
 
 # ------------------------------------------------------------------------- summary

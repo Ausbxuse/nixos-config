@@ -11,8 +11,8 @@ HOST=""
 SYSTEM=""
 DISK=""
 USERNAME=""
-NIXOS_MODE=""
-HOME_MODE=""
+NIXOS_MODE=""       # yes|no
+HOME_MODE=""        # yes|no
 NIXOS_PROFILE=""
 HOME_PROFILE=""
 DISPLAY_PROFILE=""
@@ -20,7 +20,7 @@ SWAP_SIZE=""
 INSTALL_LAYOUT=""
 PLATFORM=""
 VISIBILITY=""
-COPY_REPO=""
+COPY_REPO=""        # yes|no
 REPO_DEST=""
 ASSUME_YES=0
 KNOWN_HOST=0
@@ -30,11 +30,9 @@ WORKTREE=""
 
 # --------------------------------------------------------------------- colors
 
-# Respect NO_COLOR, --no-color, and non-TTY stdout.
 if [[ -n "${NO_COLOR:-}" ]] || [[ ! -t 1 ]]; then
   USE_COLOR=0
 fi
-# (Re-checked after parse_args so --no-color on a TTY still disables.)
 
 C_RESET=""
 C_DIM=""
@@ -64,17 +62,36 @@ apply_colors() {
     C_BLUE=$'\033[34m'
     C_CYAN=$'\033[36m'
     C_MAGENTA=$'\033[35m'
-    _SYM_SEC="■"; _SYM_INFO="·"; _SYM_OK="✓"; _SYM_WARN="!"; _SYM_ERR="✗"; _SYM_MARK="›"
+    _SYM_SEC="■"
+    _SYM_INFO="·"
+    _SYM_OK="✓"
+    _SYM_WARN="!"
+    _SYM_ERR="✗"
+    _SYM_MARK="›"
   else
-    C_RESET=""; C_DIM=""; C_BOLD=""
-    C_RED=""; C_GREEN=""; C_YELLOW=""; C_BLUE=""; C_CYAN=""; C_MAGENTA=""
-    _SYM_SEC=">"; _SYM_INFO="-"; _SYM_OK="+"; _SYM_WARN="!"; _SYM_ERR="x"; _SYM_MARK=">"
+    C_RESET=""
+    C_DIM=""
+    C_BOLD=""
+    C_RED=""
+    C_GREEN=""
+    C_YELLOW=""
+    C_BLUE=""
+    C_CYAN=""
+    C_MAGENTA=""
+    _SYM_SEC=">"
+    _SYM_INFO="-"
+    _SYM_OK="+"
+    _SYM_WARN="!"
+    _SYM_ERR="x"
+    _SYM_MARK=">"
   fi
 }
+
 apply_colors
 
 # --------------------------------------------------------------------- output
 
+banner()  { printf '\n%s%s nixos installer%s\n' "${C_BOLD}" "${C_MAGENTA}" "${C_RESET}"; }
 section() { printf '\n%s%s %s%s\n' "${C_BOLD}${C_MAGENTA}" "$_SYM_SEC" "$*" "${C_RESET}"; }
 info()    { printf '  %s%s%s %s\n' "${C_BLUE}"   "$_SYM_INFO" "${C_RESET}" "$*"; }
 ok()      { printf '  %s%s%s %s\n' "${C_GREEN}"  "$_SYM_OK"   "${C_RESET}" "$*"; }
@@ -83,165 +100,37 @@ err()     { printf '  %s%s%s %s\n' "${C_RED}"    "$_SYM_ERR"  "${C_RESET}" "$*" 
 die()     { err "$*"; exit 1; }
 
 kv() {
-  # kv LABEL VALUE — aligned two-column print for recaps.
   printf '  %s%-13s%s %s\n' "${C_DIM}" "$1" "${C_RESET}" "$2"
-}
-
-# --------------------------------------------------------------------- spinner
-
-# run_with_spinner MSG CMD [ARGS...]
-# Runs CMD in the foreground while a small spinner animates on its own line.
-# Output of CMD is suppressed to keep the spinner clean; stderr is captured to
-# a tempfile and streamed on failure so errors aren't lost.
-run_with_spinner() {
-  local msg=$1
-  shift
-  local frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-  if [[ $USE_COLOR -eq 0 ]]; then
-    frames="|/-\\"
-  fi
-  local stderr_log
-  stderr_log=$(mktemp)
-  "$@" >/dev/null 2>"$stderr_log" &
-  local pid=$!
-  local i=0 n=${#frames}
-  # Only animate when stderr (where we draw) is a TTY.
-  if [[ -t 2 ]]; then
-    while kill -0 "$pid" 2>/dev/null; do
-      printf '\r  %s%s%s %s' "${C_CYAN}" "${frames:i%n:1}" "${C_RESET}" "$msg" >&2
-      i=$((i + 1))
-      sleep 0.1
-    done
-    printf '\r\033[K' >&2
-  else
-    info "$msg"
-    wait "$pid" || true
-  fi
-  if wait "$pid"; then
-    ok "$msg"
-    rm -f "$stderr_log"
-    return 0
-  else
-    local rc=$?
-    err "$msg (exit $rc)"
-    if [[ -s "$stderr_log" ]]; then
-      sed 's/^/    /' "$stderr_log" >&2
-    fi
-    rm -f "$stderr_log"
-    return "$rc"
-  fi
-}
-
-# --------------------------------------------------------------------- prompts
-
-# prompt_select PROMPT DEFAULT OPT1 OPT2 ...
-# Renders a numbered menu, pre-selects DEFAULT (if it matches an option),
-# validates input, and echoes the chosen option on stdout.
-prompt_select() {
-  local prompt=$1 default=$2
-  shift 2
-  local -a options=("$@")
-  local n=${#options[@]}
-
-  [[ $n -gt 0 ]] || die "prompt_select: no options provided for '$prompt'"
-
-  printf '\n%s%s %s%s\n' "${C_BOLD}${C_MAGENTA}" "$_SYM_SEC" "$prompt" "${C_RESET}" >&2
-  local i=1 default_idx=0
-  for opt in "${options[@]}"; do
-    if [[ "$opt" == "$default" ]]; then
-      default_idx=$i
-      printf '  %s%s%s %s%2d%s %s\n' \
-        "${C_GREEN}" "$_SYM_MARK" "${C_RESET}" "${C_CYAN}" "$i" "${C_RESET}" "$opt" >&2
-    else
-      printf '    %s%2d%s %s\n' "${C_CYAN}" "$i" "${C_RESET}" "$opt" >&2
-    fi
-    ((i++))
-  done
-
-  local reply
-  while true; do
-    if [[ $default_idx -gt 0 ]]; then
-      printf '  %s?%s [1-%d] ' "${C_BOLD}" "${C_RESET}" "$n" >&2
-    else
-      printf '  %s?%s [1-%d] ' "${C_BOLD}" "${C_RESET}" "$n" >&2
-    fi
-    read -r reply || die "no input"
-
-    if [[ -z "$reply" && $default_idx -gt 0 ]]; then
-      printf '%s\n' "${options[default_idx - 1]}"
-      return 0
-    fi
-    if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= n )); then
-      printf '%s\n' "${options[reply - 1]}"
-      return 0
-    fi
-    # Also accept the literal option text.
-    for opt in "${options[@]}"; do
-      if [[ "$reply" == "$opt" ]]; then
-        printf '%s\n' "$opt"
-        return 0
-      fi
-    done
-    warn "Invalid selection: '$reply' — enter a number 1-$n."
-  done
-}
-
-# prompt_text PROMPT DEFAULT [VALIDATOR]
-# Free-text prompt with default and optional validator function.
-# VALIDATOR receives the input as $1; returns 0 to accept, non-zero to reject
-# (and may print its own warn/err message).
-prompt_text() {
-  local prompt=$1 default=${2-} validator=${3-}
-  local reply
-  while true; do
-    if [[ -n "$default" ]]; then
-      printf '  %s?%s %s %s(%s)%s ' \
-        "${C_BOLD}" "${C_RESET}" "$prompt" "${C_DIM}" "$default" "${C_RESET}" >&2
-      read -e -i "$default" -r reply || die "no input"
-    else
-      printf '  %s?%s %s ' "${C_BOLD}" "${C_RESET}" "$prompt" >&2
-      read -e -r reply || die "no input"
-    fi
-    reply=${reply:-$default}
-    if [[ -z "$reply" ]]; then
-      warn "value cannot be empty"
-      continue
-    fi
-    if [[ -n "$validator" ]] && ! "$validator" "$reply"; then
-      continue
-    fi
-    printf '%s\n' "$reply"
-    return 0
-  done
-}
-
-# prompt_bool PROMPT DEFAULT(yes|no)
-prompt_bool() {
-  local prompt=$1 default=${2:-yes} reply
-  if [[ $ASSUME_YES -eq 1 ]]; then
-    return 0
-  fi
-  local hint
-  if [[ "$default" == "yes" ]]; then hint="Y/n"; else hint="y/N"; fi
-  printf '  %s?%s %s %s(%s)%s ' \
-    "${C_BOLD}" "${C_RESET}" "$prompt" "${C_DIM}" "$hint" "${C_RESET}" >&2
-  read -r reply
-  if [[ "$default" == "yes" ]]; then
-    [[ -z "$reply" || "$reply" =~ ^[Yy]([Ee][Ss])?$ ]]
-  else
-    [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]]
-  fi
 }
 
 # -------------------------------------------------------------------- helpers
 
 require_cmd() {
-  local cmd missing=()
+  local cmd
+  local -a missing=()
+
   for cmd in "$@"; do
-    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      missing+=("$cmd")
+    fi
   done
+
   if [[ ${#missing[@]} -gt 0 ]]; then
     die "Missing required command(s): ${missing[*]}"
+  fi
+}
+
+require_tty() {
+  if [[ ! -r /dev/tty ]]; then
+    die "interactive TTY required"
+  fi
+}
+
+bool_word() {
+  if [[ "$1" == "yes" ]]; then
+    printf 'true'
+  else
+    printf 'false'
   fi
 }
 
@@ -253,6 +142,7 @@ cleanup() {
   if [[ -f "$SECRET_KEY_PATH" ]]; then
     sudo rm -f "$SECRET_KEY_PATH" 2>/dev/null || true
   fi
+
   if [[ -n "$WORKTREE" && -d "$WORKTREE" ]]; then
     if ! rm -rf "$WORKTREE" 2>/dev/null; then
       sudo rm -rf "$WORKTREE" 2>/dev/null || true
@@ -263,25 +153,25 @@ trap cleanup EXIT
 
 detect_system() {
   case "$(uname -m)" in
-    x86_64)        printf 'x86_64-linux\n'  ;;
+    x86_64)        printf 'x86_64-linux\n' ;;
     aarch64|arm64) printf 'aarch64-linux\n' ;;
     *)             die "Unsupported architecture: $(uname -m)" ;;
   esac
 }
 
 detect_ram_gib() {
-  # Round up MemTotal (kB) to the next whole GiB.
   local kb
   kb=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+
   if [[ "$kb" -eq 0 ]]; then
     printf '8\n'
-    return
+    return 0
   fi
+
   awk -v kb="$kb" 'BEGIN { printf "%d\n", int((kb + 1024*1024 - 1) / (1024*1024)) }'
 }
 
 default_swap_size() {
-  # RAM-matched swap: enough for hibernation, same units as existing hosts.
   printf '%sG\n' "$(detect_ram_gib)"
 }
 
@@ -300,48 +190,254 @@ home_profile_supports_display_profile() {
   esac
 }
 
-# Enumerate profile basenames from the in-repo modules tree.
 list_nixos_profiles() {
   find "$REPO_SOURCE/modules/profiles/nixos" -maxdepth 1 -type f -name '*.nix' \
     -exec basename {} .nix \; 2>/dev/null | sort
 }
+
 list_home_profiles() {
   find "$REPO_SOURCE/modules/profiles/home" -maxdepth 1 -type f -name '*.nix' \
     -exec basename {} .nix \; 2>/dev/null | sort
 }
+
 list_install_layouts() {
   find "$REPO_SOURCE/modules/nixos/install" -maxdepth 1 -type f -name '*.nix' \
     -exec basename {} .nix \; 2>/dev/null | sort
 }
+
 list_display_profiles() {
-  # Parsed out of modules/home/display-profile.nix (the enum of profile names).
   awk '
     /^  profiles = {/ { in_profiles = 1; next }
     in_profiles && /^  };/ { in_profiles = 0 }
-    in_profiles && /^    [A-Za-z0-9_-]+ = {/ {
-      name = $1
-      print name
-    }
+    in_profiles && /^    [A-Za-z0-9_-]+ = {/ { print $1 }
   ' "$REPO_SOURCE/modules/home/display-profile.nix" 2>/dev/null
 }
 
-host_known() { jq -e --arg host "$1" 'has($host)' "$HOST_DEFS_FILE" >/dev/null; }
-host_query() { jq -r --arg host "$1" "$2" "$HOST_DEFS_FILE"; }
-host_bool() {
-  if [[ "$(host_query "$1" "$2")" == "true" ]]; then printf 'yes\n'; else printf 'no\n'; fi
+host_known() {
+  jq -e --arg host "$1" 'has($host)' "$HOST_DEFS_FILE" >/dev/null
 }
-list_known_hosts() { jq -r 'keys[]' "$HOST_DEFS_FILE"; }
+
+host_query() {
+  jq -r --arg host "$1" "$2" "$HOST_DEFS_FILE"
+}
+
+host_bool() {
+  if [[ "$(host_query "$1" "$2")" == "true" ]]; then
+    printf 'yes\n'
+  else
+    printf 'no\n'
+  fi
+}
+
+list_known_hosts() {
+  jq -r 'keys[]' "$HOST_DEFS_FILE"
+}
 
 # Parse `lsblk` into two parallel arrays: disk paths and pretty labels.
-declare -a DISK_PATHS=() DISK_LABELS=()
+declare -a DISK_PATHS=()
+declare -a DISK_LABELS=()
+
 load_disks() {
-  DISK_PATHS=(); DISK_LABELS=()
+  DISK_PATHS=()
+  DISK_LABELS=()
+
   while IFS=$'\t' read -r path type rm size model tran; do
-    [[ "$type" == "disk" && "$rm" == "0" ]] || continue
+    if [[ "$type" != "disk" || "$rm" != "0" ]]; then
+      continue
+    fi
     DISK_PATHS+=("$path")
     DISK_LABELS+=("$(printf '%-14s %-8s %s %s' "$path" "$size" "${model:-?}" "${tran:-?}")")
-  done < <(lsblk -ndP -o PATH,TYPE,RM,SIZE,MODEL,TRAN 2>/dev/null \
-    | sed 's/ *\([A-Z]\{1,\}\)="/\t\1="/g; s/"//g; s/^[A-Z]\{1,\}=//; s/\t[A-Z]\{1,\}=/\t/g')
+  done < <(
+    lsblk -ndP -o PATH,TYPE,RM,SIZE,MODEL,TRAN 2>/dev/null \
+      | sed 's/ *\([A-Z]\{1,\}\)="/\t\1="/g; s/"//g; s/^[A-Z]\{1,\}=//; s/\t[A-Z]\{1,\}=/\t/g'
+  )
+}
+
+# --------------------------------------------------------------------- spinner
+
+run_with_spinner() {
+  local msg=$1
+  shift
+
+  local frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  if [[ $USE_COLOR -eq 0 ]]; then
+    frames="|/-\\"
+  fi
+
+  local stderr_log
+  stderr_log=$(mktemp)
+
+  "$@" >/dev/null 2>"$stderr_log" &
+  local pid=$!
+  local i=0
+  local n=${#frames}
+  local rc=0
+
+  if [[ -t 2 ]]; then
+    while kill -0 "$pid" 2>/dev/null; do
+      printf '\r  %s%s%s %s' "${C_CYAN}" "${frames:i%n:1}" "${C_RESET}" "$msg" >&2
+      i=$((i + 1))
+      sleep 0.1
+    done
+    printf '\r\033[K' >&2
+  else
+    info "$msg"
+  fi
+
+  if wait "$pid"; then
+    ok "$msg"
+    rm -f "$stderr_log"
+    return 0
+  fi
+
+  rc=$?
+  err "$msg (exit $rc)"
+  if [[ -s "$stderr_log" ]]; then
+    sed 's/^/    /' "$stderr_log" >&2
+  fi
+  rm -f "$stderr_log"
+  return "$rc"
+}
+
+# --------------------------------------------------------------------- prompts
+
+prompt_select() {
+  local prompt=$1
+  local default=$2
+  shift 2
+
+  local -a options=("$@")
+  local n=${#options[@]}
+  local reply
+  local i
+  local default_idx=0
+
+  if [[ $n -eq 0 ]]; then
+    die "prompt_select: no options provided for '$prompt'"
+  fi
+
+  require_tty
+
+  printf '\n%s%s %s%s\n' "${C_BOLD}${C_MAGENTA}" "$_SYM_SEC" "$prompt" "${C_RESET}" >&2
+
+  i=1
+  for opt in "${options[@]}"; do
+    if [[ "$opt" == "$default" ]]; then
+      default_idx=$i
+      printf '  %s%s%s %s%2d%s %s\n' \
+        "${C_GREEN}" "$_SYM_MARK" "${C_RESET}" "${C_CYAN}" "$i" "${C_RESET}" "$opt" >&2
+    else
+      printf '    %s%2d%s %s\n' "${C_CYAN}" "$i" "${C_RESET}" "$opt" >&2
+    fi
+    i=$((i + 1))
+  done
+
+  while true; do
+    printf '  %s?%s [1-%d] ' "${C_BOLD}" "${C_RESET}" "$n" >&2
+    read -r reply </dev/tty || die "no input"
+
+    if [[ -z "$reply" && $default_idx -gt 0 ]]; then
+      printf '%s\n' "${options[default_idx - 1]}"
+      return 0
+    fi
+
+    if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= n )); then
+      printf '%s\n' "${options[reply - 1]}"
+      return 0
+    fi
+
+    for opt in "${options[@]}"; do
+      if [[ "$reply" == "$opt" ]]; then
+        printf '%s\n' "$opt"
+        return 0
+      fi
+    done
+
+    warn "Invalid selection: '$reply' — enter a number 1-$n."
+  done
+}
+
+prompt_text() {
+  local prompt=$1
+  local default=${2-}
+  local validator=${3-}
+  local reply
+
+  require_tty
+
+  while true; do
+    if [[ -n "$default" ]]; then
+      printf '  %s?%s %s %s(%s)%s ' \
+        "${C_BOLD}" "${C_RESET}" "$prompt" "${C_DIM}" "$default" "${C_RESET}" >&2
+      read -e -i "$default" -r reply </dev/tty || die "no input"
+    else
+      printf '  %s?%s %s ' "${C_BOLD}" "${C_RESET}" "$prompt" >&2
+      read -e -r reply </dev/tty || die "no input"
+    fi
+
+    reply=${reply:-$default}
+
+    if [[ -z "$reply" ]]; then
+      warn "value cannot be empty"
+      continue
+    fi
+
+    if [[ -n "$validator" ]]; then
+      if ! "$validator" "$reply"; then
+        continue
+      fi
+    fi
+
+    printf '%s\n' "$reply"
+    return 0
+  done
+}
+
+prompt_bool() {
+  local prompt=$1
+  local default=${2:-yes}
+  local reply=""
+  local hint
+
+  if [[ $ASSUME_YES -eq 1 ]]; then
+    return 0
+  fi
+
+  require_tty
+
+  if [[ "$default" == "yes" ]]; then
+    hint="Y/n"
+  else
+    hint="y/N"
+  fi
+
+  printf '  %s?%s %s %s(%s)%s ' \
+    "${C_BOLD}" "${C_RESET}" "$prompt" "${C_DIM}" "$hint" "${C_RESET}" >&2
+
+  if ! IFS= read -r reply </dev/tty; then
+    err "failed to read confirmation from /dev/tty"
+    return 1
+  fi
+
+  case "$reply" in
+    "")
+      if [[ "$default" == "yes" ]]; then
+        return 0
+      else
+        return 1
+      fi
+      ;;
+    [Yy]|[Yy][Ee][Ss])
+      return 0
+      ;;
+    [Nn]|[Nn][Oo])
+      return 1
+      ;;
+    *)
+      warn "invalid response: '$reply'"
+      return 1
+      ;;
+  esac
 }
 
 # ----------------------------------------------------------------- validators
@@ -379,10 +475,10 @@ parse_args() {
       --disk)            DISK=${2:?missing value};            shift 2 ;;
       --system)          SYSTEM=${2:?missing value};          shift 2 ;;
       --username)        USERNAME=${2:?missing value};        shift 2 ;;
-      --nixos)           NIXOS_MODE=yes;                       shift   ;;
-      --no-nixos)        NIXOS_MODE=no;                        shift   ;;
-      --home)            HOME_MODE=yes;                        shift   ;;
-      --no-home)         HOME_MODE=no;                         shift   ;;
+      --nixos)           NIXOS_MODE=yes;                      shift ;;
+      --no-nixos)        NIXOS_MODE=no;                       shift ;;
+      --home)            HOME_MODE=yes;                       shift ;;
+      --no-home)         HOME_MODE=no;                        shift ;;
       --nixos-profile)   NIXOS_PROFILE=${2:?missing value};   shift 2 ;;
       --home-profile)    HOME_PROFILE=${2:?missing value};    shift 2 ;;
       --display-profile) DISPLAY_PROFILE=${2:?missing value}; shift 2 ;;
@@ -390,9 +486,9 @@ parse_args() {
       --install-layout)  INSTALL_LAYOUT=${2:?missing value};  shift 2 ;;
       --copy-repo)       COPY_REPO=${2:?missing value};       shift 2 ;;
       --repo-dest)       REPO_DEST=${2:?missing value};       shift 2 ;;
-      --dry-run)         DRY_RUN=1;                            shift   ;;
-      --no-color)        USE_COLOR=0; apply_colors;           shift   ;;
-      -y|--yes)          ASSUME_YES=1;                         shift   ;;
+      --dry-run)         DRY_RUN=1;                           shift ;;
+      --no-color)        USE_COLOR=0; apply_colors;          shift ;;
+      -y|--yes)          ASSUME_YES=1;                        shift ;;
       -h|--help)
         cat <<EOF
 Usage:
@@ -418,17 +514,36 @@ Options:
 EOF
         exit 0
         ;;
-      *) die "Unknown argument: $1" ;;
+      *)
+        die "Unknown argument: $1"
+        ;;
     esac
   done
+
+  if [[ -n "$HOST" ]]; then
+    validate_hostname "$HOST" || die "invalid --host: $HOST"
+  fi
+
+  if [[ -n "$USERNAME" ]]; then
+    validate_username "$USERNAME" || die "invalid --username: $USERNAME"
+  fi
+
+  if [[ -n "$SWAP_SIZE" ]]; then
+    validate_swap_size "$SWAP_SIZE" || die "invalid --swap-size: $SWAP_SIZE"
+  fi
+
+  if [[ -n "$COPY_REPO" && "$COPY_REPO" != "yes" && "$COPY_REPO" != "no" ]]; then
+    die "--copy-repo must be yes or no"
+  fi
 }
 
 # --------------------------------------------------------------- resolve plan
-
+# shellcheck disable=SC2016
 resolve_target() {
   if [[ -z "$HOST" ]]; then
     local -a known
     mapfile -t known < <(list_known_hosts)
+
     if [[ ${#known[@]} -gt 0 ]]; then
       HOST=$(prompt_select "pick host (or type new)" "" "${known[@]}" "<new ad hoc host>")
       if [[ "$HOST" == "<new ad hoc host>" ]]; then
@@ -441,37 +556,35 @@ resolve_target() {
 
   if host_known "$HOST"; then
     KNOWN_HOST=1
-    # shellcheck disable=SC2016
+
     SYSTEM=${SYSTEM:-$(host_query "$HOST" '.[$host].system // empty')}
-    # shellcheck disable=SC2016
     USERNAME=${USERNAME:-$(host_query "$HOST" '.[$host].username // empty')}
-    # shellcheck disable=SC2016
     PLATFORM=${PLATFORM:-$(host_query "$HOST" '.[$host].platform // "ad-hoc"')}
-    # shellcheck disable=SC2016
     VISIBILITY=${VISIBILITY:-$(host_query "$HOST" '.[$host].visibility // "private"')}
-    # shellcheck disable=SC2016
     INSTALL_LAYOUT=${INSTALL_LAYOUT:-$(host_query "$HOST" '.[$host].install.layout // empty')}
-    # shellcheck disable=SC2016
     DISK=${DISK:-$(host_query "$HOST" '.[$host].install.disk // empty')}
-    # shellcheck disable=SC2016
     SWAP_SIZE=${SWAP_SIZE:-$(host_query "$HOST" '.[$host].install.swapSize // empty')}
-    # shellcheck disable=SC2016
-    [[ -n "$NIXOS_MODE" ]] || NIXOS_MODE=$(host_bool "$HOST" '.[$host].nixos.enable // false')
-    # shellcheck disable=SC2016
-    [[ -n "$HOME_MODE"  ]] || HOME_MODE=$(host_bool  "$HOST" '.[$host].home.enable // false')
-    # shellcheck disable=SC2016
-    [[ -n "$NIXOS_PROFILE"   ]] || NIXOS_PROFILE=$(host_query "$HOST" '.[$host].nixos.profile // empty')
-    # shellcheck disable=SC2016
-    [[ -n "$HOME_PROFILE"    ]] || HOME_PROFILE=$(host_query "$HOST" '.[$host].home.profile // empty')
-    # shellcheck disable=SC2016
-    [[ -n "$DISPLAY_PROFILE" ]] || DISPLAY_PROFILE=$(host_query "$HOST" '.[$host].home.displayProfile // empty')
+
+    if [[ -z "$NIXOS_MODE" ]]; then
+      NIXOS_MODE=$(host_bool "$HOST" '.[$host].nixos.enable // false')
+    fi
+    if [[ -z "$HOME_MODE" ]]; then
+      HOME_MODE=$(host_bool "$HOST" '.[$host].home.enable // false')
+    fi
+    if [[ -z "$NIXOS_PROFILE" ]]; then
+      NIXOS_PROFILE=$(host_query "$HOST" '.[$host].nixos.profile // empty')
+    fi
+    if [[ -z "$HOME_PROFILE" ]]; then
+      HOME_PROFILE=$(host_query "$HOST" '.[$host].home.profile // empty')
+    fi
+    if [[ -z "$DISPLAY_PROFILE" ]]; then
+      DISPLAY_PROFILE=$(host_query "$HOST" '.[$host].home.displayProfile // empty')
+    fi
   else
     SYSTEM=${SYSTEM:-$(detect_system)}
     USERNAME=${USERNAME:-$DEFAULT_USERNAME}
-    PLATFORM=${PLATFORM:-"ad-hoc"}
-    VISIBILITY=${VISIBILITY:-"private"}
-    NIXOS_MODE=${NIXOS_MODE:-}
-    HOME_MODE=${HOME_MODE:-}
+    PLATFORM=${PLATFORM:-ad-hoc}
+    VISIBILITY=${VISIBILITY:-private}
   fi
 
   USERNAME=${USERNAME:-$DEFAULT_USERNAME}
@@ -481,48 +594,63 @@ resolve_modes() {
   if [[ -z "$NIXOS_MODE" ]]; then
     NIXOS_MODE=$(prompt_select "install nixos on this machine?" yes yes no)
   fi
+
   if [[ -z "$HOME_MODE" ]]; then
     HOME_MODE=$(prompt_select "activate home-manager?" yes yes no)
   fi
-  [[ "$NIXOS_MODE" == "yes" || "$HOME_MODE" == "yes" ]] \
-    || die "Nothing to do: enable at least --nixos or --home."
+
+  if [[ "$NIXOS_MODE" != "yes" && "$HOME_MODE" != "yes" ]]; then
+    die "Nothing to do: enable at least --nixos or --home."
+  fi
 }
 
 resolve_ad_hoc_profiles() {
-  [[ $KNOWN_HOST -eq 0 ]] || return 0
+  if [[ $KNOWN_HOST -ne 0 ]]; then
+    return 0
+  fi
 
   if [[ "$NIXOS_MODE" == "yes" && -z "$NIXOS_PROFILE" ]]; then
     local -a profiles
     mapfile -t profiles < <(list_nixos_profiles)
-    [[ ${#profiles[@]} -gt 0 ]] || die "no nixos profiles under modules/profiles/nixos/"
+    if [[ ${#profiles[@]} -eq 0 ]]; then
+      die "no nixos profiles under modules/profiles/nixos/"
+    fi
     NIXOS_PROFILE=$(prompt_select "pick nixos profile" "$(suggest_nixos_profile)" "${profiles[@]}")
   fi
 
   if [[ "$HOME_MODE" == "yes" && -z "$HOME_PROFILE" ]]; then
     local -a profiles
     mapfile -t profiles < <(list_home_profiles)
-    [[ ${#profiles[@]} -gt 0 ]] || die "no home profiles under modules/profiles/home/"
+    if [[ ${#profiles[@]} -eq 0 ]]; then
+      die "no home profiles under modules/profiles/home/"
+    fi
     HOME_PROFILE=$(prompt_select "pick home profile" "personal-gnome" "${profiles[@]}")
   fi
 
-  if [[ "$HOME_MODE" == "yes" && -n "$DISPLAY_PROFILE" ]] \
-     && ! home_profile_supports_display_profile "$HOME_PROFILE"; then
-    warn "home profile '${HOME_PROFILE}' does not use display profiles — ignoring"
-    DISPLAY_PROFILE=""
+  if [[ "$HOME_MODE" == "yes" && -n "$DISPLAY_PROFILE" ]]; then
+    if ! home_profile_supports_display_profile "$HOME_PROFILE"; then
+      warn "home profile '${HOME_PROFILE}' does not use display profiles — ignoring"
+      DISPLAY_PROFILE=""
+    fi
   fi
 
-  if [[ "$HOME_MODE" == "yes" && -z "$DISPLAY_PROFILE" ]] \
-     && home_profile_supports_display_profile "$HOME_PROFILE"; then
-    local -a profiles
-    mapfile -t profiles < <(list_display_profiles)
-    [[ ${#profiles[@]} -gt 0 ]] || profiles=(none gnome-default)
-    DISPLAY_PROFILE=$(prompt_select "pick display profile" "gnome-default" "${profiles[@]}")
+  if [[ "$HOME_MODE" == "yes" && -z "$DISPLAY_PROFILE" ]]; then
+    if home_profile_supports_display_profile "$HOME_PROFILE"; then
+      local -a profiles
+      mapfile -t profiles < <(list_display_profiles)
+      if [[ ${#profiles[@]} -eq 0 ]]; then
+        profiles=(none gnome-default)
+      fi
+      DISPLAY_PROFILE=$(prompt_select "pick display profile" "gnome-default" "${profiles[@]}")
+    fi
   fi
 
   if [[ "$NIXOS_MODE" == "yes" && -z "$INSTALL_LAYOUT" ]]; then
     local -a layouts
     mapfile -t layouts < <(list_install_layouts)
-    [[ ${#layouts[@]} -gt 0 ]] || die "no install layouts under modules/nixos/install/"
+    if [[ ${#layouts[@]} -eq 0 ]]; then
+      die "no install layouts under modules/nixos/install/"
+    fi
     INSTALL_LAYOUT=$(prompt_select "pick install layout" "luks-btrfs" "${layouts[@]}")
   fi
 
@@ -537,7 +665,9 @@ resolve_ad_hoc_profiles() {
 }
 
 resolve_disk() {
-  [[ "$NIXOS_MODE" == "yes" ]] || return 0
+  if [[ "$NIXOS_MODE" != "yes" ]]; then
+    return 0
+  fi
 
   load_disks
   if [[ ${#DISK_PATHS[@]} -eq 0 ]]; then
@@ -546,12 +676,15 @@ resolve_disk() {
 
   if [[ -z "$DISK" ]]; then
     local default_label=""
+    local chosen=""
+    local i
+
     if [[ ${#DISK_PATHS[@]} -eq 1 ]]; then
       default_label=${DISK_LABELS[0]}
     fi
-    local chosen
+
     chosen=$(prompt_select "pick target disk" "$default_label" "${DISK_LABELS[@]}")
-    local i
+
     for i in "${!DISK_LABELS[@]}"; do
       if [[ "${DISK_LABELS[i]}" == "$chosen" ]]; then
         DISK=${DISK_PATHS[i]}
@@ -575,13 +708,20 @@ recap() {
   kv "visibility" "$VISIBILITY"
   kv "nixos"      "${NIXOS_PROFILE:+$NIXOS_PROFILE}"
   kv "home"       "${HOME_PROFILE:+$HOME_PROFILE}"
-  [[ -n "$DISPLAY_PROFILE" ]] && kv "display" "$DISPLAY_PROFILE"
+
+  if [[ -n "$DISPLAY_PROFILE" ]]; then
+    kv "display" "$DISPLAY_PROFILE"
+  fi
+
   if [[ "$NIXOS_MODE" == "yes" ]]; then
     kv "layout" "$INSTALL_LAYOUT"
     kv "disk"   "$DISK"
     kv "swap"   "$SWAP_SIZE"
   fi
-  [[ $DRY_RUN -eq 1 ]] && kv "mode" "${C_YELLOW}dry run${C_RESET}"
+
+  if [[ $DRY_RUN -eq 1 ]]; then
+    kv "mode" "${C_YELLOW}dry run${C_RESET}"
+  fi
 }
 
 prepare_worktree() {
@@ -591,97 +731,126 @@ prepare_worktree() {
 }
 
 write_worktree_host_defs() {
-  local base_defs="$WORKTREE/machines/defs-known.nix"
   local defs_file="$WORKTREE/machines/defs.nix"
+  local home_enable
+  local nixos_enable
 
-  mv "$defs_file" "$base_defs"
+  home_enable=$(bool_word "$HOME_MODE")
+  nixos_enable=$(bool_word "$NIXOS_MODE")
+
+  # Build a self-contained defs.nix: read the original, strip the outer
+  # `{lib, const, ...}: {` header and closing `}`, then remove any existing
+  # block for HOST and append a fresh one.
+  #
+  # This avoids a separate defs-known.nix file that would break when
+  # provision rsyncs the repo (it excludes defs.nix but not defs-known.nix).
+  local body
+  body=$(sed '1,/^}: {$/d; $d' "$defs_file")
+  # Remove existing HOST block (top-level `  HOST = {` … `  };`) to avoid
+  # duplicate attribute errors.  Uses awk to skip lines between the opening
+  # and closing markers.
+  body=$(printf '%s\n' "$body" | awk -v host="  ${HOST} = {" '
+    $0 == host { skip=1; next }
+    skip && /^  };/ { skip=0; next }
+    !skip
+  ')
 
   cat >"$defs_file" <<EOF
-{lib, const, ...}:
-  let
-    defs = import ./defs-known.nix {inherit lib const;};
-  in
-  defs
-  // {
-    ${HOST} = (defs.${HOST} or {})
-    // {
-      system = "${SYSTEM}";
-      username = "${USERNAME}";
-      platform = "${PLATFORM}";
-      visibility = "${VISIBILITY}";
-      home = {
-        enable = $([[ "$HOME_MODE" == "yes" ]] && printf true || printf false);
-      }$(
-        if [[ -n "$HOME_PROFILE" || -n "$DISPLAY_PROFILE" ]]; then
-          printf ' // {\n'
-          if [[ -n "$HOME_PROFILE" ]]; then
-            printf '          profile = "%s";\n' "$HOME_PROFILE"
-          fi
-          if [[ -n "$DISPLAY_PROFILE" ]]; then
-            printf '          displayProfile = "%s";\n' "$DISPLAY_PROFILE"
-          fi
-          printf '        }'
+{lib, const, ...}: {
+${body}
+  ${HOST} = {
+    system = "${SYSTEM}";
+    username = "${USERNAME}";
+    platform = "${PLATFORM}";
+    visibility = "${VISIBILITY}";
+
+    home = {
+      enable = ${home_enable};$(
+        if [[ -n "$HOME_PROFILE" ]]; then
+          printf '\n      profile = "%s";' "$HOME_PROFILE"
         fi
-      );
-      nixos = {
-        enable = $([[ "$NIXOS_MODE" == "yes" ]] && printf true || printf false);
-      }$(
-        if [[ -n "$NIXOS_PROFILE" ]]; then
-          printf ' // {\n          profile = "%s";\n        }' "$NIXOS_PROFILE"
+        if [[ -n "$DISPLAY_PROFILE" ]]; then
+          printf '\n      displayProfile = "%s";' "$DISPLAY_PROFILE"
         fi
-      );
-      install = (defs.${HOST}.install or {})
-      // {
-        layout = "${INSTALL_LAYOUT}";
-        disk = "${DISK}";
-        swapSize = "${SWAP_SIZE}";
-      }$(
-        if [[ $KNOWN_HOST -eq 0 && "$NIXOS_MODE" == "yes" ]]; then
-          printf ' // {\n'
-          printf '        canTouchEfiVariables = false;\n'
-          printf '        efiInstallAsRemovable = true;\n'
-          printf '      }'
-        fi
-      );
+      )
     };
-  }
+
+    nixos = {
+      enable = ${nixos_enable};$(
+        if [[ -n "$NIXOS_PROFILE" ]]; then
+          printf '\n      profile = "%s";' "$NIXOS_PROFILE"
+        fi
+      )
+    };
+
+    install = {
+      layout = "${INSTALL_LAYOUT}";
+      disk = "${DISK}";
+      swapSize = "${SWAP_SIZE}";$(
+        if [[ $KNOWN_HOST -eq 0 && "$NIXOS_MODE" == "yes" ]]; then
+          printf '\n      canTouchEfiVariables = false;'
+          printf '\n      efiInstallAsRemovable = true;'
+        fi
+      )
+    };
+  };
+}
 EOF
 }
 
 prepare_target_config() {
   write_worktree_host_defs
+
   if [[ "$NIXOS_MODE" == "yes" ]]; then
     mkdir -p "$WORKTREE/machines/$HOST"
   fi
+
   ok "host definitions written"
 }
 
 write_secret_key() {
   section "luks passphrase"
-  local luks_pw
+  require_tty
+
+  local luks_pw=""
+  local confirm=""
+
   while true; do
-    read -r -s -p "  enter: " luks_pw
+    read -r -s -p "  enter: " luks_pw </dev/tty
     printf '\n'
-    [[ -n "${luks_pw:-}" ]] || { warn "passphrase cannot be empty"; continue; }
-    local confirm
-    read -r -s -p "  confirm: " confirm
+    if [[ -z "$luks_pw" ]]; then
+      warn "passphrase cannot be empty"
+      continue
+    fi
+
+    read -r -s -p "  confirm: " confirm </dev/tty
     printf '\n'
+
     if [[ "$luks_pw" == "$confirm" ]]; then
       break
     fi
+
     warn "passphrases did not match"
   done
+
   printf '%s' "$luks_pw" | sudo tee "$SECRET_KEY_PATH" >/dev/null
   sudo chmod 600 "$SECRET_KEY_PATH"
   ok "staged at ${SECRET_KEY_PATH}"
 }
 
 run_nixos_install() {
-  [[ "$NIXOS_MODE" == "yes" ]] || return 0
-  [[ $DRY_RUN -eq 0 ]] || { info "Dry run: skipping disko + nixos-install"; return 0; }
+  if [[ "$NIXOS_MODE" != "yes" ]]; then
+    return 0
+  fi
+
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "Dry run: skipping disko + nixos-install"
+    return 0
+  fi
 
   section "destructive"
   warn "this will DESTROY all data on ${C_BOLD}${DISK}${C_RESET}"
+
   if ! prompt_bool "proceed with disko + nixos-install on ${DISK}?" no; then
     die "aborted."
   fi
@@ -695,9 +864,13 @@ run_nixos_install() {
   section "disko"
   (
     cd "$WORKTREE"
+
     if [[ $ASSUME_YES -eq 1 ]]; then
       disko_args=(--yes-wipe-all-disks "${disko_args[@]}")
     fi
+
+    sudo --non-interactive true 2>/dev/null || true
+    exec </dev/tty >/dev/tty 2>&1
     sudo disko "${disko_args[@]}"
   )
   ok "disko finished"
@@ -709,13 +882,22 @@ run_nixos_install() {
   ok "hardware-configuration.nix staged"
 
   section "nixos-install"
-  (cd "$WORKTREE" && sudo nixos-install --root /mnt --flake ".#${HOST}")
+  (
+    cd "$WORKTREE"
+    sudo nixos-install --root /mnt --flake ".#${HOST}"
+  )
   ok "nixos-install finished"
 }
 
 copy_repo_to_target() {
-  [[ "$NIXOS_MODE" == "yes" ]] || return 0
-  [[ $DRY_RUN -eq 0 ]] || { info "Dry run: skipping repo copy"; return 0; }
+  if [[ "$NIXOS_MODE" != "yes" ]]; then
+    return 0
+  fi
+
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "Dry run: skipping repo copy"
+    return 0
+  fi
 
   if [[ -z "$REPO_DEST" ]]; then
     REPO_DEST="/mnt/home/${USERNAME}/src/public/nixos-config"
@@ -730,18 +912,25 @@ copy_repo_to_target() {
   fi
 
   if [[ "$COPY_REPO" == "yes" ]]; then
-    sudo mkdir -p "$(dirname "$REPO_DEST")"
+    sudo mkdir -p "$REPO_DEST"
     run_with_spinner "copying repo → ${REPO_DEST}" \
       sudo rsync -a --delete "$WORKTREE"/ "${REPO_DEST}/"
   fi
 }
 
 run_home_install() {
-  [[ "$HOME_MODE" == "yes" ]] || return 0
+  if [[ "$HOME_MODE" != "yes" ]]; then
+    return 0
+  fi
+
   if [[ "$NIXOS_MODE" == "yes" ]]; then
     return 0
   fi
-  [[ $DRY_RUN -eq 0 ]] || { info "Dry run: skipping home-manager switch"; return 0; }
+
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "Dry run: skipping home-manager switch"
+    return 0
+  fi
 
   section "home-manager"
   info "switching ${USERNAME}@${HOST}"
@@ -751,17 +940,12 @@ run_home_install() {
 
 # --------------------------------------------------------------------- main
 
-banner() {
-  printf '\n%s%s nixos installer%s\n' \
-    "${C_BOLD}" "${C_MAGENTA}" "${C_RESET}"
-}
-
 main() {
-  require_cmd jq rsync lsblk awk sed perl nix
+  require_cmd jq rsync lsblk awk sed nix
   parse_args "$@"
-  apply_colors  # re-apply after --no-color may have flipped USE_COLOR
+  apply_colors
 
-  # banner
+  banner
   resolve_target
   resolve_modes
   resolve_ad_hoc_profiles

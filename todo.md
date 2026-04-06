@@ -15,3 +15,4 @@
 # host
 
 1. rounded corners not applied in new host
+2. "provisioin", "ad hoc" wording replacement

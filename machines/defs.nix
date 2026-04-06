@@ -98,6 +98,8 @@
   };
 
   NEWHOST = {
+    syncthing.deviceId = "KHY3QCB-3R2BQH6-IMRBWKK-BWHJWSL-66UOSKY-ZJQR3HL-GYHJJ4G-4ALAMAB";
+    sops.ageKey = "age12y842jk5ad5lecjuh3s4edlqxffmcmh7lzzkfm39vwl2kfckw3rszewkrm";
     home = {
       enable = true;
       profile = "personal-gnome";
@@ -105,7 +107,7 @@
     };
     nixos = {
       enable = true;
-      profile = "portable-nvidia-gnome";
+      profile = "portable-gnome";
     };
     install = {
       layout = "luks-btrfs";
@@ -113,8 +115,6 @@
       swapSize = "2G";
     };
 
-    syncthing.deviceId = "ZQ7MCCP-U3YSPJM-ISXBFLT-2BAS7K3-SNZTNHZ-LJEZ42N-LD3N2N2-H2W3PA6";
-    sops.ageKey = "age1naw7wgtrszdschtjm34hqy28f99k67ryffvpkgrk8f7apw6zxcgs6rey0k";
     system = "x86_64-linux";
     username = const.username;
     platform = "ad-hoc";
