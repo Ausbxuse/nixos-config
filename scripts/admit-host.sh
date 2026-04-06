@@ -18,7 +18,7 @@
 #
 # Adding/removing a host = editing machines/defs.nix directly. This script
 # does NOT mutate defs.nix except via --set-host-key / --set-host-syncthing,
-# which exist so provision.sh can inject freshly-derived host state
+# which exist so enroll.sh can inject freshly-derived host state
 # non-interactively.
 #
 # Environment:
@@ -132,7 +132,7 @@ ensure_host_stub() {
   # nixos.enable / home.enable, so lib/default.nix filters it out of
   # nixosConfigurations/homeConfigurations — it exists only as a sops
   # recipient. The user can flesh it out later when they want to manage
-  # the host from this peer instead of ad-hoc.
+  # the host from this peer instead of custom.
   local host="$1"
   if grep -q "^  ${host} = {" "$DEFS_FILE"; then
     return 0
@@ -154,7 +154,7 @@ ensure_host_stub() {
           print "  " host " = {"
           print "    system = \"x86_64-linux\";"
           print "    username = const.username;"
-          print "    platform = \"ad-hoc\";"
+          print "    platform = \"custom\";"
           print "    visibility = \"private\";"
           print "  };"
         }

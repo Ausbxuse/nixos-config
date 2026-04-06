@@ -7,13 +7,13 @@ robust enough to recover from any single device loss with minimal manual effort.
 
 ## Threat Model
 
-| Threat              | Protection                                        |
-| ------------------- | ------------------------------------------------- |
-| Lose one device     | Syncthing mesh — data on 2+ devices at all times  |
-| Lose all devices    | Master age key on paper/USB + external drive       |
-| Stolen device       | LUKS full-disk encryption                          |
-| Locked out of accounts | TOTP seeds + passwords backed up                |
-| Accidental deletion | Syncthing versioning + external drive backup       |
+| Threat                 | Protection                                       |
+| ---------------------- | ------------------------------------------------ |
+| Lose one device        | Syncthing mesh — data on 2+ devices at all times |
+| Lose all devices       | Master age key on paper/USB + external drive     |
+| Stolen device          | LUKS full-disk encryption                        |
+| Locked out of accounts | TOTP seeds + passwords backed up                 |
+| Accidental deletion    | Syncthing versioning + external drive backup     |
 
 ## Architecture
 
@@ -40,23 +40,23 @@ External drive backup (rsync, periodic) provides cold disaster recovery.
 
 ## Data Classification
 
-| Tier          | Examples                                | Sync               | Backup         |
-| ------------- | --------------------------------------- | ------------------- | -------------- |
-| **Critical**  | Age key, TOTP seeds, API keys, app passwords | sops-nix in git     | VPS + ext drive |
-| **Important** | Documents, notes, KeePassXC vault, private repos | Syncthing (all + VPS) | ext drive     |
-| **Media**     | Phone photos/video (~200GB), music      | Syncthing (razy + timy + phone) | ext drive |
-| **Ephemeral** | Game saves, downloads, caches           | Syncthing (optional) | none          |
+| Tier          | Examples                                         | Sync                            | Backup          |
+| ------------- | ------------------------------------------------ | ------------------------------- | --------------- |
+| **Critical**  | Age key, TOTP seeds, API keys, app passwords     | sops-nix in git                 | VPS + ext drive |
+| **Important** | Documents, notes, KeePassXC vault, private repos | Syncthing (all + VPS)           | ext drive       |
+| **Media**     | Phone photos/video (~200GB), music               | Syncthing (razy + timy + phone) | ext drive       |
+| **Ephemeral** | Game saves, downloads, caches                    | Syncthing (optional)            | none            |
 
 ## Tools
 
-| Tool         | Platform        | Purpose                                      |
-| ------------ | --------------- | -------------------------------------------- |
-| **sops-nix** | Laptops (NixOS) | Infrastructure secrets: API keys, TOTP seeds |
-| **KeePassXC**| Laptops + Phone | Day-to-day passwords (website logins, apps)  |
-| **Aegis**    | Phone           | TOTP 2FA code generator                      |
-| **Syncthing**| All devices     | File sync mesh                               |
-| **rsync**    | Laptops         | External drive cold backup                   |
-| **gh**       | Laptops         | Auto-add SSH keys to GitHub on rebuild       |
+| Tool          | Platform        | Purpose                                      |
+| ------------- | --------------- | -------------------------------------------- |
+| **sops-nix**  | Laptops (NixOS) | Infrastructure secrets: API keys, TOTP seeds |
+| **KeePassXC** | Laptops + Phone | Day-to-day passwords (website logins, apps)  |
+| **Aegis**     | Phone           | TOTP 2FA code generator                      |
+| **Syncthing** | All devices     | File sync mesh                               |
+| **rsync**     | Laptops         | External drive cold backup                   |
+| **gh**        | Laptops         | Auto-add SSH keys to GitHub on rebuild       |
 
 ## Syncthing Folder Layout
 
@@ -96,16 +96,16 @@ Per-host SSH-derived age keys + one offline master key:
 ```yaml
 # .sops.yaml
 keys:
-  - &razy  age1...   # derived from razy's SSH host key
-  - &timy  age1...   # derived from timy's SSH host key
-  - &master age1...  # offline master key (paper + USB)
+  - &razy age1... # derived from razy's SSH host key
+  - &timy age1... # derived from timy's SSH host key
+  - &master age1... # offline master key (paper + USB)
 creation_rules:
   - path_regex: secrets\.yaml$
     key_groups:
       - age:
-        - *razy
-        - *timy
-        - *master
+          - *razy
+          - *timy
+          - *master
 ```
 
 sops-nix config:
@@ -158,7 +158,7 @@ sops.age.generateKey = true;
 
 ### Lost VPS
 
-1. Provision new VPS, install NixOS
+1. enroll new VPS, install NixOS
 2. Syncthing rejoins mesh → razy/timy re-encrypt and resync to it
 3. Restore git server from local repo copies
 

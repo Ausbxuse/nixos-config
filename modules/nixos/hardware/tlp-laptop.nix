@@ -1,10 +1,16 @@
+# TLP-based power management for laptops.
+#
+# Use this instead of auto-cpufreq when you need fine-grained AC/battery
+# tuning.  Importing this module disables auto-cpufreq and
+# power-profiles-daemon to avoid conflicts.
 {lib, ...}: {
-  services.power-profiles-daemon.enable = false;
+  # mkForce needed: GNOME and qol.nix both set these; TLP conflicts with both.
+  services.power-profiles-daemon.enable = lib.mkForce false;
   services.auto-cpufreq.enable = lib.mkForce false;
 
   services.thermald.enable = true;
   # Avoid stacking PowerTOP auto-tuning on top of TLP. Both touch USB runtime
-  # PM, and this host has an idle-wake delay on the Logitech mouse receiver.
+  # PM, which can cause idle-wake issues with USB receivers.
   powerManagement.powertop.enable = false;
 
   networking.networkmanager.wifi.powersave = true;

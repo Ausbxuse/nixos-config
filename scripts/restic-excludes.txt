@@ -1,0 +1,14 @@
+.cache
+.local/share/Trash
+Downloads
+.nix-defexpr
+.nix-profile
+node_modules
+.cargo/registry
+.rustup/toolchains
+target
+result
+.direnv
+Media
+.mozilla
+.local/share/Steam

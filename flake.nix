@@ -60,45 +60,26 @@
         nixosConfigurations = self.nixosConfigurations;
       });
 
-    apps = repo.forEachSystem ({system, ...}: let
-      minecraft = self.packages.${system}.minecraftSync;
-      bootstrap = self.packages.${system}.minecraftBootstrap;
-      deploy = self.packages.${system}.minecraftDeploy;
-      mkApp = description: program: {
-        type = "app";
-        inherit program;
-        meta.description = description;
-      };
-    in {
-      minecraft = mkApp "Sync the Minecraft client assets." "${minecraft}/bin/sync-minecraft-client";
-      "minecraft-bootstrap" = mkApp "Bootstrap the Minecraft client installation." "${bootstrap}/bin/bootstrap-minecraft-client";
-      "minecraft-deploy" = mkApp "Deploy the Minecraft client artifacts." "${deploy}/bin/deploy-minecraft-client";
-      "validate-host" = mkApp "Validate a host definition from this flake." "${self.packages.${system}."validate-host"}/bin/validate-host";
-      "admit-host" = mkApp "Regenerate nix-secrets/.sops.yaml from machines/defs.nix + machines/operators.nix and re-encrypt secrets.yaml. Pass --set-host-key HOST AGEKEY to patch defs.nix first." "${self.packages.${system}."admit-host"}/bin/admit-host";
-      "provision" = mkApp "Remote-drive a fresh NixOS host into the secrets trust mesh (admit + rsync secrets + nixos-rebuild switch)." "${self.packages.${system}."provision"}/bin/provision";
-      install = mkApp "Install this configuration onto a target host." "${self.packages.${system}.install}/bin/install-config";
-      "ubuntu-home-install-test" = mkApp "Run the Ubuntu home-only install test harness." "${self.packages.${system}."ubuntu-home-install-test"}/bin/ubuntu-home-install-test";
-      "nixos-system-install-test" = mkApp "Run the NixOS system install test harness." "${self.packages.${system}."nixos-system-install-test"}/bin/nixos-system-install-test";
-      default = mkApp "Sync the Minecraft client assets." "${minecraft}/bin/sync-minecraft-client";
-    });
+    apps = repo.forEachSystem ({system, ...}:
+      import ./apps.nix {
+        packages = self.packages.${system};
+      });
 
-    checks = repo.forEachSystem (
-      {
-        system,
-        pkgs,
-      }:
-        (import ./tests {inherit pkgs lib;})
-        // lib.optionalAttrs (system == "x86_64-linux") {
-          nvim = self.packages.${system}.nvim;
-          inherit (self.packages.${system}) gnome-iso;
-        }
-        // repo.mkChecks "home" (
-          host: (repo.mkHome host).activationPackage
-        ) (repo.hostsForSystem system repo.homeHosts)
-        // repo.mkChecks "nixos" (
-          host: (repo.mkNixosWithHome host).config.system.build.toplevel
-        ) (repo.hostsForSystem system repo.nixosHosts)
-    );
+    checks = repo.forEachSystem ({
+      system,
+      pkgs,
+    }:
+      (import ./tests {inherit pkgs lib;})
+      // lib.optionalAttrs (system == "x86_64-linux") {
+        nvim = self.packages.${system}.nvim;
+        inherit (self.packages.${system}) gnome-iso;
+      }
+      // repo.mkChecks "home" (
+        host: (repo.mkHome host).activationPackage
+      ) (repo.hostsForSystem system repo.homeHosts)
+      // repo.mkChecks "nixos" (
+        host: (repo.mkNixosWithHome host).config.system.build.toplevel
+      ) (repo.hostsForSystem system repo.nixosHosts));
 
     nixosConfigurations =
       repo.mkNamedAttrs

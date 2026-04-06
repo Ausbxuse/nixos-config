@@ -24,6 +24,8 @@
       ];
     }).config.system.build.image;
 
+  shLib = builtins.readFile ../scripts/lib.sh;
+
   minecraft = pkgs.callPackage ./minecraft {};
 
   mkScriptApp = {
@@ -69,9 +71,9 @@
     ];
   };
 
-  provision = mkScriptApp {
-    name = "provision";
-    src = ../scripts/provision.sh;
+  enroll = mkScriptApp {
+    name = "enroll";
+    src = ../scripts/enroll.sh;
     runtimeInputs = with pkgs; [
       coreutils
       gnugrep
@@ -84,6 +86,9 @@
       syncthing
       admitHost
     ];
+    replacements = {
+      "@source_lib@" = shLib;
+    };
   };
 
   install = mkScriptApp {
@@ -103,9 +108,27 @@
       nix
     ];
     replacements = {
+      "@source_lib@" = shLib;
       "@repoSource@" = toString self.outPath;
       "@hostDefsFile@" = toString hostDefsFile;
       "@username@" = const.username;
+    };
+  };
+
+  setupRecoveryUsb = mkScriptApp {
+    name = "setup-recovery-usb";
+    src = ../scripts/setup-recovery-usb.sh;
+    runtimeInputs = with pkgs; [
+      coreutils
+      util-linux
+      gptfdisk
+      dosfstools
+      e2fsprogs
+      restic
+      gnused
+    ];
+    replacements = {
+      "@source_lib@" = shLib;
     };
   };
 
@@ -167,7 +190,8 @@ in
     minecraftSync = minecraft.sync;
     "validate-host" = hostValidation;
     "admit-host" = admitHost;
-    "provision" = provision;
+    "enroll" = enroll;
+    "setup-recovery-usb" = setupRecoveryUsb;
     "nixos-system-install-test" = nixosSystemInstallTest;
     "ubuntu-home-install-test" = ubuntuHomeInstallTest;
     inherit install nvim;

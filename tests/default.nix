@@ -10,9 +10,9 @@
   );
   installScript = pkgs.writeText "install-flake-test.sh" (
     lib.replaceStrings
-      ["@repoSource@" "@hostDefsFile@" "@username@"]
-      [(toString ../.) (toString hostDefsJson) "zhenyu"]
-      (builtins.readFile ../scripts/install-flake.sh)
+    ["@repoSource@" "@hostDefsFile@" "@username@"]
+    [(toString ../.) (toString hostDefsJson) "zhenyu"]
+    (builtins.readFile ../scripts/install-flake.sh)
   );
 
   mkTest = {
@@ -29,7 +29,7 @@
       };
     };
 
-  mkAdhocHomeInstallTest = {
+  mkcustomHomeInstallTest = {
     name,
     systemOverride ? null,
     homeProfile ? "personal-gnome",
@@ -80,59 +80,59 @@
           ''machine.wait_for_unit("multi-user.target")''
           (
             ''
-            machine.succeed("""
-              mkdir -p /tmp/fakebin /tmp/test-artifacts
-              cat >/tmp/fakebin/nix <<'EOF'
-              #!/usr/bin/env bash
-              set -euo pipefail
-              printf '%s\n' "$@" > /tmp/test-artifacts/home-nix-args
-              for arg in "$@"; do
-                case "$arg" in
-                  *'#zhenyu@${name}')
-                    worktree="''${arg%%#*}"
-                    cp "$worktree/machines/defs.nix" /tmp/test-artifacts/defs.nix
-                    cp "$worktree/machines/defs-known.nix" /tmp/test-artifacts/defs-known.nix
-                    ;;
-                esac
-              done
-              exit 0
-              EOF
+              machine.succeed("""
+                mkdir -p /tmp/fakebin /tmp/test-artifacts
+                cat >/tmp/fakebin/nix <<'EOF'
+                #!/usr/bin/env bash
+                set -euo pipefail
+                printf '%s\n' "$@" > /tmp/test-artifacts/home-nix-args
+                for arg in "$@"; do
+                  case "$arg" in
+                    *'#zhenyu@${name}')
+                      worktree="''${arg%%#*}"
+                      cp "$worktree/machines/defs.nix" /tmp/test-artifacts/defs.nix
+                      cp "$worktree/machines/defs-known.nix" /tmp/test-artifacts/defs-known.nix
+                      ;;
+                  esac
+                done
+                exit 0
+                EOF
 
-              cat >/tmp/fakebin/sudo <<'EOF'
-              #!/usr/bin/env bash
-              echo "sudo should not be used in home-only mode" >&2
-              exit 99
-              EOF
+                cat >/tmp/fakebin/sudo <<'EOF'
+                #!/usr/bin/env bash
+                echo "sudo should not be used in home-only mode" >&2
+                exit 99
+                EOF
 
-              cat >/tmp/fakebin/disko <<'EOF'
-              #!/usr/bin/env bash
-              echo "disko should not be used in home-only mode" >&2
-              exit 99
-              EOF
+                cat >/tmp/fakebin/disko <<'EOF'
+                #!/usr/bin/env bash
+                echo "disko should not be used in home-only mode" >&2
+                exit 99
+                EOF
 
-              cat >/tmp/fakebin/nixos-generate-config <<'EOF'
-              #!/usr/bin/env bash
-              echo "nixos-generate-config should not be used in home-only mode" >&2
-              exit 99
-              EOF
+                cat >/tmp/fakebin/nixos-generate-config <<'EOF'
+                #!/usr/bin/env bash
+                echo "nixos-generate-config should not be used in home-only mode" >&2
+                exit 99
+                EOF
 
-              cat >/tmp/fakebin/nixos-install <<'EOF'
-              #!/usr/bin/env bash
-              echo "nixos-install should not be used in home-only mode" >&2
-              exit 99
-              EOF
+                cat >/tmp/fakebin/nixos-install <<'EOF'
+                #!/usr/bin/env bash
+                echo "nixos-install should not be used in home-only mode" >&2
+                exit 99
+                EOF
 
-              chmod +x /tmp/fakebin/sudo /tmp/fakebin/disko /tmp/fakebin/nixos-generate-config /tmp/fakebin/nixos-install
-              chmod +x /tmp/fakebin/nix
+                chmod +x /tmp/fakebin/sudo /tmp/fakebin/disko /tmp/fakebin/nixos-generate-config /tmp/fakebin/nixos-install
+                chmod +x /tmp/fakebin/nix
 
-              PATH=/tmp/fakebin:$PATH ${pkgs.bash}/bin/bash ${installScript} \
-                --host ${name} \
+                PATH=/tmp/fakebin:$PATH ${pkgs.bash}/bin/bash ${installScript} \
+                  --host ${name} \
             ''
             + systemArgs
             + ''
-                --home \
-                --no-nixos \
-                --home-profile ${homeProfile} \
+              --home \
+              --no-nixos \
+              --home-profile ${homeProfile} \
             ''
             + displayArgs
             + ''
@@ -146,15 +146,15 @@
             + displayAsserts
             + systemAsserts
             + ''
-              grep -F '#zhenyu@${name}' /tmp/test-artifacts/home-nix-args
-              grep -F 'ID=ubuntu' /etc/os-release
-            """)
-          ''
+                grep -F '#zhenyu@${name}' /tmp/test-artifacts/home-nix-args
+                grep -F 'ID=ubuntu' /etc/os-release
+              """)
+            ''
           )
         ];
     };
 
-  mkAdhocNixosInstallTest = {
+  mkcustomNixosInstallTest = {
     name,
     systemOverride ? null,
     nixosProfile ? "portable-gnome",
@@ -190,44 +190,44 @@
           ''machine.wait_for_unit("multi-user.target")''
           (
             ''
-            machine.succeed("""
-              mkdir -p /tmp/fakebin /tmp/test-artifacts /mnt/etc/nixos
+              machine.succeed("""
+                mkdir -p /tmp/fakebin /tmp/test-artifacts /mnt/etc/nixos
 
-              cat >/tmp/fakebin/sudo <<'EOF'
-              #!/usr/bin/env bash
-              exec "$@"
-              EOF
+                cat >/tmp/fakebin/sudo <<'EOF'
+                #!/usr/bin/env bash
+                exec "$@"
+                EOF
 
-              cat >/tmp/fakebin/disko <<'EOF'
-              #!/usr/bin/env bash
-              set -euo pipefail
-              printf '%s\n' "$@" > /tmp/test-artifacts/disko-args
-              exit 0
-              EOF
+                cat >/tmp/fakebin/disko <<'EOF'
+                #!/usr/bin/env bash
+                set -euo pipefail
+                printf '%s\n' "$@" > /tmp/test-artifacts/disko-args
+                exit 0
+                EOF
 
-              cat >/tmp/fakebin/nixos-generate-config <<'EOF'
-              #!/usr/bin/env bash
-              set -euo pipefail
-              mkdir -p /mnt/etc/nixos
-              cat >/mnt/etc/nixos/hardware-configuration.nix <<'EOC'
-              { ... }: { boot.loader.grub.enable = false; }
-              EOC
-              EOF
+                cat >/tmp/fakebin/nixos-generate-config <<'EOF'
+                #!/usr/bin/env bash
+                set -euo pipefail
+                mkdir -p /mnt/etc/nixos
+                cat >/mnt/etc/nixos/hardware-configuration.nix <<'EOC'
+                { ... }: { boot.loader.grub.enable = false; }
+                EOC
+                EOF
 
-              cat >/tmp/fakebin/nixos-install <<'EOF'
-              #!/usr/bin/env bash
-              set -euo pipefail
-              printf '%s\n' "$@" > /tmp/test-artifacts/nixos-install-args
-              cp "$PWD/machines/defs.nix" /tmp/test-artifacts/defs.nix
-              cp "$PWD/machines/defs-known.nix" /tmp/test-artifacts/defs-known.nix
-              cp "$PWD/machines/${name}/hardware-configuration.nix" /tmp/test-artifacts/hardware-configuration.nix
-              exit 0
-              EOF
+                cat >/tmp/fakebin/nixos-install <<'EOF'
+                #!/usr/bin/env bash
+                set -euo pipefail
+                printf '%s\n' "$@" > /tmp/test-artifacts/nixos-install-args
+                cp "$PWD/machines/defs.nix" /tmp/test-artifacts/defs.nix
+                cp "$PWD/machines/defs-known.nix" /tmp/test-artifacts/defs-known.nix
+                cp "$PWD/machines/${name}/hardware-configuration.nix" /tmp/test-artifacts/hardware-configuration.nix
+                exit 0
+                EOF
 
-              chmod +x /tmp/fakebin/sudo /tmp/fakebin/disko /tmp/fakebin/nixos-generate-config /tmp/fakebin/nixos-install
+                chmod +x /tmp/fakebin/sudo /tmp/fakebin/disko /tmp/fakebin/nixos-generate-config /tmp/fakebin/nixos-install
 
-              printf 'secret-pass\n' | PATH=/tmp/fakebin:$PATH ${pkgs.bash}/bin/bash ${installScript} \
-                --host ${name} \
+                printf 'secret-pass\n' | PATH=/tmp/fakebin:$PATH ${pkgs.bash}/bin/bash ${installScript} \
+                  --host ${name} \
             ''
             + systemArgs
             + ''
@@ -249,29 +249,29 @@
             ''
             + systemAsserts
             + ''
-              grep -F '.#${name}' /tmp/test-artifacts/disko-args
-              grep -F '.#${name}' /tmp/test-artifacts/nixos-install-args
-            """)
-          ''
+                grep -F '.#${name}' /tmp/test-artifacts/disko-args
+                grep -F '.#${name}' /tmp/test-artifacts/nixos-install-args
+              """)
+            ''
           )
         ];
     };
 in {
-  "adhoc-home-install" = mkAdhocHomeInstallTest {
-    name = "adhoc-home";
+  "custom-home-install" = mkcustomHomeInstallTest {
+    name = "custom-home";
   };
 
-  "adhoc-home-install-aarch64" = mkAdhocHomeInstallTest {
-    name = "adhoc-home-aarch64";
+  "custom-home-install-aarch64" = mkcustomHomeInstallTest {
+    name = "custom-home-aarch64";
     systemOverride = "aarch64-linux";
   };
 
-  "adhoc-nixos-install" = mkAdhocNixosInstallTest {
-    name = "adhoc-nixos";
+  "custom-nixos-install" = mkcustomNixosInstallTest {
+    name = "custom-nixos";
   };
 
-  "adhoc-nixos-install-aarch64" = mkAdhocNixosInstallTest {
-    name = "adhoc-nixos-aarch64";
+  "custom-nixos-install-aarch64" = mkcustomNixosInstallTest {
+    name = "custom-nixos-aarch64";
     systemOverride = "aarch64-linux";
     nixosProfile = "minimal";
   };

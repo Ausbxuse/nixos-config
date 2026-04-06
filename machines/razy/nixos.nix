@@ -16,18 +16,37 @@
   };
 in {
   imports = [
-    ./power.nix
+    ../../modules/nixos/hardware/tlp-laptop.nix
   ];
 
   boot.kernelPackages = pkgs.linuxPackagesFor kernel;
   services.xserver.videoDrivers = ["modesetting" "nvidia"];
   boot.kernelParams = ["xe.enable_dpcd_backlight=1"];
-  hardware.nvidia.prime = {
-    sync.enable = lib.mkForce false;
-    offload.enable = lib.mkForce true;
-    offload.enableOffloadCmd = lib.mkForce true;
-  };
+  # hardware.nvidia.prime = {
+  #   sync.enable = lib.mkForce true;
+  #   offload.enable = lib.mkForce false;
+  #   offload.enableOffloadCmd = lib.mkForce false;
+  # }; # already set in nvidia.nix
   hardware.nvidia.powerManagement.finegrained = lib.mkForce false;
+
+  # Force mutter to use the NVIDIA GPU as primary renderer on Wayland.
+  # Without this, mutter picks Intel (card0) and does a cross-GPU copy to
+  # NVIDIA for HDMI output, causing periodic cursor lag.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="drm", ENV{DEVTYPE}=="drm_minor", ENV{DEVNAME}=="/dev/dri/card[0-9]", SUBSYSTEMS=="pci", ATTRS{vendor}=="0x10de", TAG+="mutter-device-preferred-primary"
+  '';
+
+  # Battery-friendly profile: offload rendering to iGPU, use dGPU on demand.
+  # Select at boot from the systemd-boot menu.
+  specialisation.offload.configuration = {
+    hardware.nvidia.prime = {
+      sync.enable = lib.mkForce false;
+      offload.enable = lib.mkForce true;
+      offload.enableOffloadCmd = lib.mkOverride 10 true;
+    };
+    # # Let mutter pick the default (Intel) primary GPU in offload mode.
+    # services.udev.extraRules = lib.mkOverride 10 "";
+  };
 
   hardware.firmware = with pkgs; [
     linux-firmware

@@ -2,7 +2,7 @@
 
 This document is the authoritative runbook for bringing a new machine from bare
 hardware to a fully functional personal host, and for recovering from various
-disaster scenarios. It covers the trust model, the provisioning flow, and how
+disaster scenarios. It covers the trust model, the enrolling flow, and how
 to test the whole thing in a VM.
 
 Status: **design — partial implementation in progress**.
@@ -40,13 +40,13 @@ and verified; after that, the standalone admin key is deleted entirely
 ## Trust model at a glance
 
 Two categories of key material. No separate "admin key" concept — a trusted
-host's SSH host key *is* the trust anchor, and disaster recovery works by
+host's SSH host key _is_ the trust anchor, and disaster recovery works by
 restoring a previously-trusted host's SSH key onto new hardware.
 
-| Key                                                | Where it lives                        | Purpose                                             |
-| -------------------------------------------------- | ------------------------------------- | --------------------------------------------------- |
-| **Host SSH key** (`/etc/ssh/ssh_host_ed25519_key`) | On each host + backed up in bundle    | Machine identity; age key derived from it           |
-| **User SSH key** (`~/.ssh/id_ed25519`)             | Per-host, generated at provision      | User identity; authorized on GitHub, VPS, git-remote|
+| Key                                                | Where it lives                     | Purpose                                              |
+| -------------------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
+| **Host SSH key** (`/etc/ssh/ssh_host_ed25519_key`) | On each host + backed up in bundle | Machine identity; age key derived from it            |
+| **User SSH key** (`~/.ssh/id_ed25519`)             | Per-host, generated at enroll      | User identity; authorized on GitHub, VPS, git-remote |
 
 Consequences:
 
@@ -85,14 +85,14 @@ special-purpose key material.
 ```
 ┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
 │  Stage 1:        │      │  Stage 2:        │      │  Steady state    │
-│  install         │ ───▶ │  provision       │ ───▶ │                  │
+│  install         │ ───▶ │  enroll       │ ───▶ │                  │
 │                  │      │                  │      │                  │
 │  bare NixOS      │      │  personal data   │      │  trusted member  │
 │  anonymous box   │      │  injected        │      │  of the mesh     │
 └──────────────────┘      └──────────────────┘      └──────────────────┘
         │                          │                         │
         │                          │                         │
-  nix run .#install         nix run .#provision         normal use
+  nix run .#install         nix run .#enroll         normal use
                             (peer or bundle)            + rotate-secrets
                                                           after host edits
 ```
@@ -107,7 +107,7 @@ anonymous, functional box with no personal data.
 belongs to stage 2. This keeps the "anonymous box" boundary clean: at the
 end of stage 1 nothing on disk identifies you.
 
-### Stage 2: `nix run .#provision`
+### Stage 2: `nix run .#enroll`
 
 Runs on the new host **as your user** after stage 1 reboots into the installed
 system. Its job is to convert the anonymous box into a trusted peer. Two
@@ -122,7 +122,8 @@ admission paths:
 
 Both paths converge: the new host ends up with its age key in `.sops.yaml`,
 its user SSH key registered on GitHub and the VPS git server, and its
-syncthing device ID added to the mesh via milky.
+syncthing identity pinned via sops. Razy (the introducer) auto-discovers
+the new host for the rest of the mesh.
 
 ### Steady state
 
@@ -131,7 +132,7 @@ syncthing device ID added to the mesh via milky.
 - `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, etc. are materialized from
   `secrets.yaml` at activation time into `/run/user/1000/secrets/` and
   exported into the shell.
-- The host can itself run `provision` (or `admit-host --set-host-key`) for
+- The host can itself run `enroll` (or `admit-host --set-host-key`) for
   future machines.
 
 ---
@@ -157,7 +158,7 @@ rebalancing trivial:
 /dev/sdX
 ├── sdX1  FAT32   8 GB   (label: NIXOS_INSTALL)  — bootable installer ISO (unencrypted)
 └── sdX2  ext4    rest   (label: RECOVERY)       — bundle + restic + media
-    ├── recovery-bundle.tar.age
+    ├── recovery-bundle.tar
     ├── restic/                   # restic repo for ~/ snapshots
     └── media/
         ├── Pictures/
@@ -172,16 +173,14 @@ this lives on the same physical stick as the recovery data. The installer
 contains no secrets; it is the same ISO you could publish publicly.
 
 The `RECOVERY` partition lives on the drive's fingerprint-protected area and
-only mounts after biometric authentication. The recovery bundle on top of
-that is age-encrypted with a memorized passphrase, providing defense in
-depth.
+only mounts after biometric authentication. The bundle is not separately
+encrypted — the drive's hardware encryption is the sole protection layer.
 
 ### The recovery bundle (on partition `RECOVERY`)
 
-A single file, `recovery-bundle.tar.age`, encrypted with `age` using a scrypt
-passphrase recipient. The passphrase is memorized — no yubikey. The bundle
-is encrypted a **second time** on top of the drive's fingerprint encryption
-so that a stolen-while-unlocked drive still does not leak secrets.
+A single file, `recovery-bundle.tar`, stored unencrypted on the
+fingerprint-protected partition. Physical security of the drive is the
+trust boundary.
 
 #### Contents
 
@@ -237,7 +236,7 @@ reality, otherwise you will be locked out of newly-added secrets.
 #### Restoring from the bundle
 
 ```bash
-age -d /run/media/$USER/RECOVERY/recovery-bundle.tar.age | tar xv -C /tmp/recovery
+tar xvf /run/media/$USER/RECOVERY/recovery-bundle.tar -C /tmp/recovery
 ```
 
 Two distinct restore scenarios:
@@ -275,9 +274,7 @@ When the drive is plugged in and unlocked:
    partitions so GNOME does **not** race to automount them — we mount them
    ourselves at `/mnt/recovery` and `/mnt/media` to keep paths stable.
 3. The service:
-   - Regenerates `recovery-bundle.tar.age` on `RECOVERY` (prompts for
-     passphrase via a desktop notification; fails gracefully if the user
-     dismisses it so unattended backups don't hang)
+   - Regenerates `recovery-bundle.tar` on `RECOVERY`
    - Runs `restic backup ~/` to `RECOVERY`'s restic repo (excludes caches,
      node_modules, build artifacts per `~/.backup-excludes`)
    - Runs `rsync -a --delete ~/Media/{Pictures,Videos,Music}/ /mnt/recovery/media/`
@@ -299,9 +296,7 @@ mount at a predictable location. This avoids path races and makes the udev
 
 ## Prerequisite: VPS one-time setup (milky) — TODO
 
-> **Status:** Not yet done. Tracked as a follow-up. Everything below assumes
-> milky is eventually set up this way; until then, use local paths for
-> nix-secrets and skip the syncthing introducer steps.
+> **Status:** Not yet done. Tracked as a follow-up.
 
 Before the full flow is possible, milky must host:
 
@@ -312,18 +307,9 @@ Before the full flow is possible, milky must host:
      `machines/defs.nix` (each host's `userSshPubKey` field) as part of
      milky's NixOS config
    - Initial push from the current admin machine
-2. **syncthing** running as the introducer for the `vault`, `media`, and
-   `documents` folders
-   - Its device ID is recorded in `globals.nix` as `syncthingIntroducer`
-   - REST API key stored in `secrets.yaml` as `syncthing-milky-api-key`
-   - Each folder configured with `autoAcceptFolders = false` and introducer
-     trust enabled on each peer
 
-Both of these are declarative in milky's NixOS config once milky exists.
-They are **not** covered by the `provision` script — they are one-time,
-manual bootstrap steps for the VPS itself. Milky is a special host because
-it is the hub; provisioning it follows a different path (documented
-separately once we get there).
+Note: syncthing introducer role has moved to razy (see Phase F). Milky
+is no longer needed for syncthing peer discovery.
 
 ---
 
@@ -332,7 +318,7 @@ separately once we get there).
 On the new host after stage 1 completes:
 
 ```bash
-nix run github:ausbxuse/nixos-config#provision
+nix run github:ausbxuse/nixos-config#enroll
 ```
 
 The script:
@@ -358,7 +344,7 @@ The script:
    - Runs `sops updatekeys -y nix-secrets/secrets.yaml` — succeeds because
      the peer's own host age key can decrypt
    - (Manual follow-up) commit both repos; GitHub/syncthing propagation
-     is handled by `provision`, not `admit-host`
+     is handled by `enroll`, not `admit-host`
 6. Back on the new host, the user presses Enter. The script:
    - Pulls nix-secrets from the VPS git remote (using the new user SSH key,
      which the peer just authorized via... wait — see open question below)
@@ -373,7 +359,7 @@ The script:
 The new host's user SSH key must be authorized on the VPS git server before
 step 6 can pull nix-secrets. The chosen resolution:
 
-The plan (not yet implemented): `provision` will do **both** for user SSH keys:
+The plan (not yet implemented): `enroll` will do **both** for user SSH keys:
 
 1. **Declaratively:** edits `machines/defs.nix` to add the new host's
    `userSshPubKey` field alongside `sops.ageKey`. Milky's NixOS config reads
@@ -397,12 +383,12 @@ per-host key once the new machine is functional.
 
 ```bash
 sudo mount /dev/disk/by-label/RECOVERY /mnt/usb
-nix run github:ausbxuse/nixos-config#provision -- --bundle /mnt/usb/recovery-bundle.tar.age
+nix run github:ausbxuse/nixos-config#enroll -- --bundle /mnt/usb/recovery-bundle.tar
 ```
 
 The script:
 
-1. Prompts for the bundle passphrase, decrypts to a tmpfs under `/run/user/1000/recovery`
+1. Extracts the bundle to a tmpfs under `/run/user/1000/recovery`
 2. Generates a fresh user SSH key for the new host
 3. Lists the backed-up hosts under `host-keys/` and asks which identity to
    adopt temporarily (e.g. "razy" if razy is gone, "timy" otherwise).
@@ -418,11 +404,11 @@ The script:
    adopted host's `sops.ageKey` entry and rotates again. The new machine
    now has its own unique identity.
 8. Queues changes to push to the VPS git remote once reachable:
-   - Writes `~/.local/state/provision-pending-push/` with commits to push
+   - Writes `~/.local/state/enroll-pending-push/` with commits to push
    - A systemd timer attempts the push daily until it succeeds
-9. Prints: "Bundle-provisioned host. Syncthing pairing with milky is
+9. Prints: "Bundle-enrolled host. Syncthing pairing with milky is
    **manual** — no peer was available to propagate. Run `just syncthing-pair
-   milky` once network/VPS is reachable."
+milky` once network/VPS is reachable."
 10. Unmounts and wipes the tmpfs.
 
 At no point does the adopted host key persist as a "backup identity" — it is
@@ -437,7 +423,7 @@ The peer path above. In summary:
 1. Add the new host to `machines/defs.nix` (regular host entry; leave
    `sops.ageKey` absent for now)
 2. On the new host: `nix run .#install` (stage 1)
-3. On the new host: `nix run .#provision` (stage 2, peer path) — this
+3. On the new host: `nix run .#enroll` (stage 2, peer path) — this
    derives the host's age key and calls
    `admit-host --set-host-key <hostname> <age-key>` on the peer
 4. Wait for syncthing to sync vault
@@ -545,16 +531,16 @@ reinstall as a new host admission and remove the old recipient from
 The worst case, and the reason the bundle exists.
 
 1. Boot installer ISO (from the bundle USB's `NIXOS_INSTALL` partition)
-2. Mount the recovery bundle USB, enter passphrase, decrypt
+2. Mount the recovery bundle USB, extract the bundle
 3. `nix run .#install --restore-host-key <bundle>/host-keys/razy/ssh_host_ed25519_key`
    — the new hardware takes over razy's identity temporarily
-4. `nix run .#provision -- --bundle /mnt/usb/recovery-bundle.tar.age`
+4. `nix run .#enroll -- --bundle /mnt/usb/recovery-bundle.tar`
    - Script rebuilds with `--override-input nix-secrets path:<bundle>/nix-secrets-clone`
    - sops-nix decrypts secrets using the restored razy key
    - Script then rotates to a fresh host SSH key so the recovered machine
      no longer shares identity with the "old razy" record
 5. Re-push nix-secrets and nixos-config from the bundle's clones to a
-   freshly provisioned git remote on a new VPS once it exists.
+   freshly enrolled git remote on a new VPS once it exists.
 6. Build remaining personal hosts from this one via the peer path.
 
 Recovery time from zero: 30–60 minutes assuming hardware is available.
@@ -567,12 +553,14 @@ This means the current host SSH key is **not** in `.sops.yaml`'s recipient
 list.
 
 Diagnosis:
+
 ```bash
 cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age
 # Compare to entries in nix-secrets/.sops.yaml
 ```
 
 Recovery depends on available resources:
+
 - **Another trusted host reachable** → run
   `admit-host --set-host-key <hostname> <age-key>` there with this host's
   current age key, push, then retry `nixos-rebuild switch`.
@@ -598,311 +586,125 @@ source, or manual LUKS unlock).
 
 ---
 
-## The phone
-
-Phones are the recovery weak link in most plans: they are entangled with
-SMS 2FA, the carrier account, physical SIM, bank device binding, and
-proprietary app backups that don't round-trip. A disaster that takes out the
-phone can cascade — losing SMS 2FA can lock you out of the accounts that
-would otherwise help you recover.
-
-This section documents the phone's role in the trust model and the recovery
-flow for phone loss specifically.
-
-### Phone's role in the trust model
-
-The phone is a **consumer**, not a peer admin:
-
-- It **cannot** run sops-nix or admit new hosts. There is no Android/iOS
-  path for host-SSH-derived age keys that fits our model.
-- It **can** participate in the syncthing mesh as a regular device, so it
-  receives `vault`, `documents`, and (a subset of) `media`.
-- It **is** the source of truth for photos and videos taken on it — those
-  sync from phone → mesh, not the other way around.
-- Its credentials (banking, totp, carrier account) live in `vault.kdbx`
-  on the phone, unlocked by a master password only you know.
-
-### What lives on the phone
-
-| Category             | Storage                                                                     | Recovery source                          |
-| -------------------- | --------------------------------------------------------------------------- | ---------------------------------------- |
-| Passwords            | `vault.kdbx` (via KeePass2Android)                                          | Syncthing from mesh                      |
-| TOTP seeds           | `vault.kdbx` entries (KeePassXC/K2A support TOTP natively)                  | Syncthing from mesh                      |
-| Signal messages      | Signal's internal encrypted backup                                          | Signal backup key stored in `vault.kdbx` |
-| Photos / videos      | `~/Pictures/` on phone, synced to mesh                                      | Syncthing from mesh                      |
-| Contacts             | CardDAV to self-hosted (on milky) or exported to vault                      | milky / `vault.kdbx`                     |
-| Bank apps            | Device-bound, not portable                                                  | Re-enroll on new device (see below)      |
-| 2FA (Aegis)          | Aegis encrypted JSON export, synced to `vault/aegis-backup.json`            | Vault                                    |
-| Carrier account      | Credentials in `vault.kdbx`                                                 | Vault                                    |
-| SIM                  | Physical / eSIM                                                             | Carrier replacement                      |
-| Device backup (full) | **Not relied upon** — see Seedvault note below                              | (unrecoverable — plan to re-enroll apps) |
-
-**Important: Seedvault is unreliable and NOT part of the recovery plan.**
-Research into the GrapheneOS community's experience with Seedvault
-([forum thread](https://discuss.grapheneos.org/d/14644-backup-strategy-seedvault-syncthing-restic))
-indicates only ~50% of apps get backed up successfully and ~30% of restored
-apps crash on open. Treating Seedvault as a recovery mechanism is a trap —
-you will discover it failed precisely when you need it. Therefore:
-
-- **Recoverable phone data** lives entirely in syncthing-synced folders
-  (photos, vault.kdbx, notes) — these survive any phone loss.
-- **App state for bank/productivity apps** is explicitly **not recoverable**.
-  Expect to re-enroll each app on a new phone. Bank apps bind to hardware
-  keystore and would not survive a restore anyway.
-- **Seedvault may still be used opportunistically** if you want; just do not
-  rely on it for critical data or include it in the recovery playbook.
-
-Two non-obvious points:
-
-- **Aegis kept as a backup 2FA store** even though TOTP lives in kdbx.
-  Rationale: Aegis is airgapped-by-default and lives on the phone only, so
-  if the vault's master password is somehow compromised, TOTP via Aegis is
-  still a second factor. Aegis encrypted export gets copied to the vault
-  nightly as defense in depth. Confirm if you want both or kdbx-only.
-- **Bank apps are the unrecoverable part.** Most banks bind their app to
-  hardware keystore / IMEI / device attestation. Losing the phone means
-  re-enrolling in-branch or via a phone callback to the number on file.
-  Mitigation: (a) always have a second way to log into the bank (web +
-  TOTP hardware key where available), (b) keep bank contact info in the
-  vault under `notes/recovery-contacts.md` so you know who to call.
-
-### The "emergency info" note
-
-A plain markdown file at `~/vault/notes/recovery-contacts.md` with everything
-you need to recover from zero without a working phone or laptop. It syncs
-everywhere, survives any single-device loss, and is readable from any device
-that can open the kdbx vault:
-
-```markdown
-# Recovery contacts
-
-## Carrier
-
-- Account: <username>
-- Support line: <number> (call from any phone)
-- Account PIN: <in kdbx entry "carrier">
-- Recovery email: <email>
-
-## Banks
-
-- <bank 1>: support <number>, card <last4>, recovery channel <branch/phone/web>
-- ...
-
-## Phone number recovery
-
-- eSIM? yes/no
-- Port-out PIN: <in kdbx entry "carrier">
-- Backup number to receive SMS during recovery: <trusted family/friend>
-
-## Important device IDs
-
-- Phone IMEI: <...>
-- SIM ICCID: <...>
-
-## Account recovery chains
-
-- Which account's recovery email is which, mapped out
-- Which accounts have SMS 2FA only (and therefore are at risk if phone lost)
-- Which accounts have TOTP in kdbx (safe)
-- Which accounts have hardware 2FA key (safest)
-```
-
-Maintaining this file is a discipline, not automation. Review quarterly.
-
-### Phone provisioning (equivalent of stages 1 + 2)
-
-**Stage 1 — bare phone:**
-
-1. Install clean OS: GrapheneOS on a Pixel is the recommended target.
-   Factory flash via `fastboot` + official installer.
-2. Minimal apps only: no Google account, no personal data.
-3. Set device lock (strong passphrase, not pattern).
-
-**Stage 2 — provision:**
-
-1. Install syncthing (F-Droid).
-2. Pair with milky as introducer. Milky propagates the phone device ID to
-   the rest of the mesh; `vault`, `documents`, and `media` begin syncing.
-3. Install KeePass2Android, open `~/vault/vault.kdbx`, unlock with master
-   password.
-4. Install Aegis, import `vault/aegis-backup.json` for backup 2FA.
-5. Install Signal — restore from encrypted backup if one exists in
-   `vault/signal-backup/`, otherwise set up fresh (accepting message
-   history loss).
-6. Re-enroll banking apps one at a time, using the credentials in kdbx +
-   SMS sent to your restored number.
-7. Install remaining apps as needed.
-
-Total time: 1–2 hours, dominated by bank re-enrollment.
-
-### Phone disaster scenarios
-
-#### Scenario P1: phone lost or stolen
-
-1. **Immediately:** call carrier, suspend/replace SIM.
-2. From any host with the vault: log into Google (for GrapheneOS find-device
-   if enabled) or your phone's web console to remote-wipe.
-3. Log into any account that had SMS 2FA, and rotate 2FA to TOTP-in-kdbx or
-   a hardware key. Do this with priority for bank and email accounts.
-4. Order new SIM or re-download eSIM.
-5. When new phone arrives, run the phone provisioning flow above.
-6. Update `recovery-contacts.md` if device IDs changed.
-
-#### Scenario P2: phone broken but in your possession
-
-1. Order replacement.
-2. When it arrives, move SIM (or eSIM re-download), run provisioning flow.
-3. Recovery is smoother than P1 because SMS 2FA still works on the restored
-   number immediately.
-
-#### Scenario P3: total loss — all hosts + phone gone, only recovery USB survives
-
-The worst case. Order of operations:
-
-1. Get access to **any** machine with internet (borrowed laptop, library PC).
-2. Call carrier from any phone; replace SIM on a cheap burner or a borrowed
-   device to regain your phone number. This is the single most critical
-   recovery step — your phone number unlocks every SMS 2FA account, and many
-   TOTP account recovery flows also send a fallback code to it.
-3. Boot the recovery USB's installer partition on available hardware (see
-   scenario D under "Disaster recovery scenarios" above).
-4. `nix run .#provision -- --bundle /mnt/usb/recovery-bundle.tar.age` — this
-   gets you a trusted laptop with the vault.
-5. Open the vault on the new laptop, pull `recovery-contacts.md`, begin
-   account-by-account recovery in the order documented there.
-6. Provision a new phone using the restored laptop as the syncthing peer.
-
-Expected time from zero: **half a day to a full day**, dominated by bank
-re-enrollment and waiting on carrier processes — not by technical work.
-
-### Phone-specific open questions
-
-1. **Phone OS target** — GrapheneOS on Pixel? Confirming for the
-   provisioning doc.
-2. **Keep Aegis as secondary TOTP store**, or vault-only? Defense-in-depth
-   vs. single-source-of-truth tradeoff.
-3. **Full phone backup to syncthing** — worth the disk space, or skip?
-   GrapheneOS has `seedvault` for encrypted app backups; routing those to
-   a syncthing folder means the mesh holds your phone's full state.
-4. **Contact storage** — self-hosted CardDAV on milky (clean, but a new
-   service to run), or a flat vCard export to `vault/contacts.vcf`
-   refreshed manually (less automated, no server dependency)?
-
----
-
 ## Phase F: vault bootstrap (KeePassXC + syncthing)
 
-Phase F adds `~/vault/` as a syncthing-watched folder and installs KeePassXC
-to access `vault.kdbx`. The module at `modules/home/syncthing.nix` is
-already imported by the `personal-gnome` profile, so after a rebuild a host
-gets:
+Phase F adds syncthing-managed folders and installs KeePassXC. The module
+at `modules/home/syncthing.nix` is already imported by the `personal-gnome`
+profile, so after a rebuild a host gets:
 
 - `keepassxc` installed
-- `~/vault/` created
-- Syncthing running with the `vault` folder declared
-- Peer list auto-derived from `machines/defs.nix` entries that have a
-  `syncthing.deviceId` field
+- Syncthing running with four declared folders:
+  - `vault` — KeePassXC database, keyfile, notes (versioned, 10 copies)
+  - `media` — `~/Media` (bidirectional, excludes `Phone/`)
+  - `documents` — `~/Documents` (bidirectional)
+  - `phone-dcim` — `~/Media/Phone` (receive-only, phone ingest)
+- `phone-media-sort` systemd timer that copies files from `~/Media/Phone`
+  into `~/Media/{Pictures,Videos,Audio}` by MIME type every 15 minutes
+- Directories pre-created: `~/vault`, `~/Media/{Phone,Pictures,Videos,Audio}`,
+  `~/Documents`
 
-The one-time bootstrap turns an auto-generated syncthing identity into a
-sops-pinned identity, so reinstalls retain the same device ID.
+### Introducer model
 
-### F.1 — first rebuild (auto-generated identity)
+Razy is the syncthing introducer (`syncthing.introducer = true` in
+`defs.nix`). Clients only declare razy as a peer; razy introduces them to
+each other automatically. This means:
+
+- New enrolled hosts are auto-discovered by all existing clients
+- No need to list every host's device ID for peering purposes
+- Razy must be online for initial introductions; after that, peers
+  remember each other and sync directly
+
+### F.1 — automated path (enrolled hosts)
+
+For hosts enrolled via `nix run .#enroll`, syncthing identity is
+handled automatically:
+
+1. enroll generates a fresh cert/key on the admitting peer (razy)
+2. Encrypts cert/key into `nix-secrets/secrets.yaml` as
+   `syncthing-cert-<hostname>` and `syncthing-key-<hostname>`
+3. Records the device ID in `machines/defs.nix` under
+   `syncthing.deviceId`
+4. On first rebuild, `modules/home/syncthing.nix` pins the identity via
+   sops — reinstalls retain the same device ID
+
+No manual steps needed.
+
+### F.2 — manual path (existing hosts like razy)
+
+For the first host (razy) or any host that was set up before enroll
+existed, pin the existing syncthing identity manually:
 
 ```bash
-cd ~/src/public/nixos-config
-sudo nixos-rebuild switch --flake .#razy
-```
+# 1. Grab the existing cert/key and device ID
+CERT=~/.local/state/syncthing/cert.pem
+KEY=~/.local/state/syncthing/key.pem
+syncthing cli show system | jq -r .myID
+# or: open http://127.0.0.1:8384 → Actions → Show ID
 
-Syncthing starts, generates `~/.local/state/syncthing/cert.pem` +
-`key.pem`, and picks a device ID. Confirm it is running and grab the ID:
+# 2. Wrap as JSON strings for sops
+jq -Rs . < "$CERT" > /tmp/cert.json
+jq -Rs . < "$KEY"  > /tmp/key.json
 
-```bash
-systemctl --user status syncthing
-syncthing --home=~/.local/state/syncthing --device-id
-# or open http://127.0.0.1:8384 and read it from Actions → Show ID
-```
-
-At this point the vault folder syncs to nothing (no peers). KeePassXC can
-create `~/vault/vault.kdbx` via its GUI — do that now and set a strong
-master password plus a keyfile at `~/vault/vault.kdbx.key`.
-
-### F.2 — pin the identity into sops
-
-One-time migration so this host's syncthing identity survives a reinstall:
-
-```bash
-# Copy the generated cert/key into nix-secrets as YAML multi-line strings.
-# Use sops to edit; paste the file contents under new keys:
-#   syncthing-cert-razy: |
-#     -----BEGIN CERTIFICATE-----
-#     ...
-#     -----END CERTIFICATE-----
-#   syncthing-key-razy: |
-#     -----BEGIN EC PRIVATE KEY-----
-#     ...
-#     -----END EC PRIVATE KEY-----
+# 3. Encrypt into nix-secrets
 cd ~/src/private/nix-secrets
-cat ~/.local/state/syncthing/cert.pem   # copy to clipboard
-cat ~/.local/state/syncthing/key.pem    # copy to clipboard
-sops secrets.yaml                        # paste both under new keys
+sops set secrets.yaml '["syncthing-cert-razy"]' "$(cat /tmp/cert.json)"
+sops set secrets.yaml '["syncthing-key-razy"]'  "$(cat /tmp/key.json)"
+rm /tmp/cert.json /tmp/key.json
+
+# 4. Record device ID in defs.nix
 ```
-
-Then declare the secrets in the nix-secrets home-manager module
-(`~/src/private/nix-secrets/home.nix`):
-
-```nix
-sops.secrets."syncthing-cert-razy" = { mode = "0400"; };
-sops.secrets."syncthing-key-razy"  = { mode = "0400"; };
-```
-
-Record the device ID in `machines/defs.nix`:
 
 ```nix
 razy = {
   # ...
   syncthing.deviceId = "ABCDEFG-HIJKLMN-...";  # full 56-char ID
+  syncthing.introducer = true;
   # ...
 };
 ```
 
-Rebuild. Now `modules/home/syncthing.nix` activates its pinning branch,
-reads cert/key from sops, and tells syncthing to use them:
-
 ```bash
+# 5. Rebuild and verify
 sudo nixos-rebuild switch --flake .#razy
 systemctl --user restart syncthing
-syncthing --home=~/.local/state/syncthing --device-id   # unchanged from F.1
+syncthing cli show system | jq -r .myID   # should match step 1
 ```
 
-If the device ID changes, something is wrong — the pinned cert was not
-loaded. Check `journalctl --user -u syncthing` and `ls -l
-/run/user/1000/secrets/syncthing-*-razy`.
+If the device ID changes, the pinned cert was not loaded. Check
+`journalctl --user -u syncthing` and
+`ls -l /run/user/1000/secrets/syncthing-*-razy`.
 
-### F.3 — add a second host to the mesh
+### F.3 — phone setup
 
-Once a second host is provisioned (admitted to sops, running syncthing
-itself):
+The phone is not managed by this repo. Manual setup:
 
-1. Bootstrap F.1 + F.2 on the new host, giving it its own
-   `syncthing.deviceId` in `defs.nix`.
-2. Commit nixos-config. Both hosts rebuild.
-3. On next `nixos-rebuild switch`, each host picks up the other's device ID
-   from `hostDefs`, adds it as a device, and shares the `vault` folder with
-   it. Syncthing auto-accepts because the peer is declaratively listed.
-4. No manual pairing, no GUI clicks. The vault folder converges across both
-   hosts within seconds (direct LAN) or via a relay (NAT).
+1. Install Syncthing on the phone (F-Droid or Play Store)
+2. Copy the phone's device ID from the Syncthing app
+3. On razy's Syncthing web UI (`127.0.0.1:8384`), add the phone as a
+   device and share `phone-dcim` (point it at the phone's DCIM directory)
+4. Optionally share `vault` for mobile KeePassXC access
+5. Accept the share on the phone
+6. Set the phone's DCIM folder to **send only** in the phone's Syncthing
+   settings — this prevents desktop-side moves from propagating back
 
-### F.4 — open questions (not blocking)
+Since razy is the introducer, other hosts auto-discover the phone and
+receive `phone-dcim` as a receive-only folder. The `phone-media-sort`
+timer on each host sorts incoming files into the organized media tree.
 
-- **Mobile:** KeePass2Android on GrapheneOS can open `vault.kdbx` over
-  syncthing once the phone is a mesh peer. Phone pairing is still manual
-  (no declarative path for Android syncthing config).
-- **Introducer:** milky as the syncthing introducer will propagate peer
-  discovery automatically, making multi-host provisioning cheaper. Until
-  milky exists, each host knows about peers only because they are in
-  `defs.nix` — which is enough.
-- **Vault schema:** notes layout, TOTP storage (inside kdbx or separate
-  file), git history on `~/vault/notes/` — all TBD, not phase F scope.
+**Freeing phone space:** files moved out of `~/Media/Phone` by the sort
+service won't re-download (receive-only folders don't auto-revert local
+changes). Delete old files on the phone directly whenever you need space;
+the sorted copies on desktops are unaffected.
+
+### F.4 — vault creation (first time only)
+
+After razy's first rebuild with syncthing running, create the vault:
+
+1. Open KeePassXC
+2. Create a new database at `~/vault/vault.kdbx`
+3. Set a strong master password
+4. Add a keyfile at `~/vault/vault.kdbx.key`
+5. The vault syncs to all peers automatically
 
 ---
 
@@ -920,7 +722,7 @@ push into the VM:
 ```bash
 cd ~/src/public/nixos-config
 git add machines/defs.nix machines/operators.nix \
-        scripts/admit-host.sh scripts/provision.sh pkgs/default.nix flake.nix \
+        scripts/admit-host.sh scripts/enroll.sh pkgs/default.nix flake.nix \
         Justfile modules/home/sops.nix modules/nixos/sops.nix \
         modules/profiles/nixos/minimal.nix secrets/nix-secrets/
 git commit -m 'phase A: per-host sops.ageKey in defs.nix + admit-host'
@@ -937,7 +739,7 @@ KEEP_VM=1 nix run .#nixos-system-install-test
 ```
 
 Wait for "installed NixOS VM running". SSH target: `127.0.0.1:2224`, user
-`zhenyu`, password `nixos`, hostname `adhoc-nixos`.
+`zhenyu`, password `nixos`, hostname `custom-nixos`.
 
 **2. Grab the VM's freshly-generated host pubkey and derive its age identity:**
 
@@ -950,13 +752,13 @@ echo "VM age pubkey: $VM_AGE_PUB"
 ```
 
 **3. Admit the VM from razy** — patches `machines/defs.nix` to set
-`adhoc-nixos.sops.ageKey`, regenerates `.sops.yaml`, re-encrypts `secrets.yaml`
-for all recipients (razy + adhoc-nixos + operators). Requires `adhoc-nixos` to
+`custom-nixos.sops.ageKey`, regenerates `.sops.yaml`, re-encrypts `secrets.yaml`
+for all recipients (razy + custom-nixos + operators). Requires `custom-nixos` to
 already exist in `defs.nix`.
 
 ```bash
 cd ~/src/public/nixos-config
-sudo -E nix run .#admit-host -- --set-host-key adhoc-nixos "$VM_AGE_PUB"
+sudo -E nix run .#admit-host -- --set-host-key custom-nixos "$VM_AGE_PUB"
 ```
 
 **4. Push the updated private nix-secrets into the VM:**
@@ -974,7 +776,7 @@ sshpass -p nixos ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
   -p 2224 zhenyu@127.0.0.1 bash <<'EOF'
 set -euxo pipefail
 cd ~/src/public/nixos-config 2>/dev/null || cd /etc/nixos
-sudo nixos-rebuild switch --flake .#adhoc-nixos \
+sudo nixos-rebuild switch --flake .#custom-nixos \
   --override-input nix-secrets path:/tmp/nix-secrets \
   --show-trace
 sudo ls -la /run/secrets/
@@ -982,42 +784,43 @@ EOF
 ```
 
 **Pass criteria:**
+
 - Step 5 `nixos-rebuild` succeeds → proves sops-nix activation with the VM's
   freshly-generated host key works end-to-end.
 - `ls /run/secrets/` shows decrypted files owned by root.
 
-**6. Teardown** (critical — don't leave `adhoc-nixos` as a trusted host):
+**6. Teardown** (critical — don't leave `custom-nixos` as a trusted host):
 
 ```bash
 cd ~/src/public/nixos-config
-# Remove the sops.ageKey line from adhoc-nixos in machines/defs.nix (hand-edit
+# Remove the sops.ageKey line from custom-nixos in machines/defs.nix (hand-edit
 # or `git checkout -- machines/defs.nix` if this was an uncommitted change),
 # then rotate:
 sudo -E nix run .#admit-host
 pkill -f 'qemu.*nixos-installer' || true
 ```
 
-Steps 2–5 are exactly what the Phase B `provision` script will fold into
-`nix run .#provision -- adhoc-nixos@127.0.0.1`.
+Steps 2–5 are exactly what the Phase B `enroll` script will fold into
+`nix run .#enroll -- custom-nixos@127.0.0.1`.
 
 ### Phase B+ — automated test (future)
 
 The nixos-config repo already has a VM test harness
-(`tests/nixos-installer-vm.nix`). Once `provision` exists, the flow will be:
+(`tests/nixos-installer-vm.nix`). Once `enroll` exists, the flow will be:
 
 1. VM boots the installer ISO
 2. Test runs `nix run .#install` to a target disk
 3. VM reboots into the installed system
-4. Test runs `nix run .#provision` with a mocked peer:
+4. Test runs `nix run .#enroll` with a mocked peer:
    - A fake "peer" is a second VM that has a pre-seeded nix-secrets
-   - The test drives `provision` on the new VM, which calls
+   - The test drives `enroll` on the new VM, which calls
      `admit-host --set-host-key` on the peer VM in lockstep
 5. Test asserts:
-   - New VM's age key is in `.sops.yaml` after provision
+   - New VM's age key is in `.sops.yaml` after enroll
    - `secrets.yaml` decryptable by new VM's host key
    - `vault.kdbx` materializes in `~/vault/`
    - `ANTHROPIC_API_KEY` is exported in the user's shell
-   - The new VM can itself provision a third VM (validates the
+   - The new VM can itself enroll a third VM (validates the
      "every trusted host can admit future hosts" property)
 
 The bundle path can be tested similarly with a pre-built bundle fed into a
@@ -1029,14 +832,14 @@ single VM — no peer needed for that test.
 
 | #   | Decision                  | Choice                                                                 |
 | --- | ------------------------- | ---------------------------------------------------------------------- |
-| 1   | User SSH key generation   | In `provision`, not `install` (keeps stage 1 anonymous)                |
+| 1   | User SSH key generation   | In `enroll`, not `install` (keeps stage 1 anonymous)                   |
 | 2   | Bootstrap gap (peer path) | Option C: declarative + imperative (see section above)                 |
-| 3   | Bundle location on USB    | Fixed: `/mnt/recovery/recovery-bundle.tar.age`                         |
-| 4   | Bundle passphrase         | Single memorized passphrase, no yubikey                                |
-| 5   | `provision` idempotency   | State file at `~/.local/state/provision/state.json`                    |
+| 3   | Bundle location on USB    | Fixed: `/mnt/recovery/recovery-bundle.tar`                             |
+| 4   | Bundle encryption         | None — drive hardware encryption is the trust boundary                 |
+| 5   | `enroll` idempotency      | State file at `~/.local/state/enroll/state.json`                       |
 | 6   | GitHub PAT                | Reuse existing `github` entry in `secrets.yaml`                        |
 | 7   | Syncthing folders         | Three: `vault`, `media`, `documents`                                   |
-| 8   | Trusted-peer whitelist    | None — every provisioned host can admit future hosts                   |
+| 8   | Trusted-peer whitelist    | None — every enrolled host can admit future hosts                      |
 | 9   | Admin key on razy         | Move into bundle, delete from `~/.config/sops/age/keys.txt`            |
 | 10  | USB drive triple-role     | Installer + recovery bundle + rolling backup                           |
 | 11  | Backup trigger            | Auto on plug-in via udev + systemd                                     |

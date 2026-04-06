@@ -22,8 +22,9 @@ in {
     memoryPercent = 25;
   };
 
-  # Laptop-friendly defaults
-  services.auto-cpufreq.enable = true;
-  services.power-profiles-daemon.enable = false; # avoid conflicts with auto-cpufreq
+  # Laptop-friendly defaults. Machines using TLP override these via
+  # hardware/tlp-laptop.nix (which uses mkForce to beat both this and GNOME).
+  services.auto-cpufreq.enable = lib.mkDefault true;
+  services.power-profiles-daemon.enable = false;
   powerManagement.cpuFreqGovernor = lib.mkDefault "schedutil";
 }

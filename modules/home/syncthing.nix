@@ -23,8 +23,10 @@
 # the device ID, encrypt the generated cert/key into nix-secrets, set
 # deviceId in defs.nix, and rebuild.
 #
-# Peers are derived from hostDefs: every host with `syncthing.deviceId` set
-# is automatically a trusted peer of every other host. No manual pairing.
+# Peers are derived from hostDefs: only hosts marked as introducers
+# (syncthing.introducer = true) are declared as peers. The introducer
+# hub (e.g. a VPS) handles discovery — clients don't need to know about
+# each other directly.
 #
 # See docs/reproducing-from-scratch.md §"Phase F: vault bootstrap" for the
 # one-time cert generation procedure.
@@ -41,17 +43,16 @@
   inherit (lib) filterAttrs optionalAttrs;
 
   selfDeviceId = hostDef.syncthing.deviceId or null;
-  # Pinning requires sops to hand us a decryption identity. Only private
-  # hosts load the real nix-secrets module; public builds use the stub and
-  # have no sops option at all. Gate on hostDef.visibility (from specialArgs,
-  # so purely static — no `config`/`options` access, no recursion risk).
-  hasSops = (hostDef.visibility or "private") == "private";
-  pinned = selfDeviceId != null && hasSops;
+  # Pinning is gated on deviceId only. The sops.secrets declarations always
+  # go through — in public builds the stub nix-secrets accepts and discards
+  # them; in private builds the real sops-nix module processes them.
+  pinned = selfDeviceId != null;
 
-  # Every host in defs.nix that has a syncthing.deviceId is a trusted peer.
+  # Only introducer hubs are declared as peers. They handle discovery of
+  # other devices automatically — no need to list every host here.
   peers =
     filterAttrs
-    (name: def: name != hostname && (def.syncthing.deviceId or null) != null)
+    (name: def: name != hostname && (def.syncthing.introducer or false) && (def.syncthing.deviceId or null) != null)
     hostDefs;
 
   peerDevices =
@@ -59,10 +60,12 @@
     (name: def: {
       id = def.syncthing.deviceId;
       addresses = ["dynamic"];
+      introducer = def.syncthing.introducer or false;
     })
     peers;
 
-  vaultDir = "${config.home.homeDirectory}/vault";
+  home = config.home.homeDirectory;
+  vaultDir = "${home}/vault";
 in
   {
     home.packages = with pkgs; [
@@ -70,8 +73,14 @@ in
     ];
 
     # Ensure the vault directory exists before syncthing starts.
-    home.activation.createVaultDir = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    home.activation.createSyncDirs = lib.hm.dag.entryAfter ["writeBoundary"] ''
       run mkdir -p ${lib.escapeShellArg vaultDir}
+      run mkdir -p ${lib.escapeShellArg "${home}/Media"}
+      run mkdir -p ${lib.escapeShellArg "${home}/Media/Phone"}
+      run mkdir -p ${lib.escapeShellArg "${home}/Media/Pictures"}
+      run mkdir -p ${lib.escapeShellArg "${home}/Media/Videos"}
+      run mkdir -p ${lib.escapeShellArg "${home}/Media/Audio"}
+      run mkdir -p ${lib.escapeShellArg "${home}/Documents"}
     '';
 
     services.syncthing =
@@ -96,17 +105,40 @@ in
               params.keep = "10";
             };
           };
+          folders.media = {
+            id = "media";
+            label = "Media";
+            path = "${home}/Media";
+            devices = lib.attrNames peerDevices;
+            # Exclude the phone ingest dir — it has its own folder.
+            ignorePatterns = ["/Phone"];
+          };
+          folders.documents = {
+            id = "documents";
+            label = "Documents";
+            path = "${home}/Documents";
+            devices = lib.attrNames peerDevices;
+          };
+          # Phone DCIM ingest — receive-only. Phone is set to send-only.
+          # Files land here, get sorted into Media/{Pictures,Videos,...}
+          # by the phone-media-sort service, then the phone can delete
+          # its copies freely without affecting the sorted files.
+          folders.phone-dcim = {
+            id = "phone-dcim";
+            label = "Phone DCIM";
+            path = "${home}/Media/Phone";
+            devices = lib.attrNames peerDevices;
+            type = "receiveonly";
+          };
         };
       }
-      # cert/key pinning only when (a) the host has a recorded deviceId and
-      # (b) the sops home-manager module is actually loaded (private build).
       // optionalAttrs pinned {
         cert = config.sops.secrets."syncthing-cert-${hostname}".path;
         key = config.sops.secrets."syncthing-key-${hostname}".path;
       };
   }
   # Declare the sops secrets that hold this host's pinned syncthing identity.
-  # These names are produced during `nix run .#provision`, which generates a
+  # These names are produced during `nix run .#enroll`, which generates a
   # fresh cert/key on the admitting peer and writes them into nix-secrets'
   # secrets.yaml under exactly these keys. Guarded so this module still
   # evaluates on public builds where the sops home-manager module is absent.

@@ -12,7 +12,7 @@ readonly VM_RAM_MB="${VM_RAM_MB:-4096}"
 readonly VM_CPUS="${VM_CPUS:-4}"
 readonly VM_DISK_SIZE="${VM_DISK_SIZE:-40G}"
 readonly KEEP_VM="${KEEP_VM:-0}"
-readonly HOSTNAME="${HOSTNAME_OVERRIDE:-ubuntu-adhoc}"
+readonly HOSTNAME="${HOSTNAME_OVERRIDE:-ubuntu-custom}"
 readonly HOME_PROFILE="${HOME_PROFILE:-minimal}"
 readonly DISPLAY_PROFILE="${DISPLAY_PROFILE:-}"
 readonly CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/nixos-config-tests"
@@ -148,7 +148,7 @@ install_nix() {
 }
 
 run_home_install() {
-  info "Running ad hoc home-only install inside Ubuntu guest..."
+  info "Running custom home-only install inside Ubuntu guest..."
   local install_args
   install_args="--host ${HOSTNAME} --home --no-nixos --home-profile ${HOME_PROFILE} --yes"
 

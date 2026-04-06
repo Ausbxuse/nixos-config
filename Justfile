@@ -51,11 +51,21 @@ gc:
 rotate-secrets:
 	nix run .#admit-host
 
-# Provision a fresh NixOS host into the secrets trust mesh.
+# enroll a fresh NixOS host into the secrets trust mesh.
 # Runs admit-host locally, rsyncs nix-secrets to the target, and triggers
 # nixos-rebuild switch on the target with --override-input nix-secrets.
 # Usage:
-#   just provision adhoc-nixos zhenyu@127.0.0.1:2224
-#   just provision dev-box zhenyu@dev.example.com
-provision HOSTNAME SSHDEST:
-	nix run .#provision -- {{HOSTNAME}} {{SSHDEST}}
+#   just enroll custom-nixos zhenyu@127.0.0.1:2224
+#   just enroll dev-box zhenyu@dev.example.com
+enroll HOSTNAME SSHDEST:
+	nix run .#enroll -- {{HOSTNAME}} {{SSHDEST}}
+
+# Trigger a recovery backup manually (requires RECOVERY USB plugged in).
+backup-bundle:
+	sudo systemctl start recovery-backup.service
+
+# Write the NixOS installer ISO to the USB installer partition.
+# Usage: just refresh-installer-usb /dev/sdX1
+refresh-installer-usb PARTITION:
+	nix build .#gnome-iso
+	sudo dd if=$(ls ./result/iso/*.iso) of={{PARTITION}} bs=64M status=progress oflag=sync

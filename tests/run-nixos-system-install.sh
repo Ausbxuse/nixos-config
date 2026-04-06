@@ -16,7 +16,7 @@ readonly SKIP_INSTALL="${SKIP_INSTALL:-0}"
 readonly REUSE_WORKDIR="${REUSE_WORKDIR:-}"
 readonly DISPLAY_MODE="${DISPLAY_MODE:-headless}"
 readonly VNC_DISPLAY="${VNC_DISPLAY:-1}"
-readonly HOSTNAME="${HOSTNAME_OVERRIDE:-adhoc-nixos}"
+readonly HOSTNAME="${HOSTNAME_OVERRIDE:-custom-nixos}"
 readonly USERNAME="${USERNAME_OVERRIDE:-zhenyu}"
 readonly NIXOS_PROFILE="${NIXOS_PROFILE:-$([[ "$GUI_INSPECT" == "1" ]] && printf 'minimal-gui' || printf 'minimal')}"
 readonly INSTALL_LAYOUT="${INSTALL_LAYOUT:-$([[ "$GUI_INSPECT" == "1" ]] && printf 'plain-btrfs' || printf 'luks-btrfs')}"
@@ -208,7 +208,7 @@ wait_for_ssh() {
 }
 
 run_nixos_install() {
-  info "Running ad hoc NixOS install inside guest..."
+  info "Running custom NixOS install inside guest..."
   if [[ "$INSTALL_LAYOUT" == luks-* ]]; then
     ssh_cmd "source /etc/set-environment && cd \"${REMOTE_REPO}\" && printf 'secret-pass\n' | nix --extra-experimental-features 'nix-command flakes' run ./#install -- --host ${HOSTNAME} --username ${USERNAME} --nixos --no-home --disk /dev/vdb --nixos-profile ${NIXOS_PROFILE} --install-layout ${INSTALL_LAYOUT} --swap-size 8G --copy-repo no --yes"
   else

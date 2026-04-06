@@ -1,6 +1,6 @@
 # Installation And Bring-Up
 
-This repo now treats installation as a flake app, not a pile of ad hoc shell scripts.
+This repo now treats installation as a flake app, not a pile of custom shell scripts.
 
 The primary entrypoint is:
 
@@ -17,7 +17,7 @@ nix run github:ausbxuse/nixos-config#install -- ...
 This document covers:
 
 - installing a known NixOS host
-- installing a new ad hoc NixOS host
+- installing a new custom NixOS host
 - setting up a new Home Manager-only host
 - validating a machine after installation
 - common post-install tweaks
@@ -85,7 +85,7 @@ The installer will:
 - run `nixos-install`
 - optionally copy the repo into the new system
 
-### Ad hoc install for a new machine
+### custom install for a new machine
 
 Use this when the host does not exist in the repo yet and you want to bootstrap fast.
 
@@ -118,7 +118,7 @@ Example for a known home-capable host:
 nix run github:ausbxuse/nixos-config#install -- --host earthy --home --no-nixos
 ```
 
-Example for a brand new ad hoc machine:
+Example for a brand new custom machine:
 
 ```bash
 nix run github:ausbxuse/nixos-config#install -- --host laptop-work --home --no-nixos
@@ -127,7 +127,7 @@ nix run github:ausbxuse/nixos-config#install -- --host laptop-work --home --no-n
 In Home Manager-only mode the installer:
 
 - skips disk formatting and `nixos-install`
-- generates an ad hoc home config when necessary
+- generates an custom home config when necessary
 - runs:
 
 ```bash
@@ -201,13 +201,13 @@ Typical interactive answers for a new laptop might look like:
 
 ```text
 Host name for install or bootstrap: razer-test
-Ad hoc NixOS profile: portable-nvidia-gnome
-Ad hoc home profile: personal-gnome
-Ad hoc display profile: razy-current
+custom NixOS profile: portable-nvidia-gnome
+custom home profile: personal-gnome
+custom display profile: razy-current
 Available disks:
   /dev/nvme0n1  1.8T  Samsung SSD  NVMe
 Target disk: /dev/nvme0n1
-Ad hoc swap size: 32G
+custom swap size: 32G
 Enter LUKS disk password:
 ```
 
@@ -215,7 +215,7 @@ The installer auto-detects:
 
 - architecture via `uname -m`
 
-For ad hoc hosts, the installer does not infer a mode. Pass `--home`, `--nixos`, or both explicitly.
+For custom hosts, the installer does not infer a mode. Pass `--home`, `--nixos`, or both explicitly.
 
 Examples:
 
@@ -259,12 +259,12 @@ The temporary worktree is created under:
 
 Inside that worktree, the installer may generate:
 
-- `machines/defs.nix` overlaying the ad hoc host entry
+- `machines/defs.nix` overlaying the custom host entry
 - `machines/<host>/hardware-configuration.nix`
 
 The temporary host inventory overlay is for the install run only. It is not written back into your real repo automatically.
 
-When the install succeeds, you should convert the ad hoc host into a real host definition:
+When the install succeeds, you should convert the custom host into a real host definition:
 
 1. Add the host to [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix).
 2. Create:
@@ -274,7 +274,7 @@ When the install succeeds, you should convert the ad hoc host into a real host d
    - [machines/<host>/hardware-configuration.nix](/home/zhenyu/src/public/nixos-config/machines)
 4. Rebuild from the committed repo afterward.
 
-This ad hoc path is for speed, not for long-term configuration ownership.
+This custom path is for speed, not for long-term configuration ownership.
 
 ## Installing A New Home Manager-Only Host
 
@@ -286,7 +286,7 @@ Known host:
 nix run github:ausbxuse/nixos-config#install -- --host earthy --home --no-nixos
 ```
 
-Ad hoc host:
+custom host:
 
 ```bash
 nix run github:ausbxuse/nixos-config#install -- --host office-laptop --home --no-nixos
@@ -314,7 +314,7 @@ Usage:
   nix run .#install -- [options]
 
 Options:
-  --host NAME              Known host name or a new ad hoc host name
+  --host NAME              Known host name or a new custom host name
   --disk PATH              Target disk for NixOS installation
   --system SYSTEM          Override detected system, e.g. x86_64-linux
   --username NAME          Override the host user name
@@ -322,8 +322,8 @@ Options:
   --home / --no-home       Enable or disable Home Manager mode
   --nixos-profile NAME     Profile file basename under modules/profiles/nixos/
   --home-profile NAME      Profile file basename under modules/profiles/home/
-  --display-profile NAME   Display profile for ad hoc home configs
-  --swap-size SIZE         Swapfile size for ad hoc disk configs, e.g. 32G
+  --display-profile NAME   Display profile for custom home configs
+  --swap-size SIZE         Swapfile size for custom disk configs, e.g. 32G
   --copy-repo yes|no       Copy the resulting repo into the installed system
   --repo-dest PATH         Destination for copied repo inside the target root
   -y, --yes                Accept destructive prompts
@@ -425,23 +425,23 @@ home-manager switch --flake ~/src/public/nixos-config#<username>@<host>
 
 ### Verify committed host metadata
 
-Known-host installs and ad hoc installs now override host metadata by writing a temporary `machines/defs.nix` in the installer worktree.
+Known-host installs and custom installs now override host metadata by writing a temporary `machines/defs.nix` in the installer worktree.
 
 That means:
 
 - the live install works immediately
 - but you should still make sure the committed [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix) entry matches the long-term intended username, profiles, disk path, and swap size
 
-For permanent hosts, prefer committed host inventory data over relying on ad hoc runtime overrides forever.
+For permanent hosts, prefer committed host inventory data over relying on custom runtime overrides forever.
 
-### Promote an ad hoc host into the repo
+### Promote an custom host into the repo
 
 If you installed an unknown machine interactively and want to keep it:
 
 1. Add a real entry to [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix).
 2. Create real host files.
 3. Save and review `hardware-configuration.nix`.
-4. Move any ad hoc profile choice into the committed `home` / `nixos` / `install` fields.
+4. Move any custom profile choice into the committed `home` / `nixos` / `install` fields.
 5. Run:
 
 ```bash
@@ -464,9 +464,13 @@ The old scripts under [scripts](/home/zhenyu/src/public/nixos-config/scripts):
 
 - `install.sh`
 - `install_home.sh`
-- `install_portable.sh`
 
-should now be considered legacy.
+should now be considered legacy. `install_portable.sh` has been folded into the
+main installer as `--portable` mode:
+
+```bash
+NP_RUNTIME=bwrap nix-portable nix run .#install -- --portable --host earthy
+```
 
 The intended path is:
 

@@ -23,6 +23,7 @@
     # docs/reproducing-from-scratch.md §"Phase F: vault bootstrap").
     # When set, modules/home/syncthing.nix pins cert/key via sops.
     syncthing.deviceId = null;
+    syncthing.introducer = true;
     home = {
       enable = true;
       profile = "personal-gnome";
@@ -117,7 +118,16 @@
 
     system = "x86_64-linux";
     username = const.username;
-    platform = "ad-hoc";
+    platform = "custom";
+    visibility = "private";
+  };
+
+  newbie = {
+    syncthing.deviceId = "J3KIR3G-DW4RV3M-NVPU67N-E6PUS3O-R3JEKOG-BXUU5P3-TVC36PQ-VLIVWQF";
+    sops.ageKey = "age1u7r90dr7hpu0kvawsr9lgw89gahklce4ptafsccmp3hgcv7nme3q0q3unp";
+    system = "x86_64-linux";
+    username = const.username;
+    platform = "custom";
     visibility = "private";
   };
 }

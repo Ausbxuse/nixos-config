@@ -18,7 +18,7 @@ Boot the NixOS installer ISO, get network, then:
 nix run github:ausbxuse/nixos-config#install -- --host NEWHOST --nixos --home
 ```
 
-This is an **ad hoc install** — NEWHOST does **not** need to exist in
+This is an **custom install** — NEWHOST does **not** need to exist in
 `machines/defs.nix` yet. The installer prompts for profile, disk, swap,
 LUKS passphrase, and runs `disko` + `nixos-install`.
 
@@ -38,19 +38,19 @@ identity (e.g. razy):
 
 ```bash
 SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt \
-  nix run ~/src/public/nixos-config#provision -- NEWHOST zhenyu@<NEWHOST_IP>
+  nix run ~/src/public/nixos-config#enroll -- NEWHOST zhenyu@<NEWHOST_IP>
 ```
 
-The `provision` app:
+The `enroll` app:
 
-| # | Action |
-|---|--------|
-| 1 | SSHes to NEWHOST, derives its age key from `/etc/ssh/ssh_host_ed25519_key` |
-| 2 | Patches `machines/defs.nix` on the peer: `NEWHOST.sops.ageKey = "age1..."` |
-| 3 | Regenerates `nix-secrets/.sops.yaml`, re-encrypts `secrets.yaml` |
-| 4 | Generates a syncthing cert/key for NEWHOST, encrypts them into `secrets.yaml`, records `NEWHOST.syncthing.deviceId` in `defs.nix` (first boot comes up with pinned identity) |
-| 5 | Pushes NEWHOST's user SSH pubkey to milky (so NEWHOST can pull private repos via `git+ssh://`) — *see "Milky dependency" below* |
-| 6 | Triggers `nixos-rebuild switch` on NEWHOST pulling `nix-secrets` from milky |
+| #   | Action                                                                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | SSHes to NEWHOST, derives its age key from `/etc/ssh/ssh_host_ed25519_key`                                                                                                   |
+| 2   | Patches `machines/defs.nix` on the peer: `NEWHOST.sops.ageKey = "age1..."`                                                                                                   |
+| 3   | Regenerates `nix-secrets/.sops.yaml`, re-encrypts `secrets.yaml`                                                                                                             |
+| 4   | Generates a syncthing cert/key for NEWHOST, encrypts them into `secrets.yaml`, records `NEWHOST.syncthing.deviceId` in `defs.nix` (first boot comes up with pinned identity) |
+| 5   | Pushes NEWHOST's user SSH pubkey to milky (so NEWHOST can pull private repos via `git+ssh://`) — _see "Milky dependency" below_                                              |
+| 6   | Triggers `nixos-rebuild switch` on NEWHOST pulling `nix-secrets` from milky                                                                                                  |
 
 When it exits cleanly, NEWHOST has `/run/secrets/` populated, a pinned
 syncthing identity, and is a full mesh member.
@@ -68,12 +68,12 @@ cd ~/src/public/nixos-config && git add machines/defs.nix && git commit -m "admi
 Step 4 + step 5 assume **milky** (the VPS) is online as the
 `nix-secrets` git remote. Until milky is set up:
 
-- Step 4 is a no-op (provision skips the SSH-key push)
+- Step 4 is a no-op (enroll skips the SSH-key push)
 - Step 5 falls back to the local path form:
   `--override-input nix-secrets path:/tmp/nix-secrets` after an rsync
 
-Both behaviors are handled by `provision` automatically — you do not pass
-a flag. Once milky is provisioned the path override is dropped.
+Both behaviors are handled by `enroll` automatically — you do not pass
+a flag. Once milky is enrolled the path override is dropped.
 
 ---
 
@@ -158,11 +158,11 @@ systemctl --user status syncthing
 
 ## Cheat sheet
 
-| Task                                   | Command                                                              |
-|----------------------------------------|----------------------------------------------------------------------|
-| Fresh install (no defs.nix entry)      | `nix run github:ausbxuse/nixos-config#install -- --host HOST --nixos --home` |
-| Admit new host to mesh                 | `nix run .#provision -- HOST user@ip`                                |
-| Manually set a host's age key          | `nix run .#admit-host -- --set-host-key HOST age1...`                |
-| Rotate secrets after editing defs.nix  | `just rotate-secrets`                                                |
-| Remove a host                          | delete its entry from `machines/defs.nix`, then `just rotate-secrets` |
-| Copy TOTP code                         | select entry in KeePassXC → `Ctrl+T`                                 |
+| Task                                  | Command                                                                      |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| Fresh install (no defs.nix entry)     | `nix run github:ausbxuse/nixos-config#install -- --host HOST --nixos --home` |
+| Admit new host to mesh                | `nix run .#enroll -- HOST user@ip`                                           |
+| Manually set a host's age key         | `nix run .#admit-host -- --set-host-key HOST age1...`                        |
+| Rotate secrets after editing defs.nix | `just rotate-secrets`                                                        |
+| Remove a host                         | delete its entry from `machines/defs.nix`, then `just rotate-secrets`        |
+| Copy TOTP code                        | select entry in KeePassXC → `Ctrl+T`                                         |

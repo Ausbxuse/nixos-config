@@ -1,6 +1,7 @@
 {
   pkgs,
   username,
+  const,
   ...
 }: {
   programs.zsh.enable = true;
@@ -18,6 +19,7 @@
     home = "/home/${username}";
     initialHashedPassword = "";
     createHome = true;
+    openssh.authorizedKeys.keys = [const.sshPubKey];
   };
   services.udev.packages = [pkgs.slimevr];
   services.udev.extraRules = ''

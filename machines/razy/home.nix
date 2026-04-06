@@ -1,6 +1,7 @@
 {lib, ...}: {
   imports = [
-    ../uni/home.nix
+    ../../modules/home/slimevr.nix
+    ../../modules/home/gnome-tweaks.nix
   ];
 
   programs.firefox.profiles.betterfox.extraConfig = lib.mkAfter ''

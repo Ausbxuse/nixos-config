@@ -16,7 +16,7 @@
   #
   # Background: nix-secrets/home.nix points home-manager sops at
   # ${XDG_CONFIG_HOME}/sops/age/keys.txt. On a freshly installed host that
-  # file doesn't exist, home activation fails, and the provision rebuild
+  # file doesn't exist, home activation fails, and the enroll rebuild
   # aborts. Home activation runs as the user and can't read the root-owned
   # host key directly, so we materialize the derived key here — root can
   # read /etc/ssh/ssh_host_ed25519_key, and this runs before home-manager

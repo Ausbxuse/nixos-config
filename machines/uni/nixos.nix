@@ -5,7 +5,7 @@
   ...
 }: {
   imports = [
-    ./power.nix
+    ../../modules/nixos/hardware/tlp-laptop.nix
   ];
 
   services.xserver.videoDrivers = ["modesetting"];
