@@ -17,8 +17,6 @@ NIXOS_MODE=""       # yes|no
 HOME_MODE=""        # yes|no
 NIXOS_PROFILE=""
 HOME_PROFILE=""
-NIXOS_FLAG_SET=0
-HOME_FLAG_SET=0
 
 DISPLAY_PROFILE=""
 SWAP_SIZE=""
@@ -30,8 +28,8 @@ REPO_DEST=""
 KNOWN_HOST=0
 DRY_RUN=0
 PORTABLE=0
+SKIP_PARTITIONING=0
 WORKTREE=""
-INSTALL_REPO_SOURCE=""
 
 @source_lib@
 
@@ -65,20 +63,6 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
-
-resolve_install_repo_source() {
-  local cwd=${PWD:-}
-  local git_root=""
-
-  if [[ -n "$cwd" ]] && git_root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null); then
-    if [[ -f "$git_root/flake.nix" ]] && [[ -d "$git_root/.git" ]]; then
-      INSTALL_REPO_SOURCE=$git_root
-      return 0
-    fi
-  fi
-
-  INSTALL_REPO_SOURCE=$REPO_SOURCE
-}
 
 default_swap_size() {
   printf '%sG\n' "$(detect_ram_gib)"
@@ -173,8 +157,8 @@ parse_args() {
       --username)        USERNAME=${2:?missing value};        shift 2 ;;
       --name)            FULL_NAME=${2:?missing value};       shift 2 ;;
       --email)           EMAIL=${2:?missing value};           shift 2 ;;
-      --nixos)           NIXOS_MODE=yes; NIXOS_FLAG_SET=1;    shift ;;
-      --home)            HOME_MODE=yes;  HOME_FLAG_SET=1;     shift ;;
+      --nixos)           NIXOS_MODE=yes;                      shift ;;
+      --home)            HOME_MODE=yes;                       shift ;;
 
       --nixos-profile)   NIXOS_PROFILE=${2:?missing value};   shift 2 ;;
       --home-profile)    HOME_PROFILE=${2:?missing value};    shift 2 ;;
@@ -184,6 +168,7 @@ parse_args() {
       --copy-repo)       COPY_REPO=${2:?missing value};       shift 2 ;;
       --repo-dest)       REPO_DEST=${2:?missing value};       shift 2 ;;
       --portable)        PORTABLE=1;                            shift ;;
+      --skip-partitioning) SKIP_PARTITIONING=1;               shift ;;
       --dry-run)         DRY_RUN=1;                           shift ;;
       --no-color)        USE_COLOR=0; apply_colors;          shift ;;
       -y|--yes)          ASSUME_YES=1;                        shift ;;
@@ -210,6 +195,8 @@ Options:
   --repo-dest PATH         Destination for copied repo inside the target root
   --portable               Portable mode for non-root, non-NixOS hosts using
                            nix-portable (implies --home)
+  --skip-partitioning      Skip disko and reuse an already-partitioned, already-
+                           mounted target root at /mnt
   --dry-run                Show the resolved plan and exit without touching disks
   --no-color               Disable ANSI colors even on a TTY
   -y, --yes                Accept all confirmation prompts
@@ -299,7 +286,7 @@ resolve_target() {
 }
 
 resolve_modes() {
-  if [[ $NIXOS_FLAG_SET -eq 0 && $HOME_FLAG_SET -eq 0 ]]; then
+  if [[ -z "$NIXOS_MODE" && -z "$HOME_MODE" ]]; then
     NIXOS_MODE=$(prompt_select "install nixos on this machine?" no yes no)
     HOME_MODE=$(prompt_select "activate home-manager?" no yes no)
   fi
@@ -443,13 +430,16 @@ recap() {
   if [[ $DRY_RUN -eq 1 ]]; then
     kv "mode" "${C_YELLOW}dry run${C_RESET}"
   fi
+
+  if [[ $SKIP_PARTITIONING -eq 1 ]]; then
+    kv "partitioning" "skipped"
+  fi
 }
 
 prepare_worktree() {
   WORKTREE=$(mktemp -d "${TMPDIR:-/tmp}/nixos-installer.XXXXXX")
-  resolve_install_repo_source
   run_with_spinner "preparing worktree at ${WORKTREE}" \
-    rsync -a --delete --chmod=Du+rwx,Dgo+rx,Fu+rw,Fgo+r "${INSTALL_REPO_SOURCE}/" "$WORKTREE"/
+    rsync -a --delete --chmod=Du+rwx,Dgo+rx,Fu+rw,Fgo+r "$REPO_SOURCE"/ "$WORKTREE"/
 }
 
 write_worktree_host_defs() {
@@ -592,32 +582,40 @@ run_nixos_install() {
     return 0
   fi
 
-  section "destructive"
-  warn "this will DESTROY all data on ${C_BOLD}${DISK}${C_RESET}"
+  if [[ $SKIP_PARTITIONING -eq 1 ]]; then
+    section "partitioning"
+    if ! mountpoint -q /mnt; then
+      die "--skip-partitioning requires the target root to already be mounted at /mnt"
+    fi
+    ok "using existing target mount at /mnt"
+  else
+    section "destructive"
+    warn "this will DESTROY all data on ${C_BOLD}${DISK}${C_RESET}"
 
-  if ! prompt_bool "proceed with disko + nixos-install on ${DISK}?" no; then
-    die "aborted."
-  fi
-
-  local -a disko_args=(--mode "destroy,format,mount" --flake ".#${HOST}")
-
-  if [[ "$INSTALL_LAYOUT" == luks-* ]]; then
-    write_secret_key
-  fi
-
-  section "disko"
-  (
-    cd "$WORKTREE"
-
-    if [[ $ASSUME_YES -eq 1 ]]; then
-      disko_args=(--yes-wipe-all-disks "${disko_args[@]}")
+    if ! prompt_bool "proceed with disko + nixos-install on ${DISK}?" no; then
+      die "aborted."
     fi
 
-    sudo --non-interactive true 2>/dev/null || true
-    exec </dev/tty >/dev/tty 2>&1
-    sudo disko "${disko_args[@]}"
-  )
-  ok "disko finished"
+    local -a disko_args=(--mode "destroy,format,mount" --flake ".#${HOST}")
+
+    if [[ "$INSTALL_LAYOUT" == luks-* ]]; then
+      write_secret_key
+    fi
+
+    section "disko"
+    (
+      cd "$WORKTREE"
+
+      if [[ $ASSUME_YES -eq 1 ]]; then
+        disko_args=(--yes-wipe-all-disks "${disko_args[@]}")
+      fi
+
+      sudo --non-interactive true 2>/dev/null || true
+      exec </dev/tty >/dev/tty 2>&1
+      sudo disko "${disko_args[@]}"
+    )
+    ok "disko finished"
+  fi
 
   section "hardware config"
   sudo nixos-generate-config --no-filesystems --root /mnt
