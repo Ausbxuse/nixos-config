@@ -76,7 +76,7 @@ VPS only syncs `documents/` (encrypted, within 72GB limit).
 ### Public/Private Split
 
 ```
-nixos-config (public)                    nix-secrets (private)
+nix-config (public)                    nix-secrets (private)
 ├── modules/                             ├── secrets.yaml           # sops-encrypted
 │   ├── home/                            ├── syncthing/
 │   │   ├── syncthing/                   │   ├── devices.nix        # device IDs
@@ -128,7 +128,7 @@ sops.age.generateKey = true;
 
 - NixOS module: udev rule + systemd service
 - Plug in drive → auto-detects → rsync runs → notification on completion
-- Backs up: `~/sync/` (all media + documents) + nixos-config + nix-secrets repos
+- Backs up: `~/sync/` (all media + documents) + nix-config + nix-secrets repos
 - Periodic reminder if drive hasn't been connected recently
 
 ## Recovery Scenarios

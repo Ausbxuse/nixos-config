@@ -3,10 +3,19 @@
   inputs,
   nixpkgs,
   const,
+  adminAccess,
 }: rec {
-  hostDefs = import ../machines/defs.nix {
+  stagingHostDefs = import ../machines/defs.nix {
     inherit lib const;
   };
+  privateHostDefsPath = inputs.nix-secrets + "/hosts.nix";
+  privateHostDefs =
+    if builtins.pathExists privateHostDefsPath
+    then import privateHostDefsPath {
+      inherit lib const;
+    }
+    else {};
+  hostDefs = lib.recursiveUpdate stagingHostDefs privateHostDefs;
 
   hostDefFor = host: hostDefs.${host};
   userFor = host: (hostDefFor host).username or const.username;
@@ -80,7 +89,7 @@
       modules = homeModulesFor hostname;
       pkgs = pkgsFor system;
       extraSpecialArgs = {
-        inherit inputs hostname const hostDefs hostDef username;
+        inherit inputs hostname const hostDefs hostDef username adminAccess;
       };
     };
 
@@ -105,13 +114,13 @@
         ++ lib.optional (homeDef.enable or false) {
           home-manager.users.${username}.imports = homeModulesFor hostname;
           home-manager.extraSpecialArgs = {
-            inherit inputs hostname const hostDefs hostDef username;
+            inherit inputs hostname const hostDefs hostDef username adminAccess;
           };
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
         };
       specialArgs = {
-        inherit inputs hostname const hostDefs hostDef username;
+        inherit inputs hostname const hostDefs hostDef username adminAccess;
       };
     };
 

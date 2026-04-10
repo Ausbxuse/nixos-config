@@ -80,6 +80,8 @@
 
         # gtk-adwaita = false;
         resize-overlay = "never";
+        clipboard-read = "allow";
+        clipboard-paste-protection = false;
 
         window-decoration = false;
         background-opacity = 1;

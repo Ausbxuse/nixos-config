@@ -11,7 +11,7 @@ nix run .#install -- ...
 Or directly from a remote machine without cloning first:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- ...
+nix run github:ausbxuse/nix-config#install -- ...
 ```
 
 This document covers:
@@ -28,18 +28,18 @@ There are two sources of truth involved in the new flow.
 
 ### Global repo settings
 
-[globals.nix](/home/zhenyu/src/public/nixos-config/globals.nix) is for repo-wide values only:
+[globals.nix](/home/zhenyu/src/public/nix-config/globals.nix) is for repo-wide values only:
 
 - username
-- human name
-- email
 - supported systems
 
 It should not be the place where per-host architecture or per-host role lives.
 
 ### Machine registry
 
-[machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix) is the central machine inventory.
+[machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) is the public staging registry for hosts that have not been admitted yet.
+
+Canonical admitted hosts live in private `nix-secrets/hosts.nix`, which is merged over the public staging defs at evaluation time.
 
 Each host definition can declare:
 
@@ -55,22 +55,22 @@ This drives:
 
 - `nixosConfigurations`
 - `homeConfigurations`
-- install behavior for known hosts
+- install behavior for staged or admitted hosts
 - default username and profile selection
 - host list generation for checks
 
-If you are adding a real long-term machine to the repo, add it here first.
+Use public `machines/defs.nix` for pre-admission bootstrap entries. Once a host is enrolled, its long-term canonical definition belongs in private `nix-secrets/hosts.nix`.
 
 ## Quick Start
 
 ### Known host install
 
-Use this when the host already exists in [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix) and has corresponding files under [machines](/home/zhenyu/src/public/nixos-config/machines).
+Use this when the host already exists in the merged host registry and has corresponding files under [machines](/home/zhenyu/src/public/nix-config/machines).
 
 Example:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host razy
+nix run github:ausbxuse/nix-config#install -- --host razy
 ```
 
 The installer will:
@@ -92,7 +92,7 @@ Use this when the host does not exist in the repo yet and you want to bootstrap 
 Example:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host newbox --nixos --home
+nix run github:ausbxuse/nix-config#install -- --host newbox --nixos --home
 ```
 
 The installer will:
@@ -106,7 +106,7 @@ The installer will:
 - generate temporary host files inside a worktree under `/tmp`
 - install from that generated configuration
 
-This path is meant for fast bring-up. After the machine is proven working, convert it into a real repo machine by adding it to [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix) and committing the machine files under [machines](/home/zhenyu/src/public/nixos-config/machines).
+This path is meant for fast bring-up. After the machine is proven working, keep any pre-admission staging entry in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) only until enrollment. The admitted long-term definition should live in private `nix-secrets/hosts.nix`, with machine files committed under [machines](/home/zhenyu/src/public/nix-config/machines).
 
 ### Home Manager-only setup
 
@@ -115,13 +115,13 @@ Use this when you only want the home configuration on an existing Linux system.
 Example for a known home-capable host:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host earthy --home --no-nixos
+nix run github:ausbxuse/nix-config#install -- --host earthy --home
 ```
 
 Example for a brand new custom machine:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host laptop-work --home --no-nixos
+nix run github:ausbxuse/nix-config#install -- --host laptop-work --home
 ```
 
 In Home Manager-only mode the installer:
@@ -144,13 +144,13 @@ Prerequisites:
 - network access
 - access to the target disk
 - this repo must already contain:
-  - [machines/<name>/nixos.nix](/home/zhenyu/src/public/nixos-config/machines)
-  - [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix) entry
+  - [machines/<name>/nixos.nix](/home/zhenyu/src/public/nix-config/machines)
+  - [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) entry
 
 Recommended command:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host uni
+nix run github:ausbxuse/nix-config#install -- --host uni
 ```
 
 What happens:
@@ -173,7 +173,7 @@ sudo nixos-install --root /mnt --flake .#<host>
 Recommended explicit-disk variant:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host uni --disk /dev/nvme1n1
+nix run github:ausbxuse/nix-config#install -- --host uni --disk /dev/nvme1n1
 ```
 
 This is the safest pattern for repeatability.
@@ -185,7 +185,7 @@ This is the fast bootstrap path for a machine that is not yet committed to the r
 Example:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host razer-test --nixos --home
+nix run github:ausbxuse/nix-config#install -- --host razer-test --nixos --home
 ```
 
 The installer will ask for:
@@ -220,11 +220,11 @@ For custom hosts, the installer does not infer a mode. Pass `--home`, `--nixos`,
 Examples:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host earthy
+nix run github:ausbxuse/nix-config#install -- --host earthy
 # fails with: Nothing to do: pass --home and/or --nixos.
 
-nix run github:ausbxuse/nixos-config#install -- --host earthy --home --no-nixos
-nix run github:ausbxuse/nixos-config#install -- --host razer-test --nixos --home
+nix run github:ausbxuse/nix-config#install -- --host earthy --home
+nix run github:ausbxuse/nix-config#install -- --host razer-test --nixos --home
 ```
 
 The installer may suggest defaults for:
@@ -238,7 +238,7 @@ For example, if an NVIDIA GPU is visible via `lspci`, it currently suggests:
 portable-nvidia-gnome
 ```
 
-For the display profile prompt, the value should match one of the profiles in [modules/home/display-profile.nix](/home/zhenyu/src/public/nixos-config/modules/home/display-profile.nix), for example:
+For the display profile prompt, the value should match one of the profiles in [modules/home/display-profile.nix](/home/zhenyu/src/public/nix-config/modules/home/display-profile.nix), for example:
 
 - `gnome-default`
 - `razy-current`
@@ -266,13 +266,14 @@ The temporary host inventory overlay is for the install run only. It is not writ
 
 When the install succeeds, you should convert the custom host into a real host definition:
 
-1. Add the host to [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix).
+1. Add or keep a staging entry in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) if you want to bootstrap admission from the public repo.
 2. Create:
-   - [machines/<host>/nixos.nix](/home/zhenyu/src/public/nixos-config/machines) if needed
-   - [machines/<host>/home.nix](/home/zhenyu/src/public/nixos-config/machines) if needed
+   - [machines/<host>/nixos.nix](/home/zhenyu/src/public/nix-config/machines) if needed
+   - [machines/<host>/home.nix](/home/zhenyu/src/public/nix-config/machines) if needed
 3. Move the generated hardware configuration into:
-   - [machines/<host>/hardware-configuration.nix](/home/zhenyu/src/public/nixos-config/machines)
-4. Rebuild from the committed repo afterward.
+   - [machines/<host>/hardware-configuration.nix](/home/zhenyu/src/public/nix-config/machines)
+4. Enroll the host so its canonical admitted entry lands in private `nix-secrets/hosts.nix`.
+5. Rebuild from the committed repo afterward.
 
 This custom path is for speed, not for long-term configuration ownership.
 
@@ -283,13 +284,13 @@ For machines where you do not want NixOS installation, run Home Manager-only mod
 Known host:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host earthy --home --no-nixos
+nix run github:ausbxuse/nix-config#install -- --host earthy --home
 ```
 
 custom host:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host office-laptop --home --no-nixos
+nix run github:ausbxuse/nix-config#install -- --host office-laptop --home
 ```
 
 The installer will prompt for:
@@ -303,7 +304,7 @@ This is useful for:
 - temporary machines
 - new cross-platform personal environments
 
-If the machine should become a long-term tracked host later, add it to [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix) and create a real [machines/<host>/home.nix](/home/zhenyu/src/public/nixos-config/machines) entry.
+If the machine should become a long-term tracked host later, stage it in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix), then enroll it so its canonical entry lands in private `nix-secrets/hosts.nix`, and create a real [machines/<host>/home.nix](/home/zhenyu/src/public/nix-config/machines) entry.
 
 ## Installer CLI Reference
 
@@ -318,8 +319,8 @@ Options:
   --disk PATH              Target disk for NixOS installation
   --system SYSTEM          Override detected system, e.g. x86_64-linux
   --username NAME          Override the host user name
-  --nixos / --no-nixos     Enable or disable NixOS installation mode
-  --home / --no-home       Enable or disable Home Manager mode
+  --nixos      Enable or disable NixOS installation mode
+  --home       Enable or disable Home Manager mode
   --nixos-profile NAME     Profile file basename under modules/profiles/nixos/
   --home-profile NAME      Profile file basename under modules/profiles/home/
   --display-profile NAME   Display profile for custom home configs
@@ -340,7 +341,7 @@ nix run .#validate-host
 Or directly from GitHub if the repo is not yet copied locally:
 
 ```bash
-nix run github:ausbxuse/nixos-config#validate-host
+nix run github:ausbxuse/nix-config#validate-host
 ```
 
 The validator currently checks:
@@ -414,13 +415,13 @@ If Home Manager warns that `nix-secrets/secrets.yaml` is missing, secret-backed 
 If you copied the repo into the target system, switch again from the local tree once the machine is up:
 
 ```bash
-sudo nixos-rebuild switch --flake ~/src/public/nixos-config#<host>
+sudo nixos-rebuild switch --flake ~/src/public/nix-config#<host>
 ```
 
 And if needed:
 
 ```bash
-home-manager switch --flake ~/src/public/nixos-config#<username>@<host>
+home-manager switch --flake ~/src/public/nix-config#<username>@<host>
 ```
 
 ### Verify committed host metadata
@@ -430,7 +431,7 @@ Known-host installs and custom installs now override host metadata by writing a 
 That means:
 
 - the live install works immediately
-- but you should still make sure the committed [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix) entry matches the long-term intended username, profiles, disk path, and swap size
+- but you should still make sure the long-term host definition in `nix-secrets/hosts.nix` (or the temporary staging entry in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) before enrollment) matches the intended username, profiles, disk path, and swap size
 
 For permanent hosts, prefer committed host inventory data over relying on custom runtime overrides forever.
 
@@ -438,10 +439,10 @@ For permanent hosts, prefer committed host inventory data over relying on custom
 
 If you installed an unknown machine interactively and want to keep it:
 
-1. Add a real entry to [machines/defs.nix](/home/zhenyu/src/public/nixos-config/machines/defs.nix).
+1. Add or keep a staging entry in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) if you want to enroll from a public bootstrap record.
 2. Create real host files.
 3. Save and review `hardware-configuration.nix`.
-4. Move any custom profile choice into the committed `home` / `nixos` / `install` fields.
+4. Ensure the admitted canonical entry in private `nix-secrets/hosts.nix` carries the final `home` / `nixos` / `install` fields.
 5. Run:
 
 ```bash
@@ -454,13 +455,13 @@ Some machines need manual verification beyond the generic validator.
 
 For `razy`, see:
 
-- [docs/razy-bringup.md](/home/zhenyu/src/public/nixos-config/docs/razy-bringup.md)
+- [docs/razy-bringup.md](/home/zhenyu/src/public/nix-config/docs/razy-bringup.md)
 
 That document covers the real debugging path and the machine-specific issues for the Razer Blade.
 
 ## Migration From The Old Install Scripts
 
-The old scripts under [scripts](/home/zhenyu/src/public/nixos-config/scripts):
+The old scripts under [scripts](/home/zhenyu/src/public/nix-config/scripts):
 
 - `install.sh`
 - `install_home.sh`
@@ -474,7 +475,7 @@ NP_RUNTIME=bwrap nix-portable nix run .#install -- --portable --host earthy
 
 The intended path is:
 
-- `nix run github:ausbxuse/nixos-config#install -- ...`
+- `nix run github:ausbxuse/nix-config#install -- ...`
 - `nix run .#validate-host`
 
 The goal is to eliminate the old scripts entirely once the new flow has been exercised enough.

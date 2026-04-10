@@ -10,13 +10,13 @@ dconf:
 	rsync -av ~/.config/dconf/ ./hosts/base/home/gnome/dconf
 
 sys:
-	nixos-rebuild switch --flake .#$(hostname) --use-remote-sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000
+	nixos-rebuild switch --flake .#$(hostname) --sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000 $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi)
 
 home:
-  home-manager switch --flake .#$(whoami)@$(hostname)
+  home-manager switch --flake .#$(if [ -n "${SUDO_USER:-}" ]; then printf '%s' "$SUDO_USER"; else whoami; fi)@$(hostname) $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi)
 
 debug:
-	nixos-rebuild switch --flake . --use-remote-sudo --show-trace --verbose
+	nixos-rebuild switch --flake . --sudo --show-trace --verbose $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi)
 
 # Update specific input
 # usage: make upp i=home-manager
@@ -46,7 +46,7 @@ gc:
 	# Garbage collect all unused nix store entries
 	sudo nix-collect-garbage --delete-old
 
-# Regenerate nix-secrets/.sops.yaml from machines/defs.nix + machines/operators.nix
+# Regenerate nix-secrets/.sops.yaml from private hosts.nix
 # and re-encrypt secrets.yaml. Run after editing either file.
 rotate-secrets:
 	nix run .#admit-host

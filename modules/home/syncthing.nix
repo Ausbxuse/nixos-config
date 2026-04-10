@@ -10,18 +10,19 @@
 #
 # Identity model:
 #
-# Each host has an optional `syncthing.deviceId` field in machines/defs.nix.
-# When set, this module pins the host's syncthing identity by loading
-# cert/key from sops secrets (syncthing-cert-${hostname},
-# syncthing-key-${hostname}). That way a reinstall that restores the host's
-# SSH key also restores its syncthing identity — consistent with how sops
-# age identities already work. The sops.secrets declarations live in
-# nix-secrets/home.nix (private flake input); this module only references
-# their paths, and only when pinning is active.
+# Each host has an optional `syncthing.deviceId` field in the merged host
+# registry. Staging hosts come from machines/defs.nix; admitted hosts come
+# from nix-secrets/hosts.nix. When set, this
+# module pins the host's syncthing identity by loading cert/key from sops
+# secrets (syncthing-cert-${hostname}, syncthing-key-${hostname}). That way a
+# reinstall that restores the host's SSH key also restores its syncthing
+# identity. The sops.secrets declarations live in nix-secrets/home.nix
+# (private flake input); this module only references their paths, and only
+# when pinning is active.
 #
 # If deviceId is null, syncthing generates a fresh cert on first run; grab
-# the device ID, encrypt the generated cert/key into nix-secrets, set
-# deviceId in defs.nix, and rebuild.
+# the device ID, encrypt the generated cert/key into nix-secrets, record
+# deviceId in hosts.nix, and rebuild.
 #
 # Peers are derived from hostDefs: only hosts marked as introducers
 # (syncthing.introducer = true) are declared as peers. The introducer

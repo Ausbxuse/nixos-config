@@ -8,7 +8,6 @@
     ../../home/sops.nix
     ../../home/programs.nix
     ../../home/gaming.nix
-    ../../home/syncthing.nix
     ../../home/phone-media-sort.nix
   ];
 

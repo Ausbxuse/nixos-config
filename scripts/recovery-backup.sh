@@ -69,9 +69,9 @@ cp /etc/ssh/ssh_host_ed25519_key     "$BUNDLE_DIR/host-keys/$(hostname)/" 2>/dev
 cp /etc/ssh/ssh_host_ed25519_key.pub "$BUNDLE_DIR/host-keys/$(hostname)/" 2>/dev/null || true
 
 # Git repos (mirror clones for minimal size)
-if [[ -d "$HOME_DIR/src/public/nixos-config/.git" ]]; then
-  git clone --mirror "$HOME_DIR/src/public/nixos-config" \
-    "$BUNDLE_DIR/nixos-config.git" 2>/dev/null || true
+if [[ -d "$HOME_DIR/src/public/nix-config/.git" ]]; then
+  git clone --mirror "$HOME_DIR/src/public/nix-config" \
+    "$BUNDLE_DIR/nix-config.git" 2>/dev/null || true
 fi
 if [[ -d "$HOME_DIR/src/private/nix-secrets/.git" ]]; then
   git clone --mirror "$HOME_DIR/src/private/nix-secrets" \
@@ -104,7 +104,7 @@ restic backup "$HOME_DIR" \
   --exclude-file="$EXCLUDE_FILE" \
   --one-file-system \
   --tag auto \
-  --hostname "$(hostname)"
+  --host "$(hostname)"
 restic forget \
   --keep-last 10 \
   --keep-daily 7 \

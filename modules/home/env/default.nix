@@ -29,7 +29,7 @@
     PULSE_COOKIE = "${config.xdg.stateHome}/pulse/cookie";
     XCURSOR_THEME = "capitaine-cursors-white";
     XCURSOR_SIZE = "24";
-    FLAKE = "${config.home.homeDirectory}/src/public/nixos-config";
+    FLAKE = "${config.home.homeDirectory}/src/public/nix-config";
     MANPAGER = "nvim +Man!";
     NPM_PACKAGES = "${config.home.homeDirectory}/.local/share/npm";
     NODE_PATH = "$NPM_PACKAGES/lib/node_modules:$NODE_PATH";
@@ -44,7 +44,6 @@
     CARGO_HOME = "${config.xdg.dataHome}/cargo";
     GOPATH = "${config.xdg.dataHome}/go";
     ANSIBLE_CONFIG = "${config.xdg.configHome}/ansible/ansible.cfg";
-    HISTFILE = "${config.xdg.dataHome}/history";
     SQLITE_HISTORY = "${config.xdg.dataHome}/sqlite_history";
     NPM_CONFIG_USERCONFIG = "${config.xdg.configHome}/npm/npmrc";
     NPM_CONFIG_CACHE = "${config.xdg.cacheHome}/npm";

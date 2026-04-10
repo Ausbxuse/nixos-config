@@ -285,11 +285,11 @@ return {
     -- end,
   },
   { 'eandrju/cellular-automaton.nvim' },
-  {
-    'm4xshen/hardtime.nvim',
-    lazy = false,
-    opts = {},
-  },
+  -- {
+  --   'm4xshen/hardtime.nvim',
+  --   lazy = false,
+  --   opts = {},
+  -- },
   {
     'serhez/bento.nvim',
     opts = {

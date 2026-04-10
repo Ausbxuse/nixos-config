@@ -11,11 +11,12 @@
   config,
   lib,
   pkgs,
-  const,
+  hostDef,
   username,
   ...
 }: let
-  enabled = const.recoveryPartUuid != "";
+  recoveryPartUuid = hostDef.recovery.partUuid or "";
+  enabled = recoveryPartUuid != "";
 
   excludeFile = pkgs.copyPathToStore ../../scripts/restic-excludes.txt;
 
@@ -24,6 +25,7 @@
     runtimeInputs = with pkgs; [
       coreutils
       git
+      hostname
       restic
       rsync
       util-linux
@@ -46,7 +48,7 @@ in
         ExecStart = "${recoveryBackup}/bin/recovery-backup";
         Environment = [
           "RECOVERY_MOUNT=/mnt/recovery"
-          "RECOVERY_UUID=${const.recoveryPartUuid}"
+          "RECOVERY_UUID=${recoveryPartUuid}"
           "USERNAME=${username}"
           "HOME_DIR=/home/${username}"
           "RESTIC_REPOSITORY=/mnt/recovery/restic"

@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 readonly LOCAL_REPO="${LOCAL_REPO:-$PWD}"
-readonly REMOTE_REPO="${REMOTE_REPO:-/home/zhenyu/src/public/nixos-config}"
+readonly REMOTE_REPO="${REMOTE_REPO:-/home/zhenyu/src/public/nix-config}"
 readonly SSH_PORT="${SSH_PORT:-2223}"
 readonly INSTALLED_SSH_PORT="${INSTALLED_SSH_PORT:-2224}"
 readonly VM_RAM_MB="${VM_RAM_MB:-4096}"
@@ -13,11 +13,14 @@ readonly TARGET_DISK_SIZE="${TARGET_DISK_SIZE:-40G}"
 readonly KEEP_VM="${KEEP_VM:-0}"
 readonly GUI_INSPECT="${GUI_INSPECT:-0}"
 readonly SKIP_INSTALL="${SKIP_INSTALL:-0}"
+readonly VERIFY_BOOT="${VERIFY_BOOT:-1}"
 readonly REUSE_WORKDIR="${REUSE_WORKDIR:-}"
 readonly DISPLAY_MODE="${DISPLAY_MODE:-headless}"
 readonly VNC_DISPLAY="${VNC_DISPLAY:-1}"
 readonly HOSTNAME="${HOSTNAME_OVERRIDE:-custom-nixos}"
 readonly USERNAME="${USERNAME_OVERRIDE:-zhenyu}"
+readonly FULL_NAME="${FULL_NAME_OVERRIDE:-Test User}"
+readonly EMAIL="${EMAIL_OVERRIDE:-test@example.com}"
 readonly NIXOS_PROFILE="${NIXOS_PROFILE:-$([[ "$GUI_INSPECT" == "1" ]] && printf 'minimal-gui' || printf 'minimal')}"
 readonly INSTALL_LAYOUT="${INSTALL_LAYOUT:-$([[ "$GUI_INSPECT" == "1" ]] && printf 'plain-btrfs' || printf 'luks-btrfs')}"
 readonly VM_IMAGE='@vmImage@'
@@ -210,9 +213,16 @@ wait_for_ssh() {
 run_nixos_install() {
   info "Running custom NixOS install inside guest..."
   if [[ "$INSTALL_LAYOUT" == luks-* ]]; then
-    ssh_cmd "source /etc/set-environment && cd \"${REMOTE_REPO}\" && printf 'secret-pass\n' | nix --extra-experimental-features 'nix-command flakes' run ./#install -- --host ${HOSTNAME} --username ${USERNAME} --nixos --no-home --disk /dev/vdb --nixos-profile ${NIXOS_PROFILE} --install-layout ${INSTALL_LAYOUT} --swap-size 8G --copy-repo no --yes"
+    printf 'secret-pass\nsecret-pass\n' | sshpass -p "$SSH_PASSWORD" \
+      ssh -tt \
+      -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null \
+      -o ConnectTimeout=5 \
+      -p "$SSH_PORT" \
+      zhenyu@127.0.0.1 \
+      "source /etc/set-environment && cd \"${REMOTE_REPO}\" && nix --extra-experimental-features 'nix-command flakes' run ./#install -- --host ${HOSTNAME} --username ${USERNAME} --name '${FULL_NAME}' --email '${EMAIL}' --nixos --disk /dev/vdb --nixos-profile ${NIXOS_PROFILE} --install-layout ${INSTALL_LAYOUT} --swap-size 8G --copy-repo no --yes"
   else
-    ssh_cmd "source /etc/set-environment && cd \"${REMOTE_REPO}\" && nix --extra-experimental-features 'nix-command flakes' run ./#install -- --host ${HOSTNAME} --username ${USERNAME} --nixos --no-home --disk /dev/vdb --nixos-profile ${NIXOS_PROFILE} --install-layout ${INSTALL_LAYOUT} --swap-size 8G --copy-repo no --yes"
+    ssh_cmd "source /etc/set-environment && cd \"${REMOTE_REPO}\" && nix --extra-experimental-features 'nix-command flakes' run ./#install -- --host ${HOSTNAME} --username ${USERNAME} --name '${FULL_NAME}' --email '${EMAIL}' --nixos --disk /dev/vdb --nixos-profile ${NIXOS_PROFILE} --install-layout ${INSTALL_LAYOUT} --swap-size 8G --copy-repo no --yes"
   fi
 }
 
@@ -243,10 +253,10 @@ verify_guest_state() {
 boot_installed_system() {
   local -a qemu_display
 
-  # Run phase 2 whenever we want to inspect the installed system or keep it
-  # alive for downstream use. Without either, the install-only smoke test
-  # skips this phase.
-  [[ "$GUI_INSPECT" == "1" || "$KEEP_VM" == "1" ]] || return 0
+  # Phase 2 should be the default: a successful install is not interesting if
+  # the installed system cannot reach boot. VERIFY_BOOT=0 remains available as
+  # an explicit escape hatch for faster install-only smoke runs.
+  [[ "$VERIFY_BOOT" == "1" ]] || return 0
 
   info "Shutting down installer VM..."
   ssh_cmd "sudo systemctl poweroff" || true
@@ -284,10 +294,7 @@ boot_installed_system() {
 }
 
 wait_for_installed_ssh() {
-  # Wait for the installed system's SSH whenever we either want to inspect
-  # it (GUI_INSPECT) or keep it alive for downstream use (KEEP_VM). Without
-  # one of those, the install-only smoke test skips this phase.
-  [[ "$GUI_INSPECT" == "1" || "$KEEP_VM" == "1" ]] || return 0
+  [[ "$VERIFY_BOOT" == "1" ]] || return 0
 
   info "Waiting for installed system SSH..."
   for _ in $(seq 1 120); do

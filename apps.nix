@@ -23,7 +23,7 @@ in {
     "${packages."validate-host"}/bin/validate-host";
 
   "admit-host" =
-    mkApp "Regenerate nix-secrets/.sops.yaml from machines/defs.nix + machines/operators.nix and re-encrypt secrets.yaml. Pass --set-host-key HOST AGEKEY to patch defs.nix first."
+    mkApp "Promote staged hosts into nix-secrets/hosts.nix, regenerate nix-secrets/.sops.yaml, and re-encrypt secrets.yaml."
     "${packages."admit-host"}/bin/admit-host";
 
   enroll =

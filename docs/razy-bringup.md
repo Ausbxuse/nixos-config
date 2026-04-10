@@ -130,8 +130,8 @@ Once we stopped fighting about fake monolithic files and instead forced the mach
 
 The working fix lives in:
 
-- [machines/razy/nixos.nix](/home/zhenyu/src/public/nixos-config/machines/razy/nixos.nix)
-- [machines/razy/patches/ptl-razer-blade16-rt721-rt1320.patch](/home/zhenyu/src/public/nixos-config/machines/razy/patches/ptl-razer-blade16-rt721-rt1320.patch)
+- [machines/razy/nixos.nix](/home/zhenyu/src/public/nix-config/machines/razy/nixos.nix)
+- [machines/razy/patches/ptl-razer-blade16-rt721-rt1320.patch](/home/zhenyu/src/public/nix-config/machines/razy/patches/ptl-razer-blade16-rt721-rt1320.patch)
 
 ### Kernel-side machine description
 
@@ -268,7 +268,7 @@ That is the actual backlight fix. `brightnessctl` is optional convenience, not p
 
 GDM needed its own monitor configuration copied into the GDM home directory:
 
-- [machines/razy/gdm-monitors.xml](/home/zhenyu/src/public/nixos-config/machines/razy/gdm-monitors.xml)
+- [machines/razy/gdm-monitors.xml](/home/zhenyu/src/public/nix-config/machines/razy/gdm-monitors.xml)
 - installed into `/var/lib/gdm/.config/monitors.xml`
 
 This is separate from the user session GNOME scaling.
@@ -291,7 +291,7 @@ The blue background after resume was not caused by the static GNOME wallpaper se
 
 That extension was disabled in:
 
-- [modules/home/gnome/dconf.nix](/home/zhenyu/src/public/nixos-config/modules/home/gnome/dconf.nix)
+- [modules/home/gnome/dconf.nix](/home/zhenyu/src/public/nix-config/modules/home/gnome/dconf.nix)
 
 This leaves GNOME's declarative wallpaper settings as the only wallpaper source.
 
@@ -336,11 +336,11 @@ That inconsistency was secondary once real audio worked, but it is still worth c
 
 ## Files Most Relevant To `razy`
 
-- [machines/razy/nixos.nix](/home/zhenyu/src/public/nixos-config/machines/razy/nixos.nix)
-- [machines/razy/patches/ptl-razer-blade16-rt721-rt1320.patch](/home/zhenyu/src/public/nixos-config/machines/razy/patches/ptl-razer-blade16-rt721-rt1320.patch)
-- [machines/razy/gdm-monitors.xml](/home/zhenyu/src/public/nixos-config/machines/razy/gdm-monitors.xml)
-- [machines/razy/power.nix](/home/zhenyu/src/public/nixos-config/machines/razy/power.nix)
-- [modules/home/gnome/dconf.nix](/home/zhenyu/src/public/nixos-config/modules/home/gnome/dconf.nix)
+- [machines/razy/nixos.nix](/home/zhenyu/src/public/nix-config/machines/razy/nixos.nix)
+- [machines/razy/patches/ptl-razer-blade16-rt721-rt1320.patch](/home/zhenyu/src/public/nix-config/machines/razy/patches/ptl-razer-blade16-rt721-rt1320.patch)
+- [machines/razy/gdm-monitors.xml](/home/zhenyu/src/public/nix-config/machines/razy/gdm-monitors.xml)
+- [machines/razy/power.nix](/home/zhenyu/src/public/nix-config/machines/razy/power.nix)
+- [modules/home/gnome/dconf.nix](/home/zhenyu/src/public/nix-config/modules/home/gnome/dconf.nix)
 
 ## Short Version
 

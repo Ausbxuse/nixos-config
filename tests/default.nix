@@ -127,11 +127,12 @@
 
                 PATH=/tmp/fakebin:$PATH ${pkgs.bash}/bin/bash ${installScript} \
                   --host ${name} \
+                  --name 'Test User' \
+                  --email 'test@example.com' \
             ''
             + systemArgs
             + ''
               --home \
-              --no-nixos \
               --home-profile ${homeProfile} \
             ''
             + displayArgs
@@ -228,11 +229,12 @@
 
                 printf 'secret-pass\n' | PATH=/tmp/fakebin:$PATH ${pkgs.bash}/bin/bash ${installScript} \
                   --host ${name} \
+                  --name 'Test User' \
+                  --email 'test@example.com' \
             ''
             + systemArgs
             + ''
                 --nixos \
-                --no-home \
                 --disk /dev/vda \
                 --nixos-profile ${nixosProfile} \
                 --swap-size 8G \
@@ -274,5 +276,80 @@ in {
     name = "custom-nixos-aarch64";
     systemOverride = "aarch64-linux";
     nixosProfile = "minimal";
+  };
+
+  "custom-nixos-install-reports-errors" = mkTest {
+    name = "custom-nixos-error";
+    modules = [
+      ({pkgs, ...}: {
+        environment.systemPackages = with pkgs; [
+          bash
+          jq
+          rsync
+          gnugrep
+          gnused
+          gawk
+          perl
+          util-linux
+          coreutils
+        ];
+      })
+    ];
+    testScript = lib.concatStringsSep "\n" [
+      ''machine.wait_for_unit("multi-user.target")''
+      ''
+        machine.succeed("""
+          mkdir -p /tmp/fakebin /tmp/test-artifacts /mnt/etc/nixos
+
+          cat >/tmp/fakebin/sudo <<'EOF'
+          #!/usr/bin/env bash
+          exec "$@"
+          EOF
+
+          cat >/tmp/fakebin/disko <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exit 0
+          EOF
+
+          cat >/tmp/fakebin/nixos-generate-config <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          mkdir -p /mnt/etc/nixos
+          cat >/mnt/etc/nixos/hardware-configuration.nix <<'EOC'
+          { ... }: { boot.loader.grub.enable = false; }
+          EOC
+          EOF
+
+          cat >/tmp/fakebin/nixos-install <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          echo 'installing the boot loader...'
+          echo 'ERROR: mkdir /var/lock/dmraid'
+          exit 0
+          EOF
+
+          chmod +x /tmp/fakebin/sudo /tmp/fakebin/disko /tmp/fakebin/nixos-generate-config /tmp/fakebin/nixos-install
+
+          if printf 'secret-pass\n' | PATH=/tmp/fakebin:$PATH ${pkgs.bash}/bin/bash ${installScript} \
+            --host custom-nixos-error \
+            --name 'Test User' \
+            --email 'test@example.com' \
+            --nixos \
+            --disk /dev/vda \
+            --nixos-profile minimal \
+            --swap-size 8G \
+            --copy-repo no \
+            --yes \
+            >/tmp/test-artifacts/install.out 2>/tmp/test-artifacts/install.err; then
+            echo 'installer unexpectedly succeeded' >&2
+            exit 1
+          fi
+
+          grep -F 'ERROR: mkdir /var/lock/dmraid' /tmp/test-artifacts/install.err
+          grep -F 'nixos-install reported an installation error' /tmp/test-artifacts/install.err
+        """)
+      ''
+    ];
   };
 }

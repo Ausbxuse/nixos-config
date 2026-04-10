@@ -11,10 +11,15 @@ HOST=""
 SYSTEM=""
 DISK=""
 USERNAME=""
+FULL_NAME=""
+EMAIL=""
 NIXOS_MODE=""       # yes|no
 HOME_MODE=""        # yes|no
 NIXOS_PROFILE=""
 HOME_PROFILE=""
+NIXOS_FLAG_SET=0
+HOME_FLAG_SET=0
+
 DISPLAY_PROFILE=""
 SWAP_SIZE=""
 INSTALL_LAYOUT=""
@@ -26,6 +31,7 @@ KNOWN_HOST=0
 DRY_RUN=0
 PORTABLE=0
 WORKTREE=""
+INSTALL_REPO_SOURCE=""
 
 @source_lib@
 
@@ -37,6 +43,10 @@ bool_word() {
   else
     printf 'false'
   fi
+}
+
+nix_escape_string() {
+  printf '%s' "$1" | sed 's/[&|]/\\&/g; s/\\/\\\\/g; s/"/\\"/g'
 }
 
 export NIX_CONFIG="${NIX_CONFIG:+$NIX_CONFIG
@@ -55,6 +65,20 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+resolve_install_repo_source() {
+  local cwd=${PWD:-}
+  local git_root=""
+
+  if [[ -n "$cwd" ]] && git_root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null); then
+    if [[ -f "$git_root/flake.nix" ]] && [[ -d "$git_root/.git" ]]; then
+      INSTALL_REPO_SOURCE=$git_root
+      return 0
+    fi
+  fi
+
+  INSTALL_REPO_SOURCE=$REPO_SOURCE
+}
 
 default_swap_size() {
   printf '%sG\n' "$(detect_ram_gib)"
@@ -147,10 +171,11 @@ parse_args() {
       --disk)            DISK=${2:?missing value};            shift 2 ;;
       --system)          SYSTEM=${2:?missing value};          shift 2 ;;
       --username)        USERNAME=${2:?missing value};        shift 2 ;;
-      --nixos)           NIXOS_MODE=yes;                      shift ;;
-      --no-nixos)        NIXOS_MODE=no;                       shift ;;
-      --home)            HOME_MODE=yes;                       shift ;;
-      --no-home)         HOME_MODE=no;                        shift ;;
+      --name)            FULL_NAME=${2:?missing value};       shift 2 ;;
+      --email)           EMAIL=${2:?missing value};           shift 2 ;;
+      --nixos)           NIXOS_MODE=yes; NIXOS_FLAG_SET=1;    shift ;;
+      --home)            HOME_MODE=yes;  HOME_FLAG_SET=1;     shift ;;
+
       --nixos-profile)   NIXOS_PROFILE=${2:?missing value};   shift 2 ;;
       --home-profile)    HOME_PROFILE=${2:?missing value};    shift 2 ;;
       --display-profile) DISPLAY_PROFILE=${2:?missing value}; shift 2 ;;
@@ -172,6 +197,8 @@ Options:
   --disk PATH              Target disk for NixOS installation
   --system SYSTEM          Override detected system, e.g. x86_64-linux
   --username NAME          Override the host user name
+  --name NAME              Override the Git user name written into globals.nix
+  --email EMAIL            Override the Git user email written into globals.nix
   --nixos / --no-nixos     Enable or disable NixOS installation mode
   --home / --no-home       Enable or disable Home Manager mode
   --nixos-profile NAME     Profile basename under modules/profiles/nixos/
@@ -182,7 +209,7 @@ Options:
   --copy-repo yes|no       Copy the resulting repo into the installed system
   --repo-dest PATH         Destination for copied repo inside the target root
   --portable               Portable mode for non-root, non-NixOS hosts using
-                           nix-portable (implies --no-nixos --home)
+                           nix-portable (implies --home)
   --dry-run                Show the resolved plan and exit without touching disks
   --no-color               Disable ANSI colors even on a TTY
   -y, --yes                Accept all confirmation prompts
@@ -201,6 +228,10 @@ EOF
 
   if [[ -n "$USERNAME" ]]; then
     validate_username "$USERNAME" || die "invalid --username: $USERNAME"
+  fi
+
+  if [[ -n "$EMAIL" ]]; then
+    validate_email "$EMAIL" || die "invalid --email: $EMAIL"
   fi
 
   if [[ -n "$SWAP_SIZE" ]]; then
@@ -257,7 +288,9 @@ resolve_target() {
     fi
   else
     SYSTEM=${SYSTEM:-$(detect_system)}
-    USERNAME=${USERNAME:-$DEFAULT_USERNAME}
+    if [[ -z "$USERNAME" ]]; then
+      USERNAME=$(prompt_text "username" "$DEFAULT_USERNAME" validate_username)
+    fi
     PLATFORM=${PLATFORM:-custom}
     VISIBILITY=${VISIBILITY:-private}
   fi
@@ -266,16 +299,23 @@ resolve_target() {
 }
 
 resolve_modes() {
-  if [[ -z "$NIXOS_MODE" ]]; then
-    NIXOS_MODE=$(prompt_select "install nixos on this machine?" yes yes no)
-  fi
-
-  if [[ -z "$HOME_MODE" ]]; then
-    HOME_MODE=$(prompt_select "activate home-manager?" yes yes no)
+  if [[ $NIXOS_FLAG_SET -eq 0 && $HOME_FLAG_SET -eq 0 ]]; then
+    NIXOS_MODE=$(prompt_select "install nixos on this machine?" no yes no)
+    HOME_MODE=$(prompt_select "activate home-manager?" no yes no)
   fi
 
   if [[ "$NIXOS_MODE" != "yes" && "$HOME_MODE" != "yes" ]]; then
     die "Nothing to do: enable at least --nixos or --home."
+  fi
+}
+
+resolve_identity() {
+  if [[ -z "$FULL_NAME" ]]; then
+    FULL_NAME=$(prompt_text "git name")
+  fi
+
+  if [[ -z "$EMAIL" ]]; then
+    EMAIL=$(prompt_text "git email" "" validate_email)
   fi
 }
 
@@ -379,6 +419,8 @@ recap() {
   kv "host"       "$HOST"
   kv "system"     "$SYSTEM"
   kv "user"       "$USERNAME"
+  kv "git name"   "$FULL_NAME"
+  kv "git email"  "$EMAIL"
   kv "platform"   "$PLATFORM"
   kv "visibility" "$VISIBILITY"
   kv "nixos"      "${NIXOS_PROFILE:+$NIXOS_PROFILE}"
@@ -405,8 +447,9 @@ recap() {
 
 prepare_worktree() {
   WORKTREE=$(mktemp -d "${TMPDIR:-/tmp}/nixos-installer.XXXXXX")
+  resolve_install_repo_source
   run_with_spinner "preparing worktree at ${WORKTREE}" \
-    rsync -a --delete --chmod=Du+rwx,Dgo+rx,Fu+rw,Fgo+r "$REPO_SOURCE"/ "$WORKTREE"/
+    rsync -a --delete --chmod=Du+rwx,Dgo+rx,Fu+rw,Fgo+r "${INSTALL_REPO_SOURCE}/" "$WORKTREE"/
 }
 
 write_worktree_host_defs() {
@@ -478,10 +521,32 @@ EOF
 }
 
 prepare_target_config() {
+  local escaped_username
+  local escaped_name
+  local escaped_email
+
   write_worktree_host_defs
 
   if [[ "$NIXOS_MODE" == "yes" ]]; then
     mkdir -p "$WORKTREE/machines/$HOST"
+  fi
+
+  # Update globals.nix in the worktree so the copied repo reflects the
+  # selected install identity even before private globals are available.
+  escaped_username=$(nix_escape_string "$USERNAME")
+  escaped_name=$(nix_escape_string "$FULL_NAME")
+  escaped_email=$(nix_escape_string "$EMAIL")
+
+  sed -i "s|^  username = .*|  username = \"$escaped_username\";|" "$WORKTREE/globals.nix"
+  if grep -q '^  name = ' "$WORKTREE/globals.nix"; then
+    sed -i "s|^  name = .*|  name = \"$escaped_name\";|" "$WORKTREE/globals.nix"
+  else
+    perl -0pi -e 's/\{\n/\{\n  name = "'"$escaped_name"'";\n/' "$WORKTREE/globals.nix"
+  fi
+  if grep -q '^  email = ' "$WORKTREE/globals.nix"; then
+    sed -i "s|^  email = .*|  email = \"$escaped_email\";|" "$WORKTREE/globals.nix"
+  else
+    perl -0pi -e 's/\{\n/\{\n  email = "'"$escaped_email"'";\n/' "$WORKTREE/globals.nix"
   fi
 
   ok "host definitions written"
@@ -561,10 +626,25 @@ run_nixos_install() {
   ok "hardware-configuration.nix staged"
 
   section "nixos-install"
-  (
+  local install_log=""
+  install_log=$(mktemp)
+
+  if ! (
     cd "$WORKTREE"
-    sudo nixos-install --root /mnt --flake ".#${HOST}"
-  )
+    sudo nixos-install --root /mnt --flake ".#${HOST}" 2>&1 | tee "$install_log"
+  ); then
+    rm -f "$install_log"
+    die "nixos-install failed"
+  fi
+
+  if grep -Eq '^ERROR:' "$install_log"; then
+    err "nixos-install reported errors despite exiting successfully:"
+    grep -E '^ERROR:' "$install_log" | sed 's/^/    /' >&2
+    rm -f "$install_log"
+    die "nixos-install reported an installation error"
+  fi
+
+  rm -f "$install_log"
   ok "nixos-install finished"
 }
 
@@ -579,7 +659,7 @@ copy_repo_to_target() {
   fi
 
   if [[ -z "$REPO_DEST" ]]; then
-    REPO_DEST="/mnt/home/${USERNAME}/src/public/nixos-config"
+    REPO_DEST="/mnt/home/${USERNAME}/src/public/nix-config"
   fi
 
   if [[ -z "$COPY_REPO" ]]; then
@@ -594,6 +674,9 @@ copy_repo_to_target() {
     sudo mkdir -p "$REPO_DEST"
     run_with_spinner "copying repo → ${REPO_DEST}" \
       sudo rsync -a --delete "$WORKTREE"/ "${REPO_DEST}/"
+
+    # Fix ownership inside the target system, where the installed user exists.
+    sudo nixos-enter --root /mnt -c "chown -R ${USERNAME}:users /home/${USERNAME}/src"
   fi
 }
 
@@ -656,6 +739,7 @@ main() {
   script_banner
   resolve_target
   resolve_modes
+  resolve_identity
   resolve_custom_profiles
   resolve_disk
   recap

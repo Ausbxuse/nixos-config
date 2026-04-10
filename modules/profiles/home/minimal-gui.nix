@@ -5,6 +5,7 @@
 }: {
   imports = [
     ./minimal.nix
+    ../../home/syncthing.nix
     ../../home/display-profile.nix
     ../../home/zathura
     ../../home/firefox
@@ -24,5 +25,4 @@
     x11.enable = true;
     x11.defaultCursor = "capitaine-cursors-white";
   };
-
 }

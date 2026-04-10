@@ -25,10 +25,12 @@ Follow the prompts. It will print a UUID at the end.
 
 ### 2. Configure
 
-Edit `globals.nix`:
+Edit the target host entry in private `nix-secrets/hosts.nix`:
 
 ```nix
-recoveryPartUuid = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";  # from step 1
+razy = {
+  recovery.partUuid = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";  # from step 1
+};
 ```
 
 Add the restic password to nix-secrets:
@@ -65,7 +67,7 @@ The service:
 1. Mounts the RECOVERY partition
 2. Creates `recovery-bundle.tar` containing:
    - Host SSH keys (your sops trust anchor)
-   - Git mirror of nixos-config
+   - Git mirror of nix-config
    - Git mirror of nix-secrets
    - Entire `~/vault/` (KeePassXC database + keyfile + notes)
 3. Runs `restic backup ~/` (excludes caches, build artifacts, media)
@@ -166,6 +168,6 @@ If you do run a backup with corrupted files:
 | `~/` (minus Media, caches)              | restic snapshots     | Yes (10 last + daily/weekly/monthly) | Yes                                             |
 | `~/Media/{Pictures,Videos,Music,Audio}` | rsync mirror         | No (latest only)                     | No                                              |
 | Host SSH keys                           | recovery bundle      | No (latest only)                     | N/A (keys don't corrupt)                        |
-| nixos-config                            | git mirror in bundle | Yes (full git history)               | Yes                                             |
+| nix-config                              | git mirror in bundle | Yes (full git history)               | Yes                                             |
 | nix-secrets                             | git mirror in bundle | Yes (full git history)               | Yes                                             |
 | `~/vault/`                              | copy in bundle       | No (latest only)                     | Partially (syncthing versioning on other hosts) |

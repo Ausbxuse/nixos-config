@@ -96,6 +96,7 @@
     src = ../scripts/install-flake.sh;
     runtimeInputs = with pkgs; [
       coreutils
+      git
       gnugrep
       gnused
       gawk

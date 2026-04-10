@@ -134,6 +134,6 @@ RECOVERY_UUID=$(blkid -s UUID -o value "$PART2")
 ok "RECOVERY partition UUID: ${C_BOLD}${RECOVERY_UUID}${C_RESET}"
 printf '\n'
 info "next steps:"
-info "  1. paste UUID into globals.nix as recoveryPartUuid"
+info "  1. paste UUID into the target host's private hosts.nix entry as recovery.partUuid"
 info "  2. add restic password to nix-secrets/secrets.yaml as recovery-restic-password"
 info "  3. rebuild: sudo nixos-rebuild switch --flake .#\$(hostname)"

@@ -1,30 +1,30 @@
 #!/usr/bin/env bash
-# admit-host: regenerate nix-secrets/.sops.yaml from the flake's host list.
+# admit-host: promote staged hosts into nix-secrets/hosts.nix and regenerate
+# nix-secrets/.sops.yaml from the canonical host list.
 #
-# The trust mesh is implicit: every host defined in machines/defs.nix with a
-# `sops.ageKey` field is a sops recipient, plus every entry in
-# machines/operators.nix. This script reads both via `nix eval`, rewrites
-# nix-secrets/.sops.yaml deterministically, and runs `sops updatekeys` to
-# re-encrypt secrets.yaml with the current recipient set.
+# Canonical admitted hosts live in nix-secrets/hosts.nix. Public
+# machines/defs.nix is a staging registry for hosts that have not been
+# admitted yet.
 #
 # Usage:
 #   admit-host                                     regenerate + updatekeys
-#   admit-host --set-host-key HOST AGEKEY          patch machines/defs.nix to
-#                                                  set HOST's sops.ageKey, then
+#   admit-host --set-host-key HOST AGEKEY          promote HOST if needed,
+#                                                  set HOST.sops.ageKey in
+#                                                  nix-secrets/hosts.nix, then
 #                                                  regen
-#   admit-host --set-host-syncthing HOST DEVICEID  patch machines/defs.nix to
-#                                                  set HOST's syncthing.deviceId,
+#   admit-host --set-host-syncthing HOST DEVICEID  promote HOST if needed,
+#                                                  set HOST.syncthing.deviceId
+#                                                  in nix-secrets/hosts.nix,
 #                                                  then regen
-#
-# Adding/removing a host = editing machines/defs.nix directly. This script
-# does NOT mutate defs.nix except via --set-host-key / --set-host-syncthing,
-# which exist so enroll.sh can inject freshly-derived host state
-# non-interactively.
+#   admit-host --set-host-user-ssh-key HOST PUBKEY promote HOST if needed,
+#                                                  set HOST.userSshPubKey in
+#                                                  nix-secrets/hosts.nix, then
+#                                                  regen
 #
 # Environment:
 #   NIX_SECRETS_PATH   path to the nix-secrets git checkout
 #                      (default: $HOME/src/private/nix-secrets)
-#   NIXOS_CONFIG_PATH  path to the nixos-config repo (default: current dir)
+#   NIXOS_CONFIG_PATH  path to the nix-config repo (default: current dir)
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -37,22 +37,26 @@ warn() { printf '\033[1;33m!!\033[0m  %s\n' "$*"; }
 NIXOS_CONFIG_PATH="${NIXOS_CONFIG_PATH:-$PWD}"
 NIX_SECRETS_PATH="${NIX_SECRETS_PATH:-$HOME/src/private/nix-secrets}"
 
-DEFS_FILE="$NIXOS_CONFIG_PATH/machines/defs.nix"
-OPERATORS_FILE="$NIXOS_CONFIG_PATH/machines/operators.nix"
+STAGING_DEFS_FILE="$NIXOS_CONFIG_PATH/machines/defs.nix"
+PRIVATE_HOSTS_FILE="$NIX_SECRETS_PATH/hosts.nix"
 SOPS_YAML="$NIX_SECRETS_PATH/.sops.yaml"
 SECRETS_FILE="$NIX_SECRETS_PATH/secrets.yaml"
 
-[[ -f "$DEFS_FILE" ]]      || die "host defs not found: $DEFS_FILE"
-[[ -f "$OPERATORS_FILE" ]] || die "operators file not found: $OPERATORS_FILE"
+[[ -f "$STAGING_DEFS_FILE" ]] || die "staging host defs not found: $STAGING_DEFS_FILE"
 [[ -d "$NIX_SECRETS_PATH" ]] || die "nix-secrets repo not found: $NIX_SECRETS_PATH"
-[[ -f "$SECRETS_FILE" ]]   || die "secrets file not found: $SECRETS_FILE"
-
-# -------------------------------------------------------------------- args
+[[ -f "$SECRETS_FILE" ]] || die "secrets file not found: $SECRETS_FILE"
+if [[ ! -f "$PRIVATE_HOSTS_FILE" ]]; then
+  cat >"$PRIVATE_HOSTS_FILE" <<'EOF'
+{lib, const, ...}: {
+}
+EOF
+fi
 
 MODE="rotate"
 SET_HOST=""
 SET_KEY=""
 SET_DEVID=""
+SET_USER_SSH_PUBKEY=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -68,8 +72,14 @@ while [[ $# -gt 0 ]]; do
       SET_DEVID="${3:-}"
       shift 3 || die "--set-host-syncthing requires HOST and DEVICEID"
       ;;
+    --set-host-user-ssh-key)
+      MODE="set-host-user-ssh-key"
+      SET_HOST="${2:-}"
+      SET_USER_SSH_PUBKEY="${3:-}"
+      shift 3 || die "--set-host-user-ssh-key requires HOST and PUBKEY"
+      ;;
     --help|-h)
-      sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *) die "unknown argument: $1" ;;
@@ -84,18 +94,15 @@ fi
 
 if [[ "$MODE" == "set-host-syncthing" ]]; then
   [[ -n "$SET_HOST" && -n "$SET_DEVID" ]] || die "--set-host-syncthing requires HOST and DEVICEID"
-  # syncthing device IDs are 56-char base32 in 7 dash-separated groups, e.g.
-  # ABCDEFG-HIJKLMN-... (length 63 with dashes). Be lenient — just sanity-check.
   [[ "$SET_DEVID" =~ ^[A-Z0-9-]+$ && ${#SET_DEVID} -ge 56 ]] \
     || die "syncthing device id does not look valid: $SET_DEVID"
 fi
 
-# -------------------------------------------------------------------- decryption identity
-#
-# sops updatekeys must decrypt secrets.yaml before re-encrypting it. Check up
-# front so we fail BEFORE touching any files. sops reads age identities via
-# SOPS_AGE_KEY_FILE / SOPS_AGE_KEY / SOPS_AGE_KEY_CMD. If none is set, try to
-# derive one from the host SSH key with ssh-to-age.
+if [[ "$MODE" == "set-host-user-ssh-key" ]]; then
+  [[ -n "$SET_HOST" && -n "$SET_USER_SSH_PUBKEY" ]] || die "--set-host-user-ssh-key requires HOST and PUBKEY"
+  [[ "$SET_USER_SSH_PUBKEY" =~ ^ssh-(ed25519|rsa|ecdsa)[[:space:]]+[A-Za-z0-9+/=]+([[:space:]].*)?$ ]] \
+    || die "user ssh pubkey does not look valid: $SET_USER_SSH_PUBKEY"
+fi
 
 if [[ -z "${SOPS_AGE_KEY_FILE:-}" && -z "${SOPS_AGE_KEY:-}" && -z "${SOPS_AGE_KEY_CMD:-}" ]]; then
   if [[ -r /var/lib/sops-nix/key.txt ]]; then
@@ -104,7 +111,6 @@ if [[ -z "${SOPS_AGE_KEY_FILE:-}" && -z "${SOPS_AGE_KEY:-}" && -z "${SOPS_AGE_KE
   elif [[ -r /etc/ssh/ssh_host_ed25519_key ]]; then
     _age_tmp=$(mktemp)
     chmod 600 "$_age_tmp"
-    # shellcheck disable=SC2064
     trap "rm -f '$_age_tmp'" EXIT
     if ! ssh-to-age -private-key -i /etc/ssh/ssh_host_ed25519_key -o "$_age_tmp" 2>/dev/null; then
       die "ssh-to-age failed to convert /etc/ssh/ssh_host_ed25519_key"
@@ -121,23 +127,18 @@ if [[ -z "${SOPS_AGE_KEY_FILE:-}" && -z "${SOPS_AGE_KEY:-}" && -z "${SOPS_AGE_KE
   die "cannot run sops updatekeys without a decryption identity"
 fi
 
-# -------------------------------------------------------------------- --set-host-key
+host_defined_in_file() {
+  local file="$1" host="$2"
+  grep -q "^  ${host} = {" "$file"
+}
 
-# Patch machines/defs.nix in place: inside the block `  ${HOST} = {` ... `  };`,
-# either replace an existing `sops.ageKey = "...";` line or insert one right
-# after the opening brace. Uses awk for AST-free but structurally precise edit.
 ensure_host_stub() {
-  # If $1 is not already defined in defs.nix, append a minimal host stub
-  # right before the top-level closing brace. The stub declares no
-  # nixos.enable / home.enable, so lib/default.nix filters it out of
-  # nixosConfigurations/homeConfigurations — it exists only as a sops
-  # recipient. The user can flesh it out later when they want to manage
-  # the host from this peer instead of custom.
-  local host="$1"
-  if grep -q "^  ${host} = {" "$DEFS_FILE"; then
+  local file="$1" host="$2"
+  if host_defined_in_file "$file" "$host"; then
     return 0
   fi
-  info "host '${host}' not found in defs.nix — inserting minimal stub"
+
+  info "host '${host}' not found in $(basename "$file") — inserting minimal stub"
   local tmp
   tmp=$(mktemp)
   awk -v host="$host" '
@@ -161,19 +162,105 @@ ensure_host_stub() {
         print lines[i]
       }
     }
-  ' "$DEFS_FILE" > "$tmp" || { rm -f "$tmp"; die "failed to locate top-level brace in $DEFS_FILE"; }
-  cat "$tmp" > "$DEFS_FILE"
+  ' "$file" >"$tmp" || { rm -f "$tmp"; die "failed to locate top-level brace in $file"; }
+  cat "$tmp" >"$file"
   rm -f "$tmp"
-  ok "defs.nix: inserted stub for ${host}"
+  ok "$(basename "$file"): inserted stub for ${host}"
+}
+
+extract_host_block() {
+  local file="$1" host="$2"
+  awk -v host="$host" '
+    BEGIN { capture = 0; depth = 0 }
+    {
+      line = $0
+      if (!capture && line ~ ("^  " host " = \\{[[:space:]]*$")) {
+        capture = 1
+        depth = 1
+        print line
+        next
+      }
+      if (capture) {
+        print line
+        n = gsub(/\{/, "&", line); depth += n
+        n = gsub(/\}/, "&", line); depth -= n
+        if (depth == 0) {
+          exit 0
+        }
+      }
+    }
+    END {
+      if (!capture) exit 1
+      if (depth != 0) exit 2
+    }
+  ' "$file"
+}
+
+remove_host_block() {
+  local file="$1" host="$2"
+  local tmp
+  tmp=$(mktemp)
+  awk -v host="$host" '
+    BEGIN { skip = 0; depth = 0 }
+    {
+      line = $0
+      if (!skip && line ~ ("^  " host " = \\{[[:space:]]*$")) {
+        skip = 1
+        depth = 1
+        next
+      }
+      if (skip) {
+        n = gsub(/\{/, "&", line); depth += n
+        n = gsub(/\}/, "&", line); depth -= n
+        if (depth == 0) {
+          skip = 0
+        }
+        next
+      }
+      print line
+    }
+  ' "$file" >"$tmp"
+  cat "$tmp" >"$file"
+  rm -f "$tmp"
+}
+
+append_host_block() {
+  local file="$1" block_file="$2"
+  local tmp
+  tmp=$(mktemp)
+  awk -v block_file="$block_file" '
+    BEGIN {
+      while ((getline line < block_file) > 0) {
+        block[++block_len] = line
+      }
+      close(block_file)
+    }
+    { lines[NR] = $0 }
+    END {
+      last_close = 0
+      for (i = NR; i >= 1; i--) {
+        if (lines[i] ~ /^\}[[:space:]]*$/) { last_close = i; break }
+      }
+      if (last_close == 0) exit 2
+      for (i = 1; i <= NR; i++) {
+        if (i == last_close) {
+          if (block_len > 0) {
+            print ""
+            for (j = 1; j <= block_len; j++) {
+              print block[j]
+            }
+          }
+        }
+        print lines[i]
+      }
+    }
+  ' "$file" >"$tmp" || { rm -f "$tmp"; die "failed to locate top-level brace in $file"; }
+  cat "$tmp" >"$file"
+  rm -f "$tmp"
 }
 
 patch_host_field() {
-  # patch_host_field HOST FIELD_REGEX INSERT_LINE
-  # Inside the block `  ${HOST} = {` ... `  };`, replace any existing line
-  # whose left-hand-side matches FIELD_REGEX (at host top-level) with
-  # INSERT_LINE, or insert INSERT_LINE right after the opening brace if no
-  # such line exists.
-  local host="$1" field_re="$2" insert_line="$3"
+  local file="$1" host="$2" field_re="$3" insert_line="$4"
   local tmp
   tmp=$(mktemp)
   awk -v host="$host" -v field_re="$field_re" -v insert_line="$insert_line" '
@@ -184,15 +271,12 @@ patch_host_field() {
         in_host = 1
         depth = 1
         print line
-        # Insert right after the opening brace; any pre-existing matching
-        # line is dropped below so we effectively replace-or-insert.
         print insert_line
         next
       }
       if (in_host) {
         n = gsub(/\{/, "&", line); depth += n
         n = gsub(/\}/, "&", line); depth -= n
-        # Drop any pre-existing field line at host top level.
         if (depth >= 1 && line ~ field_re) {
           next
         }
@@ -202,45 +286,78 @@ patch_host_field() {
       }
       print line
     }
-  ' "$DEFS_FILE" > "$tmp"
+  ' "$file" >"$tmp"
 
-  if ! grep -q "^  ${host} = {" "$DEFS_FILE"; then
+  if ! host_defined_in_file "$file" "$host"; then
     rm -f "$tmp"
-    die "host '${host}' not found in $DEFS_FILE (add it before setting its fields)"
+    die "host '${host}' not found in $file"
   fi
 
-  cat "$tmp" > "$DEFS_FILE"
+  cat "$tmp" >"$file"
   rm -f "$tmp"
 }
 
-# Patch machines/defs.nix in place for --set-host-key / --set-host-syncthing.
+promote_host() {
+  local host="$1"
+  local block_tmp
+
+  if host_defined_in_file "$PRIVATE_HOSTS_FILE" "$host"; then
+    if host_defined_in_file "$STAGING_DEFS_FILE" "$host"; then
+      info "removing duplicate staged host '${host}' from $(basename "$STAGING_DEFS_FILE")"
+      remove_host_block "$STAGING_DEFS_FILE" "$host"
+      ok "staging defs updated: removed ${host}"
+    fi
+    return 0
+  fi
+
+  if host_defined_in_file "$STAGING_DEFS_FILE" "$host"; then
+    block_tmp=$(mktemp)
+    extract_host_block "$STAGING_DEFS_FILE" "$host" >"$block_tmp" \
+      || { rm -f "$block_tmp"; die "failed to extract staged host '${host}'"; }
+    append_host_block "$PRIVATE_HOSTS_FILE" "$block_tmp"
+    remove_host_block "$STAGING_DEFS_FILE" "$host"
+    rm -f "$block_tmp"
+    ok "promoted ${host} from staging defs into hosts.nix"
+    return 0
+  fi
+
+  warn "host '${host}' not found in staging defs or private hosts; creating minimal private stub"
+  ensure_host_stub "$PRIVATE_HOSTS_FILE" "$host"
+}
+
+if [[ "$MODE" != "rotate" ]]; then
+  promote_host "$SET_HOST"
+fi
+
 if [[ "$MODE" == "set-host-key" ]]; then
-  ensure_host_stub "$SET_HOST"
-  info "patching $DEFS_FILE: ${SET_HOST}.sops.ageKey"
-  patch_host_field "$SET_HOST" \
+  info "patching $PRIVATE_HOSTS_FILE: ${SET_HOST}.sops.ageKey"
+  patch_host_field "$PRIVATE_HOSTS_FILE" "$SET_HOST" \
     '^[[:space:]]*sops\.ageKey[[:space:]]*=' \
     "    sops.ageKey = \"${SET_KEY}\";"
-  ok "defs.nix updated: ${SET_HOST}.sops.ageKey"
+  ok "hosts.nix updated: ${SET_HOST}.sops.ageKey"
 fi
 
 if [[ "$MODE" == "set-host-syncthing" ]]; then
-  ensure_host_stub "$SET_HOST"
-  info "patching $DEFS_FILE: ${SET_HOST}.syncthing.deviceId"
-  patch_host_field "$SET_HOST" \
+  info "patching $PRIVATE_HOSTS_FILE: ${SET_HOST}.syncthing.deviceId"
+  patch_host_field "$PRIVATE_HOSTS_FILE" "$SET_HOST" \
     '^[[:space:]]*syncthing\.deviceId[[:space:]]*=' \
     "    syncthing.deviceId = \"${SET_DEVID}\";"
-  ok "defs.nix updated: ${SET_HOST}.syncthing.deviceId"
+  ok "hosts.nix updated: ${SET_HOST}.syncthing.deviceId"
 fi
 
-# -------------------------------------------------------------------- read keys from flake
+if [[ "$MODE" == "set-host-user-ssh-key" ]]; then
+  info "patching $PRIVATE_HOSTS_FILE: ${SET_HOST}.userSshPubKey"
+  patch_host_field "$PRIVATE_HOSTS_FILE" "$SET_HOST" \
+    '^[[:space:]]*userSshPubKey[[:space:]]*=' \
+    "    userSshPubKey = \"${SET_USER_SSH_PUBKEY}\";"
+  ok "hosts.nix updated: ${SET_HOST}.userSshPubKey"
+fi
 
-info "enumerating recipients from $DEFS_FILE and $OPERATORS_FILE"
+info "enumerating recipients from $PRIVATE_HOSTS_FILE"
 
-# Read host age keys: { hostname = "age1..."; } from every host in defs.nix
-# that declares sops.ageKey. Nix stub so we don't need const/lib.
 host_keys_json=$(nix eval --impure --json --expr "
   let
-    defs = import $DEFS_FILE { lib = (import <nixpkgs> {}).lib; const = { username = \"x\"; supported-systems = []; }; };
+    defs = import $PRIVATE_HOSTS_FILE { lib = (import <nixpkgs> {}).lib; const = { username = \"x\"; supported-systems = []; }; };
   in
     builtins.listToAttrs (
       builtins.filter (x: x != null) (
@@ -253,18 +370,11 @@ host_keys_json=$(nix eval --impure --json --expr "
         )
       )
     )
-") || die "failed to evaluate host keys from $DEFS_FILE"
+") || die "failed to evaluate host keys from $PRIVATE_HOSTS_FILE"
 
-operator_keys_json=$(nix eval --impure --json --expr "import $OPERATORS_FILE") \
-  || die "failed to evaluate operator keys from $OPERATORS_FILE"
-
-# Merge into one sorted list of (name, key) — operator names get a leading
-# '@' in the YAML anchor so they can't collide with hostnames.
 merged_json=$(jq -n \
   --argjson hosts "$host_keys_json" \
-  --argjson ops "$operator_keys_json" \
   '($hosts | to_entries | map({name: .key, key: .value, anchor: .key}))
- + ($ops   | to_entries | map({name: ("@" + .key), key: .value, anchor: (.key + "_op")}))
  | sort_by(.anchor)')
 
 count=$(printf '%s' "$merged_json" | jq 'length')
@@ -272,14 +382,11 @@ if [[ "$count" -eq 0 ]]; then
   die "refusing to write empty .sops.yaml — no recipients found"
 fi
 
-# -------------------------------------------------------------------- regenerate .sops.yaml
-
 info "regenerating $SOPS_YAML"
 {
   cat <<'HEAD'
 # GENERATED FILE — do not edit by hand.
-# Source of truth: nixos-config/machines/defs.nix (per-host sops.ageKey)
-#                + nixos-config/machines/operators.nix (human operators).
+# Source of truth: nix-secrets/hosts.nix (admitted hosts with sops.ageKey)
 # Regenerate with: nix run .#admit-host
 
 keys:
@@ -296,11 +403,9 @@ creation_rules:
 MID
 
   printf '%s' "$merged_json" | jq -r '.[] | "          - *\(.anchor)"'
-} > "$SOPS_YAML"
+} >"$SOPS_YAML"
 
 ok ".sops.yaml regenerated ($count recipient(s))"
-
-# -------------------------------------------------------------------- sops updatekeys
 
 info "running sops updatekeys on $SECRETS_FILE"
 pre_owner=$(stat -c '%u:%g' "$SECRETS_FILE" 2>/dev/null || true)
@@ -324,12 +429,11 @@ if [[ -n "$pre_mode" ]]; then
 fi
 ok "secrets.yaml re-encrypted with current key set"
 
-# -------------------------------------------------------------------- summary
-
 printf '\n'
 info "done. changes staged (not committed):"
-if [[ "$MODE" == "set-host-key" || "$MODE" == "set-host-syncthing" ]]; then
-  printf '  %s\n' "$DEFS_FILE"
+if [[ "$MODE" != "rotate" ]]; then
+  printf '  %s\n' "$STAGING_DEFS_FILE"
+  printf '  %s\n' "$PRIVATE_HOSTS_FILE"
 fi
 printf '  %s\n' "$SOPS_YAML"
 printf '  %s\n' "$SECRETS_FILE"

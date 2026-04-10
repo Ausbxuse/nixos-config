@@ -194,7 +194,7 @@ recovery-bundle/
 │       ├── ssh_host_ed25519_key
 │       └── ssh_host_ed25519_key.pub
 ├── nix-secrets-clone/        # shallow git clone with origin configured
-├── nixos-config-clone/       # shallow git clone with origin configured
+├── nix-config-clone/       # shallow git clone with origin configured
 ├── github-pat.txt            # GitHub PAT with repo + admin:public_key scopes
 ├── vps-ssh-key               # SSH key authorized on the VPS git server
 ├── vault.kdbx                # keepassxc DB (passwords + TOTP, keyfile-protected)
@@ -255,9 +255,9 @@ Two distinct restore scenarios:
    and can pull nix-secrets + rebuild, rotate to a fresh key:
    - Let the new host generate its own fresh SSH key
    - Run `admit-host --set-host-key <hostname> <age-key>` to write the fresh
-     key into `machines/defs.nix` and re-encrypt with both keys active
+     key into `nix-secrets/hosts.nix` and re-encrypt with both keys active
    - Remove the restored-from-bundle key by editing the adopted host's
-     `sops.ageKey` in `defs.nix` (or deleting its entry), then
+     `sops.ageKey` in `hosts.nix` (or deleting its entry), then
      `just rotate-secrets`
    - Refresh the bundle with the new host key
 
@@ -318,7 +318,7 @@ is no longer needed for syncthing peer discovery.
 On the new host after stage 1 completes:
 
 ```bash
-nix run github:ausbxuse/nixos-config#enroll
+nix run github:ausbxuse/nix-config#enroll
 ```
 
 The script:
@@ -339,8 +339,7 @@ The script:
 5. On the admitting peer, `admit-host --set-host-key`:
    - Patches `machines/defs.nix` to set `sops.ageKey` for the named host
      (host entry must already exist in `defs.nix`)
-   - Regenerates `nix-secrets/.sops.yaml` from `machines/defs.nix` +
-     `machines/operators.nix`
+   - Regenerates `nix-secrets/.sops.yaml` from `nix-secrets/hosts.nix`
    - Runs `sops updatekeys -y nix-secrets/secrets.yaml` — succeeds because
      the peer's own host age key can decrypt
    - (Manual follow-up) commit both repos; GitHub/syncthing propagation
@@ -383,7 +382,7 @@ per-host key once the new machine is functional.
 
 ```bash
 sudo mount /dev/disk/by-label/RECOVERY /mnt/usb
-nix run github:ausbxuse/nixos-config#enroll -- --bundle /mnt/usb/recovery-bundle.tar
+nix run github:ausbxuse/nix-config#enroll -- --bundle /mnt/usb/recovery-bundle.tar
 ```
 
 The script:
@@ -446,7 +445,7 @@ git push
 Then on consuming hosts:
 
 ```bash
-sudo nixos-rebuild switch --flake ~/src/public/nixos-config#<host>
+sudo nixos-rebuild switch --flake ~/src/public/nix-config#<host>
 ```
 
 No admin key required. Works offline as long as you are editing a copy you
@@ -539,7 +538,7 @@ The worst case, and the reason the bundle exists.
    - sops-nix decrypts secrets using the restored razy key
    - Script then rotates to a fresh host SSH key so the recovered machine
      no longer shares identity with the "old razy" record
-5. Re-push nix-secrets and nixos-config from the bundle's clones to a
+5. Re-push nix-secrets and nix-config from the bundle's clones to a
    freshly enrolled git remote on a new VPS once it exists.
 6. Build remaining personal hosts from this one via the peer path.
 
@@ -651,7 +650,7 @@ sops set secrets.yaml '["syncthing-cert-razy"]' "$(cat /tmp/cert.json)"
 sops set secrets.yaml '["syncthing-key-razy"]'  "$(cat /tmp/key.json)"
 rm /tmp/cert.json /tmp/key.json
 
-# 4. Record device ID in defs.nix
+# 4. Record device ID in hosts.nix
 ```
 
 ```nix
@@ -720,13 +719,13 @@ component end-to-end in ~5 minutes using `nix run .#nixos-system-install-test`
 push into the VM:
 
 ```bash
-cd ~/src/public/nixos-config
-git add machines/defs.nix machines/operators.nix \
+cd ~/src/public/nix-config
+git add machines/defs.nix \
         scripts/admit-host.sh scripts/enroll.sh pkgs/default.nix flake.nix \
         Justfile modules/home/sops.nix modules/nixos/sops.nix \
         modules/profiles/nixos/minimal.nix secrets/nix-secrets/
-git commit -m 'phase A: per-host sops.ageKey in defs.nix + admit-host'
-( cd ~/src/private/nix-secrets && git add .sops.yaml secrets.yaml home.nix system.nix \
+git commit -m 'phase A: staging defs + admit-host tooling'
+( cd ~/src/private/nix-secrets && git add hosts.nix .sops.yaml secrets.yaml home.nix system.nix \
     && git commit -m 'phase A: switch to per-host age keys' )
 ```
 
@@ -734,7 +733,7 @@ git commit -m 'phase A: per-host sops.ageKey in defs.nix + admit-host'
 decryption on first boot — install just works):
 
 ```bash
-cd ~/src/public/nixos-config
+cd ~/src/public/nix-config
 KEEP_VM=1 nix run .#nixos-system-install-test
 ```
 
@@ -753,11 +752,11 @@ echo "VM age pubkey: $VM_AGE_PUB"
 
 **3. Admit the VM from razy** — patches `machines/defs.nix` to set
 `custom-nixos.sops.ageKey`, regenerates `.sops.yaml`, re-encrypts `secrets.yaml`
-for all recipients (razy + custom-nixos + operators). Requires `custom-nixos` to
+for all recipients (razy + custom-nixos). Requires `custom-nixos` to
 already exist in `defs.nix`.
 
 ```bash
-cd ~/src/public/nixos-config
+cd ~/src/public/nix-config
 sudo -E nix run .#admit-host -- --set-host-key custom-nixos "$VM_AGE_PUB"
 ```
 
@@ -775,7 +774,7 @@ sshpass -p nixos rsync -a --delete \
 sshpass -p nixos ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
   -p 2224 zhenyu@127.0.0.1 bash <<'EOF'
 set -euxo pipefail
-cd ~/src/public/nixos-config 2>/dev/null || cd /etc/nixos
+cd ~/src/public/nix-config 2>/dev/null || cd /etc/nixos
 sudo nixos-rebuild switch --flake .#custom-nixos \
   --override-input nix-secrets path:/tmp/nix-secrets \
   --show-trace
@@ -792,9 +791,9 @@ EOF
 **6. Teardown** (critical — don't leave `custom-nixos` as a trusted host):
 
 ```bash
-cd ~/src/public/nixos-config
-# Remove the sops.ageKey line from custom-nixos in machines/defs.nix (hand-edit
-# or `git checkout -- machines/defs.nix` if this was an uncommitted change),
+cd ~/src/public/nix-config
+# Remove the custom-nixos host entry from ~/src/private/nix-secrets/hosts.nix
+# (or, if it was never admitted, from public machines/defs.nix),
 # then rotate:
 sudo -E nix run .#admit-host
 pkill -f 'qemu.*nixos-installer' || true
@@ -805,7 +804,7 @@ Steps 2–5 are exactly what the Phase B `enroll` script will fold into
 
 ### Phase B+ — automated test (future)
 
-The nixos-config repo already has a VM test harness
+The nix-config repo already has a VM test harness
 (`tests/nixos-installer-vm.nix`). Once `enroll` exists, the flow will be:
 
 1. VM boots the installer ISO

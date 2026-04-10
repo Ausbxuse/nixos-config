@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: let
-  nvimPath = "${config.home.homeDirectory}/src/public/nixos-config/modules/home/nvim/nvim";
+  nvimPath = "${config.home.homeDirectory}/src/public/nix-config/modules/home/nvim/nvim";
   gnomeClipboard = pkgs.stdenv.mkDerivation {
     pname = "nvim-gnome-clipboard";
     version = "1";

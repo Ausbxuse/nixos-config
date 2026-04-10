@@ -11,4 +11,5 @@
 
   # virtualisation.virtualbox.host.enable = true; # has issues on nixpkgs unstable 2-19
   users.extraGroups.vboxusers.members = ["user-with-access-to-virtualbox"];
+  virtualisation.spiceUSBRedirection.enable = true;
 }

@@ -29,7 +29,7 @@
 
   programs.fzf = {
     enable = true;
-    enableZshIntegration = true;
+    enableZshIntegration = false;
     fileWidgetCommand = "fd --exclude .git -H --max-depth 10 -t f -t l";
     changeDirWidgetCommand = "fd --exclude .git -H --max-depth 12 -t d";
     defaultOptions = ["--reverse"];
@@ -37,7 +37,7 @@
 
   programs.zoxide = {
     enable = true;
-    enableZshIntegration = true;
+    enableZshIntegration = false;
   };
 
   programs.yazi = {
@@ -132,12 +132,14 @@
 
   programs.git = {
     enable = true;
-    settings = {
-      user = {
-        name = const.name;
-        email = const.email;
-      };
-    };
+    settings = lib.mkMerge [
+      (lib.optionalAttrs (const ? name) {
+        user.name = const.name;
+      })
+      (lib.optionalAttrs (const ? email) {
+        user.email = const.email;
+      })
+    ];
   };
 
   programs.delta = {
@@ -154,6 +156,17 @@
       whitespace-error-style = "22 reverse";
     };
   };
+
+  home.activation.compileZshCompdump = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    dotdir=${config.programs.zsh.dotDir}
+    ${pkgs.zsh}/bin/zsh -fc '
+      autoload -U compinit
+      compinit -d "'"$dotdir"'"/.zcompdump -C
+      if [[ -s "'"$dotdir"'"/.zcompdump ]]; then
+        zcompile "'"$dotdir"'"/.zcompdump
+      fi
+    ' >/dev/null 2>&1 || true
+  '';
 
   programs.zsh = {
     enable = true;
@@ -184,6 +197,7 @@
       s = "sdcv -c -u 'WordNet® 3.0 (En-En)'";
       ga = "git commit -a";
       sdn = "sudo shutdown -h now";
+      watt = "awk -v c=\"$(< /sys/class/power_supply/BAT0/current_now)\" -v v=\"$(< /sys/class/power_supply/BAT0/voltage_now)\" 'BEGIN { printf \"%.2f W\\n\", (c * v) / 1e12 }'";
       f = "$FILE";
       e = "$EDITOR";
       v = "$EDITOR";
@@ -205,21 +219,78 @@
     };
     history.size = 10000000;
     history.save = 10000000;
-    history.path = "${config.xdg.cacheHome}/zsh/history";
+    history.path = "${config.xdg.dataHome}/zsh/history";
     history.extended = true;
     autocd = true;
     defaultKeymap = "viins";
     completionInit = ''
-      autoload -U compinit
       zstyle ':completion:*' matcher-list "" 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
-      zmodload zsh/complist
-      compinit
-      _comp_options+=(globdots)		# Include hidden files.
       export KEYTIMEOUT=1
     '';
 
     initContent = ''
       ${builtins.readFile ./zshrc}
+      ${lib.optionalString config.programs.zsh.enable ''
+        # Show a simple prompt immediately, then load slower interactive extras after the first prompt.
+        if [[ $options[zle] = on ]]; then
+          printf '\e[6 q'
+          PROMPT='%F{4}%~%f
+%F{5}❯%f '
+          RPROMPT=""
+          source ${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+          typeset -g __zsh_deferred_fd=
+          typeset -g __zsh_completion_ready=
+
+          __zsh_init_completion() {
+            [[ -n $__zsh_completion_ready ]] && return
+            __zsh_completion_ready=1
+            autoload -U compinit
+            zmodload zsh/complist
+            compinit -d ${config.programs.zsh.dotDir}/.zcompdump -C
+            _comp_options+=(globdots)
+          }
+
+          __zsh_first_complete() {
+            __zsh_init_completion
+            zle expand-or-complete
+          }
+
+          zle -N __zsh_first_complete
+          bindkey '^I' __zsh_first_complete
+
+          __zsh_load_deferred_extras() {
+            local fd=$1
+            zle -F "$fd"
+            read -u "$fd" -r _ 2>/dev/null || true
+            exec {__zsh_deferred_fd}<&-
+            unset __zsh_deferred_fd
+
+            source <(${pkgs.fzf}/bin/fzf --zsh)
+            source ${inputs.zsh-better-prompt.packages.${pkgs.stdenv.hostPlatform.system}.default}/share/better-prompt/better-prompt.zsh
+            source ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
+            source ${pkgs.zsh-fzf-tab}/share/fzf-tab/fzf-tab.plugin.zsh
+            eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
+            eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
+
+            if (( $+functions[_zsh_autosuggest_bind_widgets] )); then
+              _zsh_autosuggest_bind_widgets
+            fi
+
+            printf '\e[6 q'
+            zle reset-prompt
+          }
+
+          __zsh_schedule_deferred_extras() {
+            add-zsh-hook -d precmd __zsh_schedule_deferred_extras
+            exec {__zsh_deferred_fd}< <(printf ready)
+            zle -F "$__zsh_deferred_fd" __zsh_load_deferred_extras
+          }
+
+          autoload -Uz add-zsh-hook
+          add-zsh-hook precmd __zsh_schedule_deferred_extras
+        fi
+      ''}
       ${lib.optionalString ((hostDefs.${hostname}.visibility or "private") == "private" && lib.hasAttrByPath ["sops" "secrets" "anthropic"] config && lib.hasAttrByPath ["sops" "secrets" "gemini"] config) ''
         export ANTHROPIC_API_KEY="$(cat ${config.sops.secrets.anthropic.path})"
         export GEMINI_API_KEY="$(cat ${config.sops.secrets.gemini.path})"
@@ -234,29 +305,6 @@
       fi
     '';
     plugins = [
-      {
-        name = "zsh-better-prompt";
-        src = inputs.zsh-better-prompt.packages.${pkgs.stdenv.hostPlatform.system}.default;
-        file = "share/better-prompt/better-prompt.zsh";
-      }
-      # fast-syntax-highlighting
-      {
-        name = "fast-syntax-highlighting";
-        src = pkgs.zsh-fast-syntax-highlighting;
-        file = "share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh";
-      }
-
-      {
-        name = "fzf-tab";
-        src = pkgs.zsh-fzf-tab;
-        file = "share/fzf-tab/fzf-tab.plugin.zsh";
-      }
-      {
-        name = "zsh-autosuggestions";
-        src = pkgs.zsh-autosuggestions;
-        file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh";
-      }
-
       {
         name = "zsh-history-substring-search";
         src = pkgs.zsh-history-substring-search;

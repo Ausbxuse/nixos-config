@@ -17,13 +17,17 @@
 # Operations
 
 - **New host quick start** (one-page happy path: install → secrets → vault):
-  - [docs/new-host-quickstart.md](/home/zhenyu/src/public/nixos-config/docs/new-host-quickstart.md)
+  - [docs/new-host-quickstart.md](/home/zhenyu/src/public/nix-config/docs/new-host-quickstart.md)
+- **Syncthing quick start** (common paths for managed hosts and phones):
+  - [docs/syncthing-quickstart.md](/home/zhenyu/src/public/nix-config/docs/syncthing-quickstart.md)
+- **Syncthing guide** (topology, device cases, troubleshooting):
+  - [docs/syncthing.md](/home/zhenyu/src/public/nix-config/docs/syncthing.md)
 - Installation and bring-up guide (detailed):
-  - [docs/installation.md](/home/zhenyu/src/public/nixos-config/docs/installation.md)
+  - [docs/installation.md](/home/zhenyu/src/public/nix-config/docs/installation.md)
 - Full design / disaster recovery / trust model:
-  - [docs/reproducing-from-scratch.md](/home/zhenyu/src/public/nixos-config/docs/reproducing-from-scratch.md)
+  - [docs/reproducing-from-scratch.md](/home/zhenyu/src/public/nix-config/docs/reproducing-from-scratch.md)
 - Machine-specific notes:
-  - [docs/razy-bringup.md](/home/zhenyu/src/public/nixos-config/docs/razy-bringup.md)
+  - [docs/razy-bringup.md](/home/zhenyu/src/public/nix-config/docs/razy-bringup.md)
 
 # Future work
 
@@ -33,8 +37,8 @@
 
 # Minecraft notes
 
-- Prism + declarative Minecraft currently builds a pinned `.mrpack` from [`modules/home/minecraft/sources.nix`](/home/zhenyu/src/public/nixos-config/modules/home/minecraft/sources.nix).
+- Prism + declarative Minecraft currently builds a pinned `.mrpack` from [`modules/home/minecraft/sources.nix`](/home/zhenyu/src/public/nix-config/modules/home/minecraft/sources.nix).
 - Important failure mode: it is not enough to update `sources.dependencies."fabric-loader"` in Nix. The generated `modrinth.index.json` inside the `.mrpack` must also be rewritten.
 - Symptom: Prism imports the pack, but launch fails with Fabric saying mods like `Chat Heads` or `Visible Traders` require `fabric-loader >= 0.17.0` while `0.16.14` is present.
 - Root cause: the builder was preserving the base Fabulously Optimized pack's dependency block, so the final `.mrpack` still advertised the old loader even after `sources.nix` was updated.
-- Fix: [`pkgs/minecraft/mk-mrpack.nix`](/home/zhenyu/src/public/nixos-config/pkgs/minecraft/mk-mrpack.nix) must rewrite `modrinth.index.json.dependencies`, not just the pack name/version.
+- Fix: [`pkgs/minecraft/mk-mrpack.nix`](/home/zhenyu/src/public/nix-config/pkgs/minecraft/mk-mrpack.nix) must rewrite `modrinth.index.json.dependencies`, not just the pack name/version.

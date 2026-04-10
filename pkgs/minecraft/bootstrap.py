@@ -9,9 +9,8 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-
 API = "https://api.modrinth.com/v2"
-USER_AGENT = "nixos-config-minecraft-bootstrap/1.0"
+USER_AGENT = "nix-config-minecraft-bootstrap/1.0"
 MINECRAFT_VERSION = "1.21.11"
 INSTANCE_NAME = "Fabulously Optimized 1.21.11"
 BASE_PACK_SLUG = "fabulously-optimized"

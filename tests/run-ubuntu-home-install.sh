@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 readonly LOCAL_REPO="${LOCAL_REPO:-$PWD}"
-readonly REMOTE_REPO="${REMOTE_REPO:-/home/zhenyu/src/public/nixos-config}"
+readonly REMOTE_REPO="${REMOTE_REPO:-/home/zhenyu/src/public/nix-config}"
 readonly REPO_FLAKE="${REPO_FLAKE:-${REMOTE_REPO}}"
 readonly UBUNTU_RELEASE="${UBUNTU_RELEASE:-24.04}"
 readonly UBUNTU_SERIES="${UBUNTU_SERIES:-noble}"
@@ -15,7 +15,7 @@ readonly KEEP_VM="${KEEP_VM:-0}"
 readonly HOSTNAME="${HOSTNAME_OVERRIDE:-ubuntu-custom}"
 readonly HOME_PROFILE="${HOME_PROFILE:-minimal}"
 readonly DISPLAY_PROFILE="${DISPLAY_PROFILE:-}"
-readonly CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/nixos-config-tests"
+readonly CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/nix-config-tests"
 
 WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/ubuntu-home-install.XXXXXX")"
 IMG_CACHE="${CACHE_DIR}/${UBUNTU_SERIES}-server-cloudimg-amd64.img"
@@ -105,7 +105,7 @@ runcmd:
 EOF
 
   cat >"${WORKDIR}/meta-data" <<EOF
-instance-id: nixos-config-ubuntu-home-test
+instance-id: nix-config-ubuntu-home-test
 local-hostname: ${HOSTNAME}
 EOF
 
@@ -150,7 +150,7 @@ install_nix() {
 run_home_install() {
   info "Running custom home-only install inside Ubuntu guest..."
   local install_args
-  install_args="--host ${HOSTNAME} --home --no-nixos --home-profile ${HOME_PROFILE} --yes"
+  install_args="--host ${HOSTNAME} --name 'Test User' --email 'test@example.com' --home --no-nixos --home-profile ${HOME_PROFILE} --yes"
 
   if [[ -n "$DISPLAY_PROFILE" ]]; then
     install_args="${install_args} --display-profile ${DISPLAY_PROFILE}"

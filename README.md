@@ -2,12 +2,12 @@
 
 The canonical installation and bring-up guide is:
 
-- [docs/installation.md](/home/zhenyu/src/public/nixos-config/docs/installation.md)
+- [docs/installation.md](/home/zhenyu/src/public/nix-config/docs/installation.md)
 
 The short version:
 
 ```bash
-nix run github:ausbxuse/nixos-config#install -- --host <host>
+nix run github:ausbxuse/nix-config#install -- --host <host>
 ```
 
 For post-install validation:

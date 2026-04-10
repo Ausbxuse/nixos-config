@@ -13,19 +13,12 @@
       cursor = 24;
       ghostty = 12;
     };
-    razy-current = {
+    laptop-2_5k = {
       scale = 2;
       textScale = 1.0;
       cursor = 24;
       ghostty = 9;
       firefox = "1.6";
-    };
-    laptop-2_5k = {
-      scale = 2;
-      textScale = 1.0;
-      cursor = 32;
-      ghostty = 10;
-      firefox = "0.9";
     };
     external-4k = {
       scale = 2;

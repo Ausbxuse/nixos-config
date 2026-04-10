@@ -42,9 +42,20 @@
   } @ inputs: let
     inherit (nixpkgs) lib;
 
-    const = import ./globals.nix;
+    publicConst = import ./globals.nix;
+    privateConstPath = inputs.nix-secrets + "/globals.nix";
+    privateConst =
+      if builtins.pathExists privateConstPath
+      then import privateConstPath
+      else {};
+    const = lib.recursiveUpdate publicConst privateConst;
+    adminAccessPath = inputs.nix-secrets + "/admin-access.nix";
+    adminAccess =
+      if builtins.pathExists adminAccessPath
+      then import adminAccessPath
+      else {};
     repo = import ./lib {
-      inherit lib inputs nixpkgs const;
+      inherit lib inputs nixpkgs const adminAccess;
     };
   in {
     templates = import ./templates;

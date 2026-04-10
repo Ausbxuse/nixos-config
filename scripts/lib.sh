@@ -1,4 +1,4 @@
-# lib.sh — shared shell utilities for nixos-config scripts.
+# lib.sh — shared shell utilities for nix-config scripts.
 # Inlined at build time via @source_lib@ replacement in mkScriptApp.
 #
 # Scripts should set these globals BEFORE the lib is inlined (or accept defaults):
@@ -92,38 +92,50 @@ run_with_spinner() {
     frames="|/-\\"
   fi
 
-  local stderr_log
-  stderr_log=$(mktemp)
+  local log
+  log=$(mktemp)
 
-  "$@" >/dev/null 2>"$stderr_log" &
+  local tty_fd=""
+  if [[ -w /dev/tty ]]; then
+    exec {tty_fd}>/dev/tty
+  fi
+
+  "$@" >"$log" 2>&1 &
   local pid=$!
   local i=0
   local n=${#frames}
   local rc=0
 
-  if [[ -t 2 ]]; then
+  if [[ -n "$tty_fd" ]]; then
     while kill -0 "$pid" 2>/dev/null; do
-      printf '\r  %s%s%s %s' "${C_CYAN}" "${frames:i%n:1}" "${C_RESET}" "$msg" >&2
+      printf '\r  %s%s%s %s' \
+        "${C_CYAN}" "${frames:i%n:1}" "${C_RESET}" "$msg" >&"$tty_fd"
       i=$((i + 1))
       sleep 0.1
     done
-    printf '\r\033[K' >&2
+    printf '\r\033[K' >&"$tty_fd"
   else
     info "$msg"
   fi
 
   if wait "$pid"; then
     ok "$msg"
-    rm -f "$stderr_log"
+    rm -f "$log"
+    if [[ -n "$tty_fd" ]]; then
+      exec {tty_fd}>&-
+    fi
     return 0
   fi
 
   rc=$?
   err "$msg (exit $rc)"
-  if [[ -s "$stderr_log" ]]; then
-    sed 's/^/    /' "$stderr_log" >&2
+  if [[ -s "$log" ]]; then
+    sed 's/^/    /' "$log" >&2
   fi
-  rm -f "$stderr_log"
+  rm -f "$log"
+  if [[ -n "$tty_fd" ]]; then
+    exec {tty_fd}>&-
+  fi
   return "$rc"
 }
 
@@ -146,6 +158,26 @@ prompt_select() {
 
   require_tty
 
+  if [[ $n -eq 2 ]] &&
+     { [[ "${options[0],,}" == "yes" && "${options[1],,}" == "no" ]] ||
+       [[ "${options[0],,}" == "no" && "${options[1],,}" == "yes" ]]; }; then
+    while true; do
+      printf '  %s%s%s %s%s%s [%s/%s] ' \
+        "${C_BOLD}" "$prompt" "${C_RESET}" \
+        "${C_CYAN}" "$_SYM_PROMPT" "${C_RESET}" \
+        "$([[ "${default,,}" == yes ]] && printf Y || printf y)" \
+        "$([[ "${default,,}" == no  ]] && printf N || printf n)" >&2
+      read -r reply </dev/tty || die "no input"
+
+      [[ -z "$reply" && "$default" == "yes" ]] && { printf 'yes\n'; return 0; }
+      [[ -z "$reply" && "$default" == "no"  ]] && { printf 'no\n';  return 0; }
+      [[ "$reply" =~ ^([Yy]|[Yy][Ee][Ss])$ ]] && { printf 'yes\n'; return 0; }
+      [[ "$reply" =~ ^([Nn]|[Nn][Oo])$   ]] && { printf 'no\n';  return 0; }
+
+      warn "Invalid selection: '$reply' — enter y or n."
+    done
+  fi
+ 
   printf '  %s%s%s\n' "${C_BOLD}" "$prompt" "${C_RESET}" >&2
 
   i=1
@@ -276,6 +308,14 @@ validate_username() {
     return 0
   fi
   warn "username must start with a letter and contain only [a-z0-9_-]"
+  return 1
+}
+
+validate_email() {
+  if [[ "$1" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]; then
+    return 0
+  fi
+  warn "email must look like local-part@example.com"
   return 1
 }
 
