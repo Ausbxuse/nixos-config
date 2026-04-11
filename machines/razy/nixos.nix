@@ -18,7 +18,7 @@ in {
   imports = [
     ../../modules/nixos/hardware/tlp-laptop.nix
     ../../modules/nixos/hardware/rotate-sensor.nix
-    ../../modules/nixos/llamacpp-agent.nix
+    ../../modules/nixos/ollama-agent.nix
   ];
 
   boot.kernelPackages = pkgs.linuxPackagesFor kernel;
@@ -56,11 +56,12 @@ in {
   # Work around a Mutter/Intel Xe (Panther Lake) bug where the desktop
   # wallpaper texture is lost after s2idle resume, leaving a solid-colour
   # fallback.  A quick VT round-trip forces a full GPU redraw.
-  powerManagement.resumeCommands = ''
-    ${pkgs.kbd}/bin/chvt 3
-    sleep 1
-    ${pkgs.kbd}/bin/chvt 2
-  '';
+  # FIXME:
+  # powerManagement.resumeCommands = ''
+  #   ${pkgs.kbd}/bin/chvt 3
+  #   sleep 1
+  #   ${pkgs.kbd}/bin/chvt 2
+  # '';
 
   hardware.firmware = with pkgs; [
     linux-firmware

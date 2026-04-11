@@ -41,6 +41,7 @@
         ({pkgs, ...}: {
           environment.systemPackages = with pkgs; [
             bash
+            git
             jq
             rsync
             gnugrep
@@ -91,7 +92,6 @@
                     *'#zhenyu@${name}')
                       worktree="''${arg%%#*}"
                       cp "$worktree/machines/defs.nix" /tmp/test-artifacts/defs.nix
-                      cp "$worktree/machines/defs-known.nix" /tmp/test-artifacts/defs-known.nix
                       ;;
                   esac
                 done
@@ -139,7 +139,6 @@
             + ''
 
               test -f /tmp/test-artifacts/defs.nix
-              test -f /tmp/test-artifacts/defs-known.nix
               grep -F '${name} = {' /tmp/test-artifacts/defs.nix
               grep -F 'username = "zhenyu";' /tmp/test-artifacts/defs.nix
               grep -F 'profile = "${homeProfile}";' /tmp/test-artifacts/defs.nix
@@ -166,6 +165,7 @@
         ({pkgs, ...}: {
           environment.systemPackages = with pkgs; [
             bash
+            git
             jq
             rsync
             gnugrep
@@ -220,7 +220,6 @@
                 set -euo pipefail
                 printf '%s\n' "$@" > /tmp/test-artifacts/nixos-install-args
                 cp "$PWD/machines/defs.nix" /tmp/test-artifacts/defs.nix
-                cp "$PWD/machines/defs-known.nix" /tmp/test-artifacts/defs-known.nix
                 cp "$PWD/machines/${name}/hardware-configuration.nix" /tmp/test-artifacts/hardware-configuration.nix
                 exit 0
                 EOF
@@ -284,6 +283,7 @@ in {
       ({pkgs, ...}: {
         environment.systemPackages = with pkgs; [
           bash
+          git
           jq
           rsync
           gnugrep
@@ -348,6 +348,114 @@ in {
 
           grep -F 'ERROR: mkdir /var/lock/dmraid' /tmp/test-artifacts/install.err
           grep -F 'nixos-install reported an installation error' /tmp/test-artifacts/install.err
+        """)
+      ''
+    ];
+  };
+
+  "custom-nixos-install-copies-git-repo" = mkTest {
+    name = "custom-nixos-copy-repo";
+    modules = [
+      ({pkgs, ...}: {
+        environment.systemPackages = with pkgs; [
+          bash
+          git
+          jq
+          rsync
+          gnugrep
+          gnused
+          gawk
+          perl
+          util-linux
+          coreutils
+        ];
+      })
+    ];
+    testScript = lib.concatStringsSep "\n" [
+      ''machine.wait_for_unit("multi-user.target")''
+      ''
+        machine.succeed("""
+          mkdir -p /tmp/fakebin /tmp/test-artifacts /mnt/etc/nixos /tmp/source-repo
+          cp -r ${../.}/. /tmp/source-repo/
+          chmod -R u+w /tmp/source-repo
+
+          cd /tmp/source-repo
+          git init
+          git config user.name 'Fixture User'
+          git config user.email 'fixture@example.com'
+          git add .
+          git commit -m 'fixture'
+          git rev-parse HEAD >/tmp/test-artifacts/source-head
+          echo '# dirty source file' >> TODO.md
+
+          cat >/tmp/fakebin/sudo <<'EOF'
+          #!/usr/bin/env bash
+          exec "$@"
+          EOF
+
+          cat >/tmp/fakebin/disko <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exit 0
+          EOF
+
+          cat >/tmp/fakebin/nixos-generate-config <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          mkdir -p /mnt/etc/nixos
+          cat >/mnt/etc/nixos/hardware-configuration.nix <<'EOC'
+          { ... }: { boot.loader.grub.enable = false; }
+          EOC
+          EOF
+
+          cat >/tmp/fakebin/nixos-install <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exit 0
+          EOF
+
+          cat >/tmp/fakebin/nixos-enter <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          if [ "$1" = "--root" ]; then
+            shift 2
+          fi
+          if [ "$1" = "-c" ]; then
+            shift
+            eval "$1"
+            exit 0
+          fi
+          exec "$@"
+          EOF
+
+          chmod +x /tmp/fakebin/sudo /tmp/fakebin/disko /tmp/fakebin/nixos-generate-config /tmp/fakebin/nixos-install /tmp/fakebin/nixos-enter
+
+          PATH=/tmp/fakebin:$PATH ${pkgs.bash}/bin/bash ${installScript} \
+            --host custom-nixos-copy-repo \
+            --name 'Test User' \
+            --email 'test@example.com' \
+            --nixos \
+            --disk /dev/vda \
+            --nixos-profile minimal \
+            --swap-size 8G \
+            --copy-repo yes \
+            --yes
+
+          TARGET_REPO=/mnt/home/zhenyu/src/public/nix-config
+          test -d "$TARGET_REPO/.git"
+          test "$(cat /tmp/test-artifacts/source-head)" = "$(git -C "$TARGET_REPO" rev-parse HEAD)"
+          grep -F 'custom-nixos-copy-repo = {' "$TARGET_REPO/machines/defs.nix"
+          grep -F 'name = "Test User";' "$TARGET_REPO/globals.nix"
+          test -f "$TARGET_REPO/machines/custom-nixos-copy-repo/hardware-configuration.nix"
+
+          git -C "$TARGET_REPO" status --short >/tmp/test-artifacts/target-status
+          grep -F ' M globals.nix' /tmp/test-artifacts/target-status
+          grep -F ' M machines/defs.nix' /tmp/test-artifacts/target-status
+          grep -F '?? machines/custom-nixos-copy-repo/' /tmp/test-artifacts/target-status
+          if grep -F 'TODO.md' /tmp/test-artifacts/target-status; then
+            echo 'source dirty files leaked into target clone' >&2
+            exit 1
+          fi
         """)
       ''
     ];

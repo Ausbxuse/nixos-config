@@ -30,6 +30,7 @@ DRY_RUN=0
 PORTABLE=0
 SKIP_PARTITIONING=0
 WORKTREE=""
+declare -a INSTALL_ARTIFACTS=()
 
 @source_lib@
 
@@ -63,6 +64,10 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+record_install_artifact() {
+  INSTALL_ARTIFACTS+=("$1")
+}
 
 default_swap_size() {
   printf '%sG\n' "$(detect_ram_gib)"
@@ -539,6 +544,10 @@ prepare_target_config() {
     perl -0pi -e 's/\{\n/\{\n  email = "'"$escaped_email"'";\n/' "$WORKTREE/globals.nix"
   fi
 
+  INSTALL_ARTIFACTS=()
+  record_install_artifact "machines/defs.nix"
+  record_install_artifact "globals.nix"
+
   ok "host definitions written"
 }
 
@@ -621,6 +630,7 @@ run_nixos_install() {
   sudo nixos-generate-config --no-filesystems --root /mnt
   sudo install -D -m 0644 /mnt/etc/nixos/hardware-configuration.nix \
     "$WORKTREE/machines/$HOST/hardware-configuration.nix"
+  record_install_artifact "machines/$HOST/hardware-configuration.nix"
   ok "hardware-configuration.nix staged"
 
   section "nixos-install"
@@ -669,9 +679,41 @@ copy_repo_to_target() {
   fi
 
   if [[ "$COPY_REPO" == "yes" ]]; then
-    sudo mkdir -p "$REPO_DEST"
-    run_with_spinner "copying repo → ${REPO_DEST}" \
-      sudo rsync -a --delete "$WORKTREE"/ "${REPO_DEST}/"
+    local git_source=""
+    local repo_parent=""
+    local staging_dest=""
+
+    if git_source=$(git rev-parse --show-toplevel 2>/dev/null); then
+      if [[ ! -f "$git_source/flake.nix" || ! -d "$git_source/.git" ]]; then
+        git_source=""
+      fi
+    else
+      git_source=""
+    fi
+
+    repo_parent=$(dirname "$REPO_DEST")
+    staging_dest="${REPO_DEST}.tmp.$$"
+
+    sudo mkdir -p "$repo_parent"
+    sudo rm -rf "$staging_dest"
+
+    if [[ -n "$git_source" ]]; then
+      run_with_spinner "cloning repo history → ${REPO_DEST}" \
+        sudo git clone --quiet "$git_source" "$staging_dest"
+
+      for artifact in "${INSTALL_ARTIFACTS[@]}"; do
+        if [[ -e "$WORKTREE/$artifact" ]]; then
+          sudo install -D -m 0644 "$WORKTREE/$artifact" "$staging_dest/$artifact"
+        fi
+      done
+    else
+      warn "local git checkout not detected; falling back to rsync snapshot copy"
+      run_with_spinner "copying repo snapshot → ${REPO_DEST}" \
+        sudo rsync -a --delete "$WORKTREE"/ "$staging_dest/"
+    fi
+
+    sudo rm -rf "$REPO_DEST"
+    sudo mv "$staging_dest" "$REPO_DEST"
 
     # Fix ownership inside the target system, where the installed user exists.
     sudo nixos-enter --root /mnt -c "chown -R ${USERNAME}:users /home/${USERNAME}/src"

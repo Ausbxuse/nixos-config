@@ -1,22 +1,28 @@
-{lib, ...}: {
+{
+  config,
+  lib,
+  ...
+}: let
+  defaultLocalModel = "qwen3.5:27b";
+in {
   imports = [
     ../../modules/home/slimevr.nix
     ../../modules/home/gnome-tweaks.nix
-    ../../modules/home/llamacpp-agent.nix
+    ../../modules/home/codex-local.nix
+    ../../modules/home/ollama-agent.nix
   ];
 
-  services.llamacpp-agent = {
+  my.codexLocal.enable = true;
+
+  services.ollama-agent = {
     enable = true;
-    port = 8080;
-    backendPort = 18080;
-    contextSize = 16384;
-    gpuLayers = 99;
-    idleTimeoutSeconds = 1800;
-    model = {
-      fileName = "Qwen3.5-27B-Q4_K_M.gguf";
-      url = "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF/resolve/main/Qwen3.5-27B-Q4_K_M.gguf";
-      sha256 = "84b5f7f112156d63836a01a69dc3f11a6ba63b10a23b8ca7a7efaf52d5a2d806";
-    };
+    port = 11434;
+    contextLength = 16384;
+    flashAttention = true;
+    kvCacheType = "q8_0";
+    idleKeepAlive = "20m";
+    preloadModel = defaultLocalModel;
+    stopOnBattery = true;
   };
 
   programs.firefox.profiles.betterfox.extraConfig = lib.mkAfter ''

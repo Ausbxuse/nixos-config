@@ -1,18 +1,21 @@
 # TODOs
 
-- server nixos pkgs cache
-- ssh priv installation
-- install_nix-portable: de PATH envvar setting so that tmux can use "forecast" for statusbar
+## Efficiency & organization
+
+- recovery drive and auto backup on plugin
+
+## Bug fix
+
+- empty windows piling up for forge
+
+## QoL
+
+- black screen with \_ flashing after wake up
+- cuda runtime templates
 - earthy: add extra-experimental features nix-command and flakes to ~/.config/nix
 - Windows recovery USB + update BIOS — for razy
 - secure boot
-- empty windows piling up for forge
-
-# razy specific issues
-
-1. does not dim before turn off screen
-
-# host
-
-1. recovery drive and auto backup on plugin
-2. local llm easy bootstrap (possibly needing python template in nixos-conifg for teh cuda runtime for future reuse.)
+- upgrade ollama
+- ssh priv installation
+- install_nix-portable: de PATH envvar setting so that tmux can use "forecast" for statusbar
+- server nixos pkgs cache

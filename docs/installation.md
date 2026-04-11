@@ -178,6 +178,31 @@ nix run github:ausbxuse/nix-config#install -- --host uni --disk /dev/nvme1n1
 
 This is the safest pattern for repeatability.
 
+### Failure Mode: Dirty Checkout Changes The Installed System
+
+Symptom:
+
+- install succeeds, but the installed machine boots differently from what you expect
+- debugging becomes confusing because `nix run .#install` and the resulting system do not seem to match
+
+Cause:
+
+- if the installer copies from your live working tree instead of the packaged flake snapshot, any local dirty changes can silently change what gets installed
+
+Why it is subtle:
+
+- the install command itself still looks normal
+- the boot failure can show up much later, for example as initrd waiting for the wrong LUKS path
+
+Quick check:
+
+- if removing `.git` from the copied repo suddenly makes the install behave correctly, you were probably installing from the live checkout instead of the packaged source
+
+Current expected behavior:
+
+- the installer always installs from the packaged `REPO_SOURCE` snapshot
+- the repo copied into the target is that same snapshot, not your dirty checkout
+
 ## Installing A New NixOS Host
 
 This is the fast bootstrap path for a machine that is not yet committed to the repo.
