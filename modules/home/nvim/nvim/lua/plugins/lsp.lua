@@ -28,7 +28,19 @@ vim.api.nvim_create_user_command('LspInfo', function()
 end, {
   desc = 'Get all the information about all LSP attached',
 })
-local fzf = require 'fzf-lua'
+
+local function with_fzf(method)
+  return function()
+    local ok, fzf = pcall(require, 'fzf-lua')
+    if not ok then
+      vim.notify('fzf-lua is not available yet', vim.log.levels.WARN)
+      return
+    end
+
+    return fzf[method]()
+  end
+end
+
 vim.api.nvim_create_autocmd('LspAttach', {
   desc = 'LSP actions',
   callback = function(event)
@@ -57,8 +69,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
     map('gd', vim.lsp.buf.definition, '[G]oto [D]efinition')
     map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-    map('<leader>ld', fzf.lsp_typedefs, 'Type [D]efinition')
-    map('<leader>lS', fzf.lsp_live_workspace_symbols, '[W]orkspace [S]ymbols')
+    map('<leader>ld', with_fzf 'lsp_typedefs', 'Type [D]efinition')
+    map('<leader>lS', with_fzf 'lsp_live_workspace_symbols', '[W]orkspace [S]ymbols')
     vim.keymap.set('n', '<leader>lq', vim.diagnostic.setloclist, { desc = 'Open diagnostic Quickfix [l]ist' })
     vim.keymap.set('n', 'K', function()
       vim.lsp.buf.hover { border = 'none', max_width = 60, max_height = 40 }
@@ -433,5 +445,8 @@ return {
         { path = 'luvit-meta/library', words = { 'vim%.uv' } },
       },
     },
+    config = function(_, opts)
+      require('lazydev').setup(opts)
+    end,
   },
 }

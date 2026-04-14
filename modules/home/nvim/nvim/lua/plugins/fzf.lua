@@ -2,6 +2,19 @@ return {
   {
     'ibhagwan/fzf-lua',
     -- dependencies = { 'nvim-tree/nvim-web-devicons' },
+    keys = {
+      { '<leader>fh', function() require('fzf-lua').help_tags() end, desc = '[F]ind [H]elp' },
+      { '<leader>fk', function() require('fzf-lua').keymaps() end, desc = '[F]uzzy find [K]eymaps' },
+      { '<leader>ff', function() require('fzf-lua').files() end, desc = '[F]uzzy [F]iles' },
+      { '<leader>fs', function() require('fzf-lua').grep_cword() end, desc = '[S]earch current [W]ord' },
+      { '<leader>fg', function() require('fzf-lua').live_grep() end, desc = '[S]earch by [G]rep' },
+      { '<leader>fd', function() require('fzf-lua').diagnostics_workspace() end, desc = '[S]earch [D]iagnostics' },
+      { '<leader>fS', function() require('fzf-lua').grep_cWORD() end, desc = '[f]ind [S]earch word' },
+      { '<leader>fr', function() require('fzf-lua').oldfiles() end, desc = '[S]earch Recent Files ' },
+      { '<leader>o', function() require('fzf-lua').lsp_document_symbols() end, desc = 'Symb[o]ls ' },
+      { '<leader>b', function() require('fzf-lua').buffers() end, desc = 'Find existing buffers' },
+      { '<leader>/', function() require('fzf-lua').blines() end, desc = '[/] Fuzzily search in current buffer' },
+    },
     config = function()
       local fzf = require 'fzf-lua'
       local actions = require 'fzf-lua.actions'
@@ -88,25 +101,6 @@ return {
           show_unloaded = false, -- show unloaded buffers
         },
       }
-
-      vim.keymap.set('n', '<leader>fh', fzf.help_tags, { desc = '[F]ind [H]elp' })
-      vim.keymap.set('n', '<leader>fk', fzf.keymaps, { desc = '[F]uzzy find [K]eymaps' })
-      vim.keymap.set('n', '<leader>ff', function()
-        fzf.files()
-      end, { desc = '[F]uzzy [F]iles' })
-      vim.keymap.set('n', '<leader>fs', fzf.grep_cword, { desc = '[S]earch current [W]ord' })
-      vim.keymap.set('n', '<leader>fg', fzf.live_grep, { desc = '[S]earch by [G]rep' })
-      vim.keymap.set('n', '<leader>fd', fzf.diagnostics_workspace, { desc = '[S]earch [D]iagnostics' })
-      vim.keymap.set('n', '<leader>fS', function()
-        fzf.grep_cWORD()
-      end, { desc = '[f]ind [S]earch word' })
-      vim.keymap.set('n', '<leader>fr', fzf.oldfiles, { desc = '[S]earch Recent Files ' })
-      vim.keymap.set('n', '<leader>o', fzf.lsp_document_symbols, { desc = 'Symb[o]ls ' })
-      vim.keymap.set('n', '<leader>b', fzf.buffers, { desc = 'Find existing buffers' })
-
-      vim.keymap.set('n', '<leader>/', function()
-        fzf.blines()
-      end, { desc = '[/] Fuzzily search in current buffer' })
     end,
   },
 }

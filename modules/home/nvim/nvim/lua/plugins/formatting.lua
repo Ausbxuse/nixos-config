@@ -48,4 +48,7 @@ return { -- Autoformat
       javascriptreact = { 'prettier' },
     },
   },
+  config = function(_, opts)
+    require('conform').setup(opts)
+  end,
 }

@@ -9,10 +9,13 @@ return {
           max_attempts = 2, -- Global default for max attempts
           kind_icon = '',
         },
+        config = function(_, opts)
+          require('blink-copilot').setup(opts)
+        end,
       },
     },
 
-    version = '*',
+    version = '1.*',
     ---@module 'blink.cmp'
     ---@type blink.cmp.Config
     opts = {
@@ -57,6 +60,9 @@ return {
         use_nvim_cmp_as_default = true,
         nerd_font_variant = 'mono',
       },
+      fuzzy = {
+        implementation = 'lua',
+      },
       sources = {
         default = { 'lsp', 'path', 'snippets', 'buffer', 'copilot' },
         providers = {
@@ -79,5 +85,8 @@ return {
       },
     },
     opts_extend = { 'sources.default' },
+    config = function(_, opts)
+      require('blink.cmp').setup(opts)
+    end,
   },
 }

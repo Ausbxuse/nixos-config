@@ -1,13 +1,7 @@
-local home = vim.fn.expand '$HOME'
-
-local function set_path(file_path)
-  local file_stat = vim.loop.fs_stat(file_path)
-  local path_variable = file_stat and file_path or nil
-  return path_variable
-end
 return {
   {
     'lukas-reineke/indent-blankline.nvim',
+    event = { 'BufReadPre', 'BufNewFile' },
     main = 'ibl',
     ---@module "ibl"
     ---@type ibl.config
@@ -252,9 +246,13 @@ return {
         },
       },
     },
+    config = function(_, opts)
+      require('colorizer').setup(opts)
+    end,
   },
   {
     'nvim-treesitter/nvim-treesitter-context',
+    event = { 'BufReadPre', 'BufNewFile' },
     config = function()
       require('treesitter-context').setup {
         enable = true, -- Enable this plugin (Can be enabled/disabled later via commands)
@@ -276,13 +274,12 @@ return {
   {
     'ausbxuse/snappy.nvim',
     priority = 2000, -- Make sure to load this before all the other start plugins.
-    dir = set_path(home .. '/src/public/snappy.nvim'),
-    init = function()
-      vim.cmd.colorscheme 'snappy'
+    config = function()
+      local ok = pcall(vim.cmd.colorscheme, 'snappy')
+      if not ok then
+        vim.notify('snappy colorscheme is unavailable; skipping theme', vim.log.levels.WARN)
+      end
     end,
-    -- config = function()
-    --   require('snappy').setup()
-    -- end,
   },
   { 'eandrju/cellular-automaton.nvim' },
   -- {
@@ -292,8 +289,12 @@ return {
   -- },
   {
     'serhez/bento.nvim',
+    event = 'VeryLazy',
     opts = {
       main_keymap = '\\', -- Main toggle/expand key
     },
+    config = function(_, opts)
+      require('bento').setup(opts)
+    end,
   },
 }

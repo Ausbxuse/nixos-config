@@ -10,6 +10,9 @@ return {
       suppressed_dirs = { '~/', '~/Downloads', '/' },
       -- log_level = 'debug',
     },
+    config = function(_, opts)
+      require('auto-session').setup(opts)
+    end,
   },
   {
     'lervag/vimtex',
@@ -71,7 +74,6 @@ syn region mkdMath matchgroup=mkdDelimiter start="\\\@<!\\\[" end="\\\]"
     ft = 'md',
     cmd = { 'MarkdownPreviewToggle', 'MarkdownPreview', 'MarkdownPreviewStop' },
     build = function()
-      require('lazy').load { plugins = { 'markdown-preview.nvim' } }
       vim.fn['mkdp#util#install']()
     end,
     keys = {

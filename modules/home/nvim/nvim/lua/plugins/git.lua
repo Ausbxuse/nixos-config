@@ -2,6 +2,7 @@
 return {
   {
     'lewis6991/gitsigns.nvim',
+    event = { 'BufReadPre', 'BufNewFile' },
     opts = {
       signcolumn = true,
       numhl = false,
@@ -58,5 +59,8 @@ return {
         -- map('n', '<leader>tD', gitsigns.toggle_deleted, { desc = '[T]oggle git show [D]eleted' })
       end,
     },
+    config = function(_, opts)
+      require('gitsigns').setup(opts)
+    end,
   },
 }

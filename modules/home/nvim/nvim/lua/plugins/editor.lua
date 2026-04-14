@@ -71,7 +71,6 @@ return {
   {
     'zbirenbaum/copilot.lua',
     cmd = 'Copilot',
-    build = ':Copilot auth',
     event = 'InsertEnter',
     config = function()
       require('copilot').setup {
@@ -112,6 +111,7 @@ return {
   },
   {
     'chomosuke/typst-preview.nvim',
+    ft = 'typst',
     config = function()
       require('typst-preview').setup {
         -- Setting this true will enable logging debug information to
