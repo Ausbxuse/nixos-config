@@ -231,64 +231,24 @@
     initContent = ''
       ${builtins.readFile ./zshrc}
       ${lib.optionalString config.programs.zsh.enable ''
-        # Show a simple prompt immediately, then load slower interactive extras after the first prompt.
         if [[ $options[zle] = on ]]; then
           printf '\e[6 q'
-          PROMPT='%F{4}%~%f
-%F{5}❯%f '
-          RPROMPT=""
+          autoload -U compinit
+          zmodload zsh/complist
+          compinit -d ${config.programs.zsh.dotDir}/.zcompdump -C
+          _comp_options+=(globdots)
+
           source ${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+          source <(${pkgs.fzf}/bin/fzf --zsh)
+          source ${inputs.zsh-better-prompt.packages.${pkgs.stdenv.hostPlatform.system}.default}/share/better-prompt/better-prompt.zsh
+          source ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
+          source ${pkgs.zsh-fzf-tab}/share/fzf-tab/fzf-tab.plugin.zsh
+          eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
+          eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
 
-          typeset -g __zsh_deferred_fd=
-          typeset -g __zsh_completion_ready=
-
-          __zsh_init_completion() {
-            [[ -n $__zsh_completion_ready ]] && return
-            __zsh_completion_ready=1
-            autoload -U compinit
-            zmodload zsh/complist
-            compinit -d ${config.programs.zsh.dotDir}/.zcompdump -C
-            _comp_options+=(globdots)
-          }
-
-          __zsh_first_complete() {
-            __zsh_init_completion
-            zle expand-or-complete
-          }
-
-          zle -N __zsh_first_complete
-          bindkey '^I' __zsh_first_complete
-
-          __zsh_load_deferred_extras() {
-            local fd=$1
-            zle -F "$fd"
-            read -u "$fd" -r _ 2>/dev/null || true
-            exec {__zsh_deferred_fd}<&-
-            unset __zsh_deferred_fd
-
-            source <(${pkgs.fzf}/bin/fzf --zsh)
-            source ${inputs.zsh-better-prompt.packages.${pkgs.stdenv.hostPlatform.system}.default}/share/better-prompt/better-prompt.zsh
-            source ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
-            source ${pkgs.zsh-fzf-tab}/share/fzf-tab/fzf-tab.plugin.zsh
-            eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
-            eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
-
-            if (( $+functions[_zsh_autosuggest_bind_widgets] )); then
-              _zsh_autosuggest_bind_widgets
-            fi
-
-            printf '\e[6 q'
-            zle reset-prompt
-          }
-
-          __zsh_schedule_deferred_extras() {
-            add-zsh-hook -d precmd __zsh_schedule_deferred_extras
-            exec {__zsh_deferred_fd}< <(printf ready)
-            zle -F "$__zsh_deferred_fd" __zsh_load_deferred_extras
-          }
-
-          autoload -Uz add-zsh-hook
-          add-zsh-hook precmd __zsh_schedule_deferred_extras
+          if (( $+functions[_zsh_autosuggest_bind_widgets] )); then
+            _zsh_autosuggest_bind_widgets
+          fi
         fi
       ''}
       ${lib.optionalString ((hostDefs.${hostname}.visibility or "private") == "private" && lib.hasAttrByPath ["sops" "secrets" "anthropic"] config && lib.hasAttrByPath ["sops" "secrets" "gemini"] config) ''

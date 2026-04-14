@@ -23,7 +23,11 @@ in {
 
   boot.kernelPackages = pkgs.linuxPackagesFor kernel;
   services.xserver.videoDrivers = ["modesetting" "nvidia"];
-  boot.kernelParams = ["xe.enable_dpcd_backlight=1"];
+  boot.kernelParams = [
+    "xe.enable_dpcd_backlight=1"
+    # Hide the blinking VT cursor during the resume handoff back to GNOME.
+    "vt.global_cursor_default=0"
+  ];
   # hardware.nvidia.prime = {
   #   sync.enable = lib.mkForce true;
   #   offload.enable = lib.mkForce false;
@@ -31,7 +35,6 @@ in {
   # }; # already set in nvidia.nix
   hardware.nvidia.powerManagement.enable = lib.mkForce true;
   hardware.nvidia.powerManagement.finegrained = lib.mkForce false;
-
   # Force mutter to use the NVIDIA GPU as primary renderer on Wayland.
   # Without this, mutter picks Intel (card0) and does a cross-GPU copy to
   # NVIDIA for HDMI output, causing periodic cursor lag.

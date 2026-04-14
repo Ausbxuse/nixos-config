@@ -9,6 +9,7 @@ in {
     ../../modules/home/slimevr.nix
     ../../modules/home/gnome-tweaks.nix
     ../../modules/home/codex-local.nix
+    ../../modules/home/codex-skills.nix
     ../../modules/home/ollama-agent.nix
   ];
 

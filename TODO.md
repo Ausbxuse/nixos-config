@@ -2,7 +2,7 @@
 
 ## Efficiency & organization
 
-- recovery drive and auto backup on plugin
+- recovery drive and easy backup
 
 ## Bug fix
 
@@ -16,6 +16,4 @@
 - Windows recovery USB + update BIOS — for razy
 - secure boot
 - upgrade ollama
-- ssh priv installation
-- install_nix-portable: de PATH envvar setting so that tmux can use "forecast" for statusbar
 - server nixos pkgs cache
