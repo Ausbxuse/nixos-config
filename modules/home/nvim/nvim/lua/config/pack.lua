@@ -108,9 +108,16 @@ end
 
 local function normalize_event(event)
   if event == 'VeryLazy' then
-    return 'VimEnter'
+    return 'User'
   end
   return event
+end
+
+local function event_pattern(event)
+  if event == 'VeryLazy' then
+    return 'VeryLazy'
+  end
+  return nil
 end
 
 local function make_rhs_runner(rhs)
@@ -133,11 +140,29 @@ function M.setup(spec_modules)
   flatten(spec_modules, flattened)
 
   local builds = {}
-  local remote_specs = {}
   local seen_specs = {}
   local spec_by_name = {}
   local loaded = {}
   local configured = {}
+  local registered = {}
+  local lazy_names = {}
+
+  local function ensure_registered(name)
+    if registered[name] then
+      return
+    end
+
+    local spec = spec_by_name[name]
+    if not spec or spec.dir then
+      return
+    end
+
+    vim.pack.add({ to_pack_spec(spec) }, {
+      confirm = false,
+      load = false,
+    })
+    registered[name] = true
+  end
 
   local function load_plugin(name)
     local spec = spec_by_name[name]
@@ -159,6 +184,7 @@ function M.setup(spec_modules)
       end
       vim.opt.rtp:prepend(spec.dir)
     else
+      ensure_registered(name)
       vim.cmd.packadd(name)
     end
 
@@ -217,12 +243,18 @@ function M.setup(spec_modules)
 
   local function register_event_loader(spec)
     for _, event in ipairs(to_list(spec.event)) do
-      vim.api.nvim_create_autocmd(normalize_event(event), {
+      local opts = {
         once = true,
         callback = function()
           load_plugin(plugin_name(spec))
         end,
-      })
+      }
+      local pattern = event_pattern(event)
+      if pattern then
+        opts.pattern = pattern
+      end
+
+      vim.api.nvim_create_autocmd(normalize_event(event), opts)
     end
   end
 
@@ -258,8 +290,9 @@ function M.setup(spec_modules)
       end
     elseif not seen_specs[name] then
       seen_specs[name] = true
-      table.insert(remote_specs, to_pack_spec(spec))
     end
+
+    lazy_names[name] = is_lazy_spec(spec)
   end
 
   vim.api.nvim_create_autocmd('PackChanged', {
@@ -282,15 +315,23 @@ function M.setup(spec_modules)
     end,
   })
 
-  if #remote_specs > 0 then
-    vim.pack.add(remote_specs, {
-      confirm = false,
-      load = false,
-    })
+  vim.api.nvim_create_autocmd('VimEnter', {
+    once = true,
+    callback = function()
+      vim.schedule(function()
+        vim.api.nvim_exec_autocmds('User', { pattern = 'VeryLazy' })
+      end)
+    end,
+  })
+
+  for name, spec in pairs(spec_by_name) do
+    if not lazy_names[name] and not spec.dir then
+      ensure_registered(name)
+    end
   end
 
   for name, spec in pairs(spec_by_name) do
-    if is_lazy_spec(spec) then
+    if lazy_names[name] then
       if spec.event then
         register_event_loader(spec)
       end

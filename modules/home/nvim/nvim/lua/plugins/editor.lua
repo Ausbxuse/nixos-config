@@ -29,6 +29,13 @@ return {
   { 'mbbill/undotree' },
   {
     'oskarrrrrrr/symbols.nvim',
+    keys = {
+      {
+        '<leader>s',
+        '<cmd>SymbolsToggle<CR>',
+        desc = 'Toggle symbols',
+      },
+    },
     config = function()
       local r = require 'symbols.recipes'
       require('symbols').setup(r.DefaultFilters, r.AsciiSymbols, {
@@ -40,7 +47,6 @@ return {
           ['l'] = 'goto-symbol',
         },
       })
-      vim.keymap.set('n', '<leader>s', '<cmd>SymbolsToggle<CR>')
     end,
   },
   {
