@@ -66,7 +66,8 @@ end
 local function flatten(specs, acc)
   for _, spec in ipairs(specs) do
     if type(spec) == 'string' then
-      table.insert(acc, { spec = { spec }, source = nil })
+      local normalized = { spec }
+      table.insert(acc, { spec = normalized, source = normalized })
     elseif spec.enabled == false then
       goto continue
     elseif is_plugin_spec(spec) then

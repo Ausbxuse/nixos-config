@@ -67,6 +67,10 @@
       "src": "https://github.com/nvim-treesitter/nvim-treesitter-textobjects",
       "version": "'main'"
     },
+    "plenary.nvim": {
+      "rev": "74b06c6c75e4eeb3108ec01852001636d85a932b",
+      "src": "https://github.com/nvim-lua/plenary.nvim"
+    },
     "snappy.nvim": {
       "rev": "137eaa6e98e8a6b3dd63548c2de4422007a9e689",
       "src": "https://github.com/ausbxuse/snappy.nvim"

@@ -11,7 +11,7 @@
       scale = 2;
       textScale = 1.0;
       cursor = 24;
-      ghostty = 12;
+      ghostty = 11;
     };
     laptop-2_5k = {
       scale = 2;
