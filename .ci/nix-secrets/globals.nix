@@ -1,0 +1,3 @@
+{
+  services.searxng.url = null;
+}

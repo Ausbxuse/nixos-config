@@ -9,8 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NIX_OVERRIDES: >-
+        --allow-dirty-locks
+        --no-write-lock-file
         --override-input nix-secrets path:./.ci/nix-secrets
-        --override-input bootstrap-keys path:./.ci/bootstrap-keys
     steps:
       - uses: actions/checkout@v4
 
