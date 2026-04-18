@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NIX_OVERRIDES: >-
+        --no-update-lock-file
         --no-write-lock-file
         --override-input nix-secrets path:./.ci/nix-secrets
     steps:
