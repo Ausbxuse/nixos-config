@@ -9,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NIX_OVERRIDES: >-
-        --allow-dirty-locks
         --no-write-lock-file
         --override-input nix-secrets path:./.ci/nix-secrets
     steps:
