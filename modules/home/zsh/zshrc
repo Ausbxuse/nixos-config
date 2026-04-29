@@ -67,6 +67,47 @@ function lf() {
 if command -v micromamba &> /dev/null ; then
   eval "$(micromamba shell hook --shell zsh)"
 fi
+
+if [[ -n ${TMUX:-} && -n ${TMUX_PANE:-} ]] && command -v tmux >/dev/null 2>&1; then
+  __tmux_cmdlog_dir="${XDG_STATE_HOME:-$HOME/.local/state}/tmux-command-log/${TMUX_PANE#%}"
+  __tmux_cmdlog_file="$__tmux_cmdlog_dir/output.log"
+  mkdir -p "$__tmux_cmdlog_dir"
+  : >> "$__tmux_cmdlog_file"
+
+  tmux set-option -p -q @command-log-dir "$__tmux_cmdlog_dir" 2>/dev/null || true
+  tmux pipe-pane -o -t "$TMUX_PANE" "cat >> ${(q)__tmux_cmdlog_file}" 2>/dev/null || true
+
+  autoload -Uz add-zsh-hook
+
+  __tmux_cmdlog_preexec() {
+    local cmd="$1"
+    local start
+
+    if [[ "$(wc -c < "$__tmux_cmdlog_file" | tr -d ' ')" -gt 20000000 ]]; then
+      : > "$__tmux_cmdlog_file"
+    fi
+
+    start="$(wc -c < "$__tmux_cmdlog_file" | tr -d ' ')"
+    print -r -- "$cmd" > "$__tmux_cmdlog_dir/cmd"
+    print -r -- "$PWD" > "$__tmux_cmdlog_dir/cwd"
+    print -r -- "$start" > "$__tmux_cmdlog_dir/start"
+    rm -f "$__tmux_cmdlog_dir/end" "$__tmux_cmdlog_dir/status"
+  }
+
+  __tmux_cmdlog_precmd() {
+    local exit_status="$?"
+    local end
+
+    [[ -f "$__tmux_cmdlog_dir/start" ]] || return 0
+    end="$(wc -c < "$__tmux_cmdlog_file" | tr -d ' ')"
+    print -r -- "$end" > "$__tmux_cmdlog_dir/end"
+    print -r -- "$exit_status" > "$__tmux_cmdlog_dir/status"
+  }
+
+  add-zsh-hook preexec __tmux_cmdlog_preexec
+  add-zsh-hook precmd __tmux_cmdlog_precmd
+fi
+
 unsetopt SHARE_HISTORY        # avoid merging/import side effects that can make history feel unstable
 setopt APPEND_HISTORY         # append to the history file instead of rewriting it on shell exit
 setopt INC_APPEND_HISTORY     # write each command as it is entered

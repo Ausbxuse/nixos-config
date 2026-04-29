@@ -15,7 +15,7 @@ if [[ -z "$battery_path" ]]; then
   exit 1
 fi
 
-status=$(cat "$battery_path/status" 2>/dev/null || echo "unknown")
+battery_status=$(cat "$battery_path/status" 2>/dev/null || echo "unknown")
 
 if [[ -r "$battery_path/power_now" ]]; then
   power_uw=$(cat "$battery_path/power_now")
@@ -26,7 +26,7 @@ else
   exit 1
 fi
 
-awk -v p="$power_uw" -v s="$status" 'BEGIN {
+awk -v p="$power_uw" -v s="$battery_status" 'BEGIN {
   if (s == "Discharging") sign = "-"
   else if (s == "Charging") sign = "+"
   else sign = ""

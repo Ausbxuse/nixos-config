@@ -36,7 +36,6 @@
   };
 
   outputs = {
-    self,
     nixpkgs,
     ...
   } @ inputs: let
@@ -57,6 +56,47 @@
     repo = import ./lib {
       inherit lib inputs nixpkgs const adminAccess;
     };
+    nixosConfigurations =
+      repo.mkNamedAttrs
+      (host: host)
+      (host: repo.mkNixosWithHome host)
+      repo.nixosHosts;
+    homeConfigurations =
+      repo.mkNamedAttrs
+      (host: "${repo.userFor host}@${host}")
+      (host: repo.mkHome host)
+      repo.homeHosts;
+    # Keep install media out of the default package/app surfaces so common
+    # flake queries do not pay for image evaluation.
+    images = lib.optionalAttrs (builtins.elem "x86_64-linux" repo.supportedSystems) {
+      x86_64-linux = import ./isos {
+        pkgs = repo.pkgsFor "x86_64-linux";
+        inherit inputs;
+      };
+    };
+    packages = repo.forEachSystem ({pkgs, ...}:
+      import ./pkgs {
+        inherit lib pkgs const;
+        inherit (repo) hostDefs;
+      });
+    apps = repo.forEachSystem ({system, ...}:
+      import ./apps.nix {
+        packages = packages.${system};
+      });
+    checks = repo.forEachSystem ({
+      system,
+      pkgs,
+    }: let
+      systemPackages = packages.${system};
+    in
+      (import ./tests {inherit pkgs lib;})
+      // lib.optionalAttrs (system == "x86_64-linux") {inherit (systemPackages) nvim;}
+      // repo.mkChecks "home" (
+        host: homeConfigurations."${repo.userFor host}@${host}".activationPackage
+      ) (repo.hostsForSystem system repo.homeHosts)
+      // repo.mkChecks "nixos" (
+        host: nixosConfigurations.${host}.config.system.build.toplevel
+      ) (repo.hostsForSystem system repo.nixosHosts));
   in {
     templates = import ./templates;
 
@@ -64,44 +104,6 @@
       default = (import ./shell.nix {inherit pkgs;}).default;
     });
 
-    packages = repo.forEachSystem ({pkgs, ...}:
-      import ./pkgs {
-        inherit lib pkgs self inputs const;
-        inherit (repo) hostDefs nixosHosts;
-        nixosConfigurations = self.nixosConfigurations;
-      });
-
-    apps = repo.forEachSystem ({system, ...}:
-      import ./apps.nix {
-        packages = self.packages.${system};
-      });
-
-    checks = repo.forEachSystem ({
-      system,
-      pkgs,
-    }:
-      (import ./tests {inherit pkgs lib;})
-      // lib.optionalAttrs (system == "x86_64-linux") {
-        nvim = self.packages.${system}.nvim;
-        inherit (self.packages.${system}) gnome-iso;
-      }
-      // repo.mkChecks "home" (
-        host: (repo.mkHome host).activationPackage
-      ) (repo.hostsForSystem system repo.homeHosts)
-      // repo.mkChecks "nixos" (
-        host: (repo.mkNixosWithHome host).config.system.build.toplevel
-      ) (repo.hostsForSystem system repo.nixosHosts));
-
-    nixosConfigurations =
-      repo.mkNamedAttrs
-      (host: host)
-      (host: repo.mkNixosWithHome host)
-      repo.nixosHosts;
-
-    homeConfigurations =
-      repo.mkNamedAttrs
-      (host: "${repo.userFor host}@${host}")
-      (host: repo.mkHome host)
-      repo.homeHosts;
+    inherit apps checks homeConfigurations images nixosConfigurations packages;
   };
 }

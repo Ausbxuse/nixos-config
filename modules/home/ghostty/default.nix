@@ -7,61 +7,61 @@
       themes = {
         snappy = {
           palette = [
-            "0=#444444"
-            "1=#ff2740"
-            "2=#9ece6a"
-            "3=#f4bf75"
-            "4=#4fc1ff"
-            "5=#fc317e"
-            "6=#62d8f1"
-            "7=#a5adce"
-            "8=#626880"
-            "9=#ff2740"
-            "10=#93c36a"
-            "11=#f4bf75"
-            "12=#4fc1ff"
-            "13=#fc317e"
-            "14=#62d8f1"
-            "15=#b5bfe2"
+            "0=#2c3144"
+            "1=#dd7a84"
+            "2=#8ac48a"
+            "3=#d5ad63"
+            "4=#6fb0f4"
+            "5=#a487eb"
+            "6=#62bcc6"
+            "7=#c9d1e2"
+
+            "8=#5d6784"
+            "9=#e88c95"
+            "10=#9dd29d"
+            "11=#dfbd78"
+            "12=#88bfff"
+            "13=#b79ef5"
+            "14=#7bcdd6"
+            "15=#edf1f9"
           ];
 
-          background = "#1a1b26";
-          # background = "#121212";
-          foreground = "#dfdcd8";
-          cursor-color = "#dfdcd8";
-          cursor-text = "#000000";
+          background = "#181a24";
+          foreground = "#c8d0e0";
+          cursor-color = "#c8d0e0";
+          cursor-text = "#1f2435";
           # cursor-invert-fg-bg = true;
-          selection-background = "#626880";
-          selection-foreground = "#c6d0f5";
+          selection-background = "#283044";
+          selection-foreground = "#dce4f2";
         };
         snappy_light = {
           palette = [
-            "0=#2B2D33" # black (primary ink on light bg)
-            "1=#D81E34" # red (errors, deletions)
-            "2=#2E8B57" # green (success, additions)
-            "3=#C47A00" # yellow/orange (warnings, highlights)
-            "4=#0077CC" # blue (links, keywords, primary accents)
-            "5=#D63384" # magenta (special, annotations)
-            "6=#0E9BB7" # cyan (info, types, secondary accents)
-            "7=#5B6272" # white (light-theme “white” becomes a dark-neutral for ANSI white text)
+            "0=#5A6275" # black / neutral ink
+            "1=#C95A6A" # red
+            "2=#4F956C" # green
+            "3=#BA7F26" # yellow
+            "4=#2B7FD6" # blue
+            "5=#A463D8" # magenta
+            "6=#2F98AB" # cyan
+            "7=#6D7588" # white / dark neutral
 
-            "8=#8B93A7" # bright black (comments / muted)
-            "9=#E02A3F" # bright red
-            "10=#3A9B64" # bright green
-            "11=#D18A12" # bright yellow/orange
-            "12=#1487D6" # bright blue
-            "13=#E14A96" # bright magenta
-            "14=#19A9C5" # bright cyan
-            "15=#1F2430" # bright white (highest-contrast “ink” for headings / strong emphasis)
+            "8=#98A1B5" # bright black / muted gutter
+            "9=#DB7080" # bright red
+            "10=#66A981" # bright green
+            "11=#CF953E" # bright yellow
+            "12=#4A97E8" # bright blue
+            "13=#B57BE5" # bright magenta
+            "14=#4DAFBE" # bright cyan
+            "15=#202533" # bright white / main ink
           ];
 
-          background = "#F7F6F3"; # warm paper: reduces glare vs pure white
-          foreground = "#1F2430"; # main text (near-ink, not pure black)
-          cursor-color = "#1F2430"; # visible against light background
-          cursor-text = "#F7F6F3"; # invert inside cursor for legibility
+          background = "#F5EFE4"; # warm paper
+          foreground = "#202533"; # main ink
+          cursor-color = "#202533";
+          cursor-text = "#F5EFE4";
 
-          selection-background = "#D8DEEA"; # soft blue-gray highlight
-          selection-foreground = "#1F2430"; # keep readable while selected
+          selection-background = "#D9E4F5"; # day highlight layer
+          selection-foreground = "#202533";
         };
       };
       settings = {

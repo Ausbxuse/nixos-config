@@ -34,14 +34,6 @@ in {
     mkApp "Install this configuration onto a target host."
     "${packages.install}/bin/install-config";
 
-  "ubuntu-home-install-test" =
-    mkApp "Run the Ubuntu home-only install test harness."
-    "${packages."ubuntu-home-install-test"}/bin/ubuntu-home-install-test";
-
-  "nixos-system-install-test" =
-    mkApp "Run the NixOS system install test harness."
-    "${packages."nixos-system-install-test"}/bin/nixos-system-install-test";
-
   default =
     mkApp "Sync the Minecraft client assets."
     "${packages.minecraftSync}/bin/sync-minecraft-client";

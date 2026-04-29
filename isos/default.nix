@@ -2,14 +2,11 @@
 {
   pkgs,
   inputs,
-  nixosConfigurations,
   ...
 }: let
   isoConfig = inputs.nixpkgs.lib.nixosSystem {
     system = pkgs.stdenv.hostPlatform.system;
-    specialArgs = {
-      inherit inputs nixosConfigurations;
-    };
+    specialArgs = {inherit inputs;};
     modules = [
       inputs.sops-nix.nixosModules.sops
       ./system.nix

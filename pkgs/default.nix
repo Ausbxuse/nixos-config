@@ -1,29 +1,14 @@
 {
   lib,
   pkgs,
-  self,
-  inputs,
   const,
   hostDefs,
-  nixosHosts,
-  nixosConfigurations,
 }: let
+  repoSource = builtins.path {
+    path = ../.;
+    name = "nix-config";
+  };
   hostDefsFile = pkgs.writeText "host-defs.json" (builtins.toJSON hostDefs);
-  nixosInstallerVmImage =
-    (inputs.nixpkgs.lib.nixosSystem {
-      system = pkgs.stdenv.hostPlatform.system;
-      modules = [
-        ../tests/nixos-installer-vm.nix
-        ({modulesPath, ...}: {
-          imports = [
-            "${modulesPath}/virtualisation/disk-image.nix"
-          ];
-          image.format = "qcow2";
-          image.baseName = "nixos-installer";
-        })
-      ];
-    }).config.system.build.image;
-
   shLib = builtins.readFile ../scripts/lib.sh;
 
   minecraft = pkgs.callPackage ./minecraft {};
@@ -110,7 +95,7 @@
     ];
     replacements = {
       "@source_lib@" = shLib;
-      "@repoSource@" = toString self.outPath;
+      "@repoSource@" = toString repoSource;
       "@hostDefsFile@" = toString hostDefsFile;
       "@username@" = const.username;
     };
@@ -133,38 +118,6 @@
     };
   };
 
-  ubuntuHomeInstallTest = mkScriptApp {
-    name = "ubuntu-home-install-test";
-    src = ../tests/run-ubuntu-home-install.sh;
-    runtimeInputs = with pkgs; [
-      coreutils
-      curl
-      openssh
-      qemu_kvm
-      cloud-utils
-      rsync
-    ];
-  };
-
-  nixosSystemInstallTest = mkScriptApp {
-    name = "nixos-system-install-test";
-    src = ../tests/run-nixos-system-install.sh;
-    runtimeInputs = with pkgs; [
-      coreutils
-      openssh
-      OVMF
-      qemu_kvm
-      rsync
-      sshpass
-    ];
-    replacements = {
-      "@vmImage@" = "${nixosInstallerVmImage}/nixos-installer.qcow2";
-      "@ovmfCode@" = builtins.toString pkgs.OVMF.firmware;
-      "@ovmfVarsTemplate@" =
-        lib.replaceStrings ["OVMF_CODE.fd"] ["OVMF_VARS.fd"] (builtins.toString pkgs.OVMF.firmware);
-    };
-  };
-
   nvim = let
     nvimConfig = ../modules/home/nvim/nvim;
     deps = with pkgs; [nodejs tree-sitter fd ripgrep gcc git];
@@ -180,11 +133,7 @@
       exec ${pkgs.neovim}/bin/nvim "$@"
     '';
 in
-  (lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") (import ../isos {
-    inherit pkgs inputs nixosConfigurations;
-    seedHostNames = nixosHosts;
-  }))
-  // {
+  {
     minecraftClient = minecraft.mrpack;
     minecraftDeploy = minecraft.deploy;
     minecraftBootstrap = minecraft.bootstrap;
@@ -193,7 +142,5 @@ in
     "admit-host" = admitHost;
     "enroll" = enroll;
     "setup-recovery-usb" = setupRecoveryUsb;
-    "nixos-system-install-test" = nixosSystemInstallTest;
-    "ubuntu-home-install-test" = ubuntuHomeInstallTest;
     inherit install nvim;
   }

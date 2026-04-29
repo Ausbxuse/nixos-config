@@ -1,9 +1,30 @@
-{
-  lib,
-  const,
-  ...
-}: {
+{lib, const, ...}: {
   # Public staging registry for hosts that have not been admitted into the
   # private trust mesh yet. Canonical admitted host definitions live in the
   # private nix-secrets checkout at hosts.nix.
+  razy = {
+    system = "x86_64-linux";
+    username = "zhenyu";
+    platform = "custom";
+    visibility = "private";
+
+    home = {
+      enable = true;
+      profile = "personal-gnome";
+      displayProfile = "laptop-2_5k";
+    };
+
+    nixos = {
+      enable = true;
+      profile = "portable-nvidia-gnome";
+    };
+
+    install = {
+      layout = "luks-btrfs";
+      disk = "/dev/nvme0n1";
+      swapSize = "31G";
+      canTouchEfiVariables = false;
+      efiInstallAsRemovable = true;
+    };
+  };
 }

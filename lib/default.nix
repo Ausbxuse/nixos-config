@@ -28,6 +28,11 @@
 
   supportedSystems = const.supported-systems;
   forAllSystems = lib.genAttrs supportedSystems;
+  pkgsBySystem = forAllSystems (system:
+    import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+    });
   forEachSystem = f: forAllSystems (system: f {
     inherit system;
     pkgs = pkgsFor system;
@@ -36,11 +41,7 @@
   systemFor = host: hostDefs.${host}.system;
   hostsForSystem = system: hosts: builtins.filter (host: systemFor host == system) hosts;
 
-  pkgsFor = system:
-    import nixpkgs {
-      inherit system;
-      config.allowUnfree = true;
-    };
+  pkgsFor = system: pkgsBySystem.${system};
 
   machinePathFor = host: ./.. + "/machines/${host}";
   machineFileExists = host: file: builtins.pathExists (machinePathFor host + "/${file}");
