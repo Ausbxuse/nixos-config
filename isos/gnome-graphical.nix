@@ -5,8 +5,8 @@
   ...
 }: {
   imports = [
-    # "${toString modulesPath}/installer/cd-dvd/installation-cd-graphical-calamares-gnome.nix"
-    "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+    "${toString modulesPath}/installer/cd-dvd/installation-cd-graphical-calamares-gnome.nix"
+    # "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
   ];
 
   environment.systemPackages = with pkgs; [
