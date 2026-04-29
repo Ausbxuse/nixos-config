@@ -35,6 +35,7 @@ in {
   # }; # already set in nvidia.nix
   hardware.nvidia.powerManagement.enable = lib.mkForce true;
   hardware.nvidia.powerManagement.finegrained = lib.mkForce false;
+  hardware.nvidia.dynamicBoost.enable = true;
   # Force mutter to use the NVIDIA GPU as primary renderer on Wayland.
   # Without this, mutter picks Intel (card0) and does a cross-GPU copy to
   # NVIDIA for HDMI output, causing periodic cursor lag.

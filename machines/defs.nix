@@ -25,6 +25,7 @@
       swapSize = "31G";
       canTouchEfiVariables = false;
       efiInstallAsRemovable = true;
+      useOSProber = true;
     };
   };
 }

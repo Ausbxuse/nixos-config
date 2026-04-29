@@ -10,6 +10,7 @@
     modules = [
       inputs.sops-nix.nixosModules.sops
       ./system.nix
+      ./installer-workarounds.nix
       ./gnome-graphical.nix
     ];
   };
