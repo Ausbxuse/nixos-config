@@ -164,6 +164,16 @@
       (lib.optionalAttrs (const ? email) {
         user.email = const.email;
       })
+      {
+        merge.tool = "nvim-conflict";
+        mergetool = {
+          prompt = false;
+          "nvim-conflict" = {
+            cmd = ''nvim "$MERGED"'';
+            trustExitCode = false;
+          };
+        };
+      }
     ];
   };
 

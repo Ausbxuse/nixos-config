@@ -1,6 +1,7 @@
 require 'config.options'
 require 'config.keymaps'
 require 'config.autocmds'
+require 'config.merge_conflict'
 require 'config.pack'
 require 'plugins'
 
