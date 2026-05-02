@@ -41,6 +41,10 @@
       "rev": "d28a3f70721c79e3c5f6693057ae929f3d9c0a03",
       "src": "https://github.com/lukas-reineke/indent-blankline.nvim"
     },
+    "lazydev.nvim": {
+      "rev": "ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d",
+      "src": "https://github.com/folke/lazydev.nvim"
+    },
     "nvim-colorizer.lua": {
       "rev": "5cfe7fffbd01e17b3c1e14af85d5febdef88bd8c",
       "src": "https://github.com/catgoose/nvim-colorizer.lua"
@@ -70,6 +74,10 @@
     "undotree": {
       "rev": "6fa6b57cda8459e1e4b2ca34df702f55242f4e4d",
       "src": "https://github.com/mbbill/undotree"
+    },
+    "vimtex": {
+      "rev": "0f42a5130432d4af2e6fd21fb93a76915ff1f090",
+      "src": "https://github.com/lervag/vimtex"
     },
     "yazi.nvim": {
       "rev": "1a130a6bb2f9d7b6f5d172a37b3c1b0ecbc9c1fa",

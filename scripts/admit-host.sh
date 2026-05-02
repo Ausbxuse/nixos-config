@@ -36,6 +36,13 @@ warn() { printf '\033[1;33m!!\033[0m  %s\n' "$*"; }
 
 NIXOS_CONFIG_PATH="${NIXOS_CONFIG_PATH:-$PWD}"
 NIX_SECRETS_PATH="${NIX_SECRETS_PATH:-$HOME/src/private/nix-secrets}"
+_age_tmp=""
+
+cleanup_age_tmp() {
+  if [[ -n "$_age_tmp" ]]; then
+    rm -f "$_age_tmp"
+  fi
+}
 
 STAGING_DEFS_FILE="$NIXOS_CONFIG_PATH/machines/defs.nix"
 PRIVATE_HOSTS_FILE="$NIX_SECRETS_PATH/hosts.nix"
@@ -111,7 +118,7 @@ if [[ -z "${SOPS_AGE_KEY_FILE:-}" && -z "${SOPS_AGE_KEY:-}" && -z "${SOPS_AGE_KE
   elif [[ -r /etc/ssh/ssh_host_ed25519_key ]]; then
     _age_tmp=$(mktemp)
     chmod 600 "$_age_tmp"
-    trap "rm -f '$_age_tmp'" EXIT
+    trap cleanup_age_tmp EXIT
     if ! ssh-to-age -private-key -i /etc/ssh/ssh_host_ed25519_key -o "$_age_tmp" 2>/dev/null; then
       die "ssh-to-age failed to convert /etc/ssh/ssh_host_ed25519_key"
     fi

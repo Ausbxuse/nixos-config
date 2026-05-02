@@ -74,33 +74,54 @@ if [[ -n ${TMUX:-} && -n ${TMUX_PANE:-} ]] && command -v tmux >/dev/null 2>&1; t
   mkdir -p "$__tmux_cmdlog_dir"
   : >> "$__tmux_cmdlog_file"
 
-  tmux set-option -p -q @command-log-dir "$__tmux_cmdlog_dir" 2>/dev/null || true
+  tmux set-option -p -q -t "$TMUX_PANE" @command-log-dir "$__tmux_cmdlog_dir" 2>/dev/null || true
   tmux pipe-pane -o -t "$TMUX_PANE" "cat >> ${(q)__tmux_cmdlog_file}" 2>/dev/null || true
 
   autoload -Uz add-zsh-hook
 
+  __tmux_cmdlog_screen_position() {
+    local pos history cursor_y
+
+    pos="$(tmux display -p -t "$TMUX_PANE" '#{history_size} #{cursor_y}' 2>/dev/null || true)"
+    [[ "$pos" == <->" "<-> ]] || return 1
+
+    history="${pos%% *}"
+    cursor_y="${pos##* }"
+    print -r -- "$((history + cursor_y))"
+  }
+
   __tmux_cmdlog_preexec() {
     local cmd="$1"
-    local start
+    local start screen_start
 
     if [[ "$(wc -c < "$__tmux_cmdlog_file" | tr -d ' ')" -gt 20000000 ]]; then
       : > "$__tmux_cmdlog_file"
     fi
 
     start="$(wc -c < "$__tmux_cmdlog_file" | tr -d ' ')"
+    screen_start="$(__tmux_cmdlog_screen_position || true)"
     print -r -- "$cmd" > "$__tmux_cmdlog_dir/cmd"
     print -r -- "$PWD" > "$__tmux_cmdlog_dir/cwd"
     print -r -- "$start" > "$__tmux_cmdlog_dir/start"
-    rm -f "$__tmux_cmdlog_dir/end" "$__tmux_cmdlog_dir/status"
+    if [[ -n "$screen_start" ]]; then
+      print -r -- "$screen_start" > "$__tmux_cmdlog_dir/screen-start"
+    else
+      rm -f "$__tmux_cmdlog_dir/screen-start"
+    fi
+    rm -f "$__tmux_cmdlog_dir/end" "$__tmux_cmdlog_dir/screen-end" "$__tmux_cmdlog_dir/status"
   }
 
   __tmux_cmdlog_precmd() {
     local exit_status="$?"
-    local end
+    local end screen_end
 
     [[ -f "$__tmux_cmdlog_dir/start" ]] || return 0
     end="$(wc -c < "$__tmux_cmdlog_file" | tr -d ' ')"
+    screen_end="$(__tmux_cmdlog_screen_position || true)"
     print -r -- "$end" > "$__tmux_cmdlog_dir/end"
+    if [[ -n "$screen_end" ]]; then
+      print -r -- "$screen_end" > "$__tmux_cmdlog_dir/screen-end"
+    fi
     print -r -- "$exit_status" > "$__tmux_cmdlog_dir/status"
   }
 

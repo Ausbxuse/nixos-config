@@ -6,3 +6,8 @@ repos:
         entry: nix flake check
         language: system
         pass_filenames: false
+      - id: shellcheck
+        name: shellcheck
+        entry: bash -c 'nix build ".#checks.$(nix eval --raw --impure --expr builtins.currentSystem).shellcheck" --no-link'
+        language: system
+        pass_filenames: false

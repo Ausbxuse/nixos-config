@@ -17,19 +17,21 @@ return {
   {
     'lervag/vimtex',
     enabled = true,
-    ft = 'tex',
+    lazy = false,
+    init = function()
+      vim.g.vimtex_view_method = 'zathura'
+      vim.g.vimtex_view_zathura_exe = 'zathura'
+      vim.g.tex_flavor = 'latex'
+      vim.g.vimtex_quickfix_enabled = 0
+      vim.g.vimtex_compiler_progname = 'nvr'
+    end,
     config = function()
       vim.cmd [[
 
     " for eslint
     "autocmd BufWritePre <buffer> <cmd>EslintFixAll<CR>
 
-    let g:vimtex_view_method='sioyek'
-    let g:vimtex_view_sioyek_exe='sioyek-run'
-    let g:tex_flavor='latex'
     set conceallevel=2
-    let g:vimtex_quickfix_enabled=0
-    let g:vimtex_compiler_progname = 'nvr'
     let g:neovide_transparency=0.8
 
     let g:vimtex_syntax_conceal = {

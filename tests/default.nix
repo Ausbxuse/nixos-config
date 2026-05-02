@@ -14,6 +14,35 @@
     [(toString ../.) (toString hostDefsJson) "zhenyu"]
     (builtins.readFile ../scripts/install-flake.sh)
   );
+  repoSource = builtins.path {
+    path = ../.;
+    name = "nix-config-shellcheck-source";
+  };
+  shellScripts = [
+    "scripts/admit-host.sh"
+    "scripts/enroll.sh"
+    "scripts/install-gnome-resume-background-test.sh"
+    "scripts/install-flake.sh"
+    "scripts/install_caps_ubuntu.sh"
+    "scripts/lib.sh"
+    "scripts/recovery-backup.sh"
+    "scripts/setup-recovery-usb.sh"
+    "scripts/validate-host.sh"
+    "scripts/watt.sh"
+    "tests/run-nixos-system-install.sh"
+    "tests/run-ubuntu-home-install.sh"
+  ];
+  shellcheck = pkgs.runCommand "shellcheck" {nativeBuildInputs = [pkgs.shellcheck];} ''
+    export LC_ALL=C.UTF-8
+    mkdir normalized
+    for rel in ${lib.escapeShellArgs shellScripts}; do
+      src="${repoSource}/$rel"
+      dst="normalized/$(basename "$rel")"
+      sed 's|@source_lib@|. ${repoSource}/scripts/lib.sh|' "$src" >"$dst"
+      shellcheck -x -s bash "$dst"
+    done
+    touch "$out"
+  '';
 
   mkTest = {
     name,
@@ -258,6 +287,8 @@
         ];
     };
 in {
+  inherit shellcheck;
+
   "custom-home-install" = mkcustomHomeInstallTest {
     name = "custom-home";
   };

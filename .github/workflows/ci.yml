@@ -37,3 +37,12 @@ jobs:
           nix eval .#packages.aarch64-linux --apply builtins.attrNames $NIX_OVERRIDES >/dev/null
           nix eval .#checks.x86_64-linux --apply builtins.attrNames $NIX_OVERRIDES >/dev/null
           nix eval .#checks.aarch64-linux --apply builtins.attrNames $NIX_OVERRIDES >/dev/null
+
+      - name: Build representative checks
+        run: |
+          nix build \
+            .#checks.x86_64-linux.shellcheck \
+            .#checks.x86_64-linux.nvim \
+            .#checks.x86_64-linux.custom-home-install \
+            --no-link \
+            $NIX_OVERRIDES

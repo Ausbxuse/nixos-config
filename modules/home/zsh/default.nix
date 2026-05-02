@@ -27,6 +27,31 @@
     codex
   ];
 
+  home.activation.configureCodexNotify = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    config_file="${config.home.homeDirectory}/.codex/config.toml"
+    notify_line='notify = ["${config.home.homeDirectory}/.local/bin/tmux/codex-notify.sh"]'
+
+    mkdir -p "$(dirname "$config_file")"
+
+    if [ -L "$config_file" ]; then
+      tmp="$(${pkgs.coreutils}/bin/mktemp)"
+      ${pkgs.coreutils}/bin/cat "$config_file" > "$tmp"
+      ${pkgs.coreutils}/bin/rm -f "$config_file"
+      ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$config_file"
+      ${pkgs.coreutils}/bin/rm -f "$tmp"
+    elif [ ! -e "$config_file" ]; then
+      ${pkgs.coreutils}/bin/install -m 600 /dev/null "$config_file"
+    fi
+
+    export CODEX_NOTIFY_LINE="$notify_line"
+    ${pkgs.perl}/bin/perl -0pi -e '
+      my $notify = $ENV{CODEX_NOTIFY_LINE};
+      if (!s/\A(.*?)(^notify\s*=.*$)(.*?)(?=^\[|\z)/$1$notify$3/ms) {
+        s/\A(.*?)(?=^\[|\z)/$1$notify\n\n/ms;
+      }
+    ' "$config_file"
+  '';
+
   programs.fzf = {
     enable = true;
     enableZshIntegration = false;

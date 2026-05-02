@@ -11,8 +11,47 @@
     lm_sensors
   ];
 
+  systemd.user.services.tmux-battery-time = {
+    Unit = {
+      Description = "Update cached tmux battery time estimate";
+    };
+
+    Service = {
+      ExecStart = "%h/.local/bin/tmux/battery-time-daemon.sh";
+      Environment = "TMUX_BATTERY_TIME_INTERVAL=300";
+      Restart = "always";
+      RestartSec = 10;
+    };
+
+    Install = {
+      WantedBy = ["default.target"];
+    };
+  };
+
   xdg.configFile."tmux/theme-dark.conf".source = ./theme-dark.conf;
   xdg.configFile."tmux/theme-light.conf".source = ./theme-light.conf;
+  home.file.".local/bin/tmux/codex-notify.sh" = {
+    executable = true;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      payload="''${1:-}"
+      if [[ -z "$payload" && ! -t 0 ]]; then
+        payload="$(cat || true)"
+      fi
+
+      if [[ -n "''${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
+        pane_tty="$(tmux display-message -p -t "$TMUX_PANE" '#{pane_tty}' 2>/dev/null || true)"
+        if [[ -n "$pane_tty" && -w "$pane_tty" ]]; then
+          printf '\a' > "$pane_tty"
+          exit 0
+        fi
+      fi
+
+      printf '\a'
+    '';
+  };
   home.file.".local/bin/tmux/agent-workflow.sh" = {
     executable = true;
     text = ''
@@ -146,7 +185,7 @@
       max_lines="''${TMUX_LAST_COMMAND_LINES:-5000}"
 
       fail() {
-        tmux display-message "$1"
+        printf '%s\n' "$1" >&2
         exit 1
       }
 
@@ -164,20 +203,8 @@
         done
       }
 
-      previous_pane() {
-        local current previous
-
-        current="$(tmux display -p '#{pane_id}')"
-        tmux select-pane -l 2>/dev/null || return 1
-        previous="$(tmux display -p '#{pane_id}')"
-        tmux select-pane -t "$current"
-
-        [[ "$previous" != "$current" ]] || return 1
-        printf '%s\n' "$previous"
-      }
-
       resolve_source_pane() {
-        local current previous
+        local current
 
         if [[ -n "''${TMUX_LAST_COMMAND_SOURCE:-}" ]]; then
           printf '%s\n' "$TMUX_LAST_COMMAND_SOURCE"
@@ -190,13 +217,7 @@
           return 0
         fi
 
-        previous="$(previous_pane || true)"
-        if [[ -n "$previous" ]] && pane_has_completed_command "$previous"; then
-          printf '%s\n' "$previous"
-          return 0
-        fi
-
-        printf '%s\n' "$current"
+        fail "No completed command captured for current pane $current"
       }
 
       source_pane="$(resolve_source_pane)"
@@ -218,8 +239,43 @@
       [[ "$start" =~ ^[0-9]+$ && "$end" =~ ^[0-9]+$ && "$end" -ge "$start" ]] ||
         fail "Invalid command log offsets for $source_pane"
 
+      capture_screen() {
+        local screen_start screen_end current_history start_line end_line
+
+        [[ -f "$log_dir/screen-start" && -f "$log_dir/screen-end" ]] || return 1
+        screen_start="$(cat "$log_dir/screen-start")"
+        screen_end="$(cat "$log_dir/screen-end")"
+        [[ "$screen_start" =~ ^[0-9]+$ && "$screen_end" =~ ^[0-9]+$ && "$screen_end" -ge "$screen_start" ]] ||
+          return 1
+
+        current_history="$(tmux display -p -t "$source_pane" '#{history_size}' 2>/dev/null || true)"
+        [[ "$current_history" =~ ^[0-9]+$ ]] || return 1
+
+        start_line="$((screen_start - current_history))"
+        end_line="$((screen_end - current_history))"
+        tmux capture-pane -p -N -t "$source_pane" -S "$start_line" -E "$end_line" 2>/dev/null
+      }
+
+      capture_log() {
+        if [[ "$end" -gt "$start" ]]; then
+          tail -c +"$((start + 1))" "$log_file" |
+            head -c "$((end - start))" |
+            ${pkgs.perl}/bin/perl -pe 's/\e\[[0-?]*[ -\/]*[@-~]//g; s/\e\].*?(\a|\e\\)//g; s/\r//g' |
+            if [[ "$max_lines" == "0" ]]; then cat; else tail -n "$max_lines"; fi
+        fi
+      }
+
       tmp="$(mktemp)"
-      trap 'rm -f "$tmp"' EXIT
+      output_tmp="$(mktemp)"
+      log_output_tmp="$(mktemp)"
+      current_buffer_tmp="$(mktemp)"
+      trap 'rm -f "$tmp" "$output_tmp" "$log_output_tmp" "$current_buffer_tmp"' EXIT
+
+      capture_log > "$log_output_tmp"
+      capture_screen > "$output_tmp" || capture_log > "$output_tmp"
+      if ! grep -q '[^[:space:]]' "$log_output_tmp"; then
+        fail "Last command produced no output"
+      fi
 
       {
         printf 'Last command from tmux pane %s\n\n' "$source_pane"
@@ -233,32 +289,22 @@
           printf ' (last %s lines)' "$max_lines"
         fi
         printf ':\n\n```text\n'
-        if [[ "$end" -gt "$start" ]]; then
-          tail -c +"$((start + 1))" "$log_file" |
-            head -c "$((end - start))" |
-            ${pkgs.perl}/bin/perl -pe 's/\e\[[0-?]*[ -\/]*[@-~]//g; s/\e\].*?(\a|\e\\)//g; s/\r//g' |
-            if [[ "$max_lines" == "0" ]]; then cat; else tail -n "$max_lines"; fi
-        fi
+        cat "$output_tmp"
         printf '\n```\n'
       } > "$tmp"
 
-      tmux load-buffer -w "$tmp"
+      already_copied=false
+      if tmux save-buffer "$current_buffer_tmp" 2>/dev/null && cmp -s "$tmp" "$current_buffer_tmp"; then
+        already_copied=true
+      else
+        tmux load-buffer -w "$tmp"
+      fi
 
       case "$cmd" in
         copy)
           ;;
         paste-last-pane)
-          current_pane="$(tmux display -p '#{pane_id}')"
-          if [[ "$source_pane" == "$current_pane" ]]; then
-            target_pane="$(previous_pane || true)"
-          else
-            target_pane="$current_pane"
-          fi
-          if [[ "$source_pane" == "$current_pane" && "$target_pane" == "$current_pane" ]]; then
-            fail "No previous pane to paste into"
-          fi
-          [[ -n "''${target_pane:-}" ]] || fail "No target pane to paste into"
-          tmux paste-buffer -t "$target_pane"
+          tmux paste-buffer
           ;;
         *)
           printf 'usage: %s {copy|paste-last-pane}\n' "$0" >&2
@@ -301,7 +347,7 @@
             set -g status-position top
             set -g status-style 'bg=default'  # transparent background
             set -g status-left-length 50
-            set -g status-right-length 70
+            set -g status-right-length 90
             set -g status-bg 'default'
             if-shell 'command -v gsettings >/dev/null 2>&1 && gsettings get org.gnome.desktop.interface color-scheme | grep -q prefer-light' \
               'source-file ~/.config/tmux/theme-light.conf' \

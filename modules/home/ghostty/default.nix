@@ -74,6 +74,7 @@
         font-thicken = true;
 
         shell-integration-features = "no-cursor,no-sudo,title";
+        bell-features = "no-system,no-audio,no-attention,no-title,no-border";
         cursor-style-blink = false;
         adjust-cursor-thickness = 2;
         cursor-style = "bar";
@@ -82,10 +83,11 @@
         resize-overlay = "never";
         clipboard-read = "allow";
         clipboard-paste-protection = false;
+        gtk-single-instance = false;
 
         window-decoration = false;
-        background-opacity = 1;
-        # background-opacity = 0.74;
+        # background-opacity = 1;
+        background-opacity = 0.74;
         link-url = true;
       };
     };
