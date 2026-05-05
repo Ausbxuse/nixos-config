@@ -1,4 +1,16 @@
-{pkgs, ...}: {
+{
+  config,
+  lib,
+  hostDef,
+  pkgs,
+  ...
+}: let
+  isGenericLinux = !(hostDef.nixos.enable or false);
+  genericLinuxUserExtensions = with pkgs.gnomeExtensions; [
+    blur-my-shell
+    forge
+  ];
+in {
   imports = [
     ./dconf.nix
   ];
@@ -155,6 +167,23 @@
     '';
     executable = true;
   };
+
+  home.activation.installGnomeShellExtensions = lib.mkIf isGenericLinux (lib.hm.dag.entryAfter ["writeBoundary"] ''
+    target_dir="${config.home.homeDirectory}/.local/share/gnome-shell/extensions"
+
+    run mkdir -p "$target_dir"
+    ${lib.concatMapStringsSep "\n" (pkg: ''
+      for extension in "${pkg}/share/gnome-shell/extensions"/*; do
+        [ -e "$extension" ] || continue
+        name="$(${pkgs.coreutils}/bin/basename "$extension")"
+        if [ -e "$target_dir/$name" ]; then
+          run chmod -R u+w "$target_dir/$name"
+        fi
+        run rm -rf "$target_dir/$name"
+        run cp -aL "$extension" "$target_dir/$name"
+      done
+    '') genericLinuxUserExtensions}
+  '');
 
   home.packages = with pkgs; [
     capitaine-cursors

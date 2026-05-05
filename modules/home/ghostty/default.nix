@@ -1,9 +1,33 @@
-{lib, ...}: {
+{
+  config,
+  lib,
+  inputs,
+  hostDef,
+  pkgs,
+  ...
+}: let
+  useNixGL =
+    pkgs.stdenv.hostPlatform.isx86_64
+    && !(hostDef.nixos.enable or false);
+in {
   xdg.configFile."ghostty/shaders/cursor_warp.glsl".source = ./cursor_warp.glsl;
+
+  targets.genericLinux = lib.mkIf useNixGL {
+    enable = lib.mkDefault true;
+    nixGL = {
+      packages = import inputs.nixgl {inherit pkgs;};
+      defaultWrapper = "mesa";
+      installScripts = ["mesa"];
+    };
+  };
 
   programs = {
     ghostty = {
       enable = true;
+      package =
+        if useNixGL
+        then config.lib.nixGL.wrap pkgs.ghostty
+        else pkgs.ghostty;
       themes = {
         snappy = {
           palette = [

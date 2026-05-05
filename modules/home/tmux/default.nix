@@ -9,6 +9,8 @@
 
   home.packages = with pkgs; [
     lm_sensors
+    wl-clipboard
+    xsel
   ];
 
   systemd.user.services.tmux-battery-time = {
@@ -30,6 +32,39 @@
 
   xdg.configFile."tmux/theme-dark.conf".source = ./theme-dark.conf;
   xdg.configFile."tmux/theme-light.conf".source = ./theme-light.conf;
+  home.file.".local/bin/tmux/copy-to-clipboard.sh" = {
+    executable = true;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      tmp="$(mktemp)"
+      trap 'rm -f "$tmp"' EXIT
+      cat > "$tmp"
+
+      if [[ -s "$tmp" ]]; then
+        tmux load-buffer "$tmp" 2>/dev/null || true
+      fi
+
+      if [[ -n "''${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
+        wl-copy --type text/plain < "$tmp" && exit 0
+      fi
+
+      if [[ -n "''${DISPLAY:-}" ]] && command -v xsel >/dev/null 2>&1; then
+        xsel --clipboard --input < "$tmp" && exit 0
+      fi
+
+      if [[ -n "''${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+        xclip -selection clipboard -in < "$tmp" && exit 0
+      fi
+
+      if [[ -t 1 ]]; then
+        ${pkgs.perl}/bin/perl -MMIME::Base64=encode_base64 -0777 -ne '
+          print "\e]52;c;", encode_base64($_, ""), "\a"
+        ' < "$tmp"
+      fi
+    '';
+  };
   home.file.".local/bin/tmux/codex-notify.sh" = {
     executable = true;
     text = ''

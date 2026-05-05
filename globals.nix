@@ -1,5 +1,5 @@
 {
-  email = "peterzhaozzy.com";
+  email = "peterzhaozzy@gmail.com";
   name = "Zhenyu Zhao";
   supported-systems = ["x86_64-linux" "aarch64-linux"];
   username = "zhenyu";

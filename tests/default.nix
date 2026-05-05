@@ -119,6 +119,8 @@
                 for arg in "$@"; do
                   case "$arg" in
                     *'#zhenyu@${name}')
+                      test -d "$HOME/src/public/nix-config/modules/home/nvim/nvim"
+                      test -f "$HOME/src/public/nix-config/modules/profiles/home/minimal.nix"
                       worktree="''${arg%%#*}"
                       cp "$worktree/machines/defs.nix" /tmp/test-artifacts/defs.nix
                       ;;
@@ -163,6 +165,7 @@
             + ''
               --home \
               --home-profile ${homeProfile} \
+              --caps-remap no \
             ''
             + displayArgs
             + ''
@@ -175,6 +178,8 @@
             + displayAsserts
             + systemAsserts
             + ''
+                test -d "$HOME/src/public/nix-config/modules/home/nvim/nvim"
+                test -f "$HOME/src/public/nix-config/modules/profiles/home/minimal.nix"
                 grep -F '#zhenyu@${name}' /tmp/test-artifacts/home-nix-args
                 grep -F 'ID=ubuntu' /etc/os-release
               """)

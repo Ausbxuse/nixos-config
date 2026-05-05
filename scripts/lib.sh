@@ -118,7 +118,10 @@ run_with_spinner() {
     info "$msg"
   fi
 
-  if wait "$pid"; then
+  wait "$pid"
+  rc=$?
+
+  if [[ $rc -eq 0 ]]; then
     ok "$msg"
     rm -f "$log"
     if [[ -n "$tty_fd" ]]; then
@@ -127,7 +130,6 @@ run_with_spinner() {
     return 0
   fi
 
-  rc=$?
   err "$msg (exit $rc)"
   if [[ -s "$log" ]]; then
     sed 's/^/    /' "$log" >&2

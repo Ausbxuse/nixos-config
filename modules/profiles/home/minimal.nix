@@ -9,6 +9,11 @@
     ../../home/nvim
     ../../home/tmux
   ];
+
+  xdg.configFile."nix/nix.conf".text = ''
+    experimental-features = nix-command flakes
+  '';
+
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;

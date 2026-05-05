@@ -24,6 +24,7 @@ INSTALL_LAYOUT=""
 PLATFORM=""
 VISIBILITY=""
 COPY_REPO=""        # yes|no
+CAPS_REMAP=""       # yes|no
 REPO_DEST=""
 KNOWN_HOST=0
 DRY_RUN=0
@@ -171,6 +172,7 @@ parse_args() {
       --swap-size)       SWAP_SIZE=${2:?missing value};       shift 2 ;;
       --install-layout)  INSTALL_LAYOUT=${2:?missing value};  shift 2 ;;
       --copy-repo)       COPY_REPO=${2:?missing value};       shift 2 ;;
+      --caps-remap)      CAPS_REMAP=${2:?missing value};      shift 2 ;;
       --repo-dest)       REPO_DEST=${2:?missing value};       shift 2 ;;
       --portable)        PORTABLE=1;                            shift ;;
       --skip-partitioning) SKIP_PARTITIONING=1;               shift ;;
@@ -197,6 +199,8 @@ Options:
   --swap-size SIZE         Swapfile size, e.g. 32G (default: RAM-matched)
   --install-layout NAME    Layout under modules/nixos/install/
   --copy-repo yes|no       Copy the resulting repo into the installed system
+  --caps-remap yes|no      Configure Caps as tap Escape / hold Control on
+                           generic Linux home installs
   --repo-dest PATH         Destination for copied repo inside the target root
   --portable               Portable mode for non-root, non-NixOS hosts using
                            nix-portable (implies --home)
@@ -232,6 +236,10 @@ EOF
 
   if [[ -n "$COPY_REPO" && "$COPY_REPO" != "yes" && "$COPY_REPO" != "no" ]]; then
     die "--copy-repo must be yes or no"
+  fi
+
+  if [[ -n "$CAPS_REMAP" && "$CAPS_REMAP" != "yes" && "$CAPS_REMAP" != "no" ]]; then
+    die "--caps-remap must be yes or no"
   fi
 }
 
@@ -438,6 +446,10 @@ recap() {
 
   if [[ $SKIP_PARTITIONING -eq 1 ]]; then
     kv "partitioning" "skipped"
+  fi
+
+  if [[ "$HOME_MODE" == "yes" && "$NIXOS_MODE" != "yes" && $PORTABLE -eq 0 ]]; then
+    kv "caps remap" "${CAPS_REMAP:-prompt}"
   fi
 }
 
@@ -657,7 +669,7 @@ run_nixos_install() {
 }
 
 copy_repo_to_target() {
-  if [[ "$NIXOS_MODE" != "yes" ]]; then
+  if [[ "$NIXOS_MODE" != "yes" && "$HOME_MODE" != "yes" ]]; then
     return 0
   fi
 
@@ -667,7 +679,11 @@ copy_repo_to_target() {
   fi
 
   if [[ -z "$REPO_DEST" ]]; then
-    REPO_DEST="/mnt/home/${USERNAME}/src/public/nix-config"
+    if [[ "$NIXOS_MODE" == "yes" ]]; then
+      REPO_DEST="/mnt/home/${USERNAME}/src/public/nix-config"
+    else
+      REPO_DEST="${HOME}/src/public/nix-config"
+    fi
   fi
 
   if [[ -z "$COPY_REPO" ]]; then
@@ -680,6 +696,7 @@ copy_repo_to_target() {
 
   if [[ "$COPY_REPO" == "yes" ]]; then
     local git_source=""
+    local owner_spec=""
     local repo_parent=""
     local staging_dest=""
 
@@ -691,32 +708,70 @@ copy_repo_to_target() {
       git_source=""
     fi
 
+    if [[ -n "$git_source" ]]; then
+      local real_git_source=""
+      local real_repo_dest=""
+      real_git_source=$(realpath -m "$git_source")
+      real_repo_dest=$(realpath -m "$REPO_DEST")
+      if [[ "$real_git_source" == "$real_repo_dest" ]]; then
+        ok "repo already present at ${REPO_DEST}"
+        return 0
+      fi
+    fi
+
     repo_parent=$(dirname "$REPO_DEST")
     staging_dest="${REPO_DEST}.tmp.$$"
 
-    sudo mkdir -p "$repo_parent"
-    sudo rm -rf "$staging_dest"
+    if [[ "$NIXOS_MODE" == "yes" ]]; then
+      sudo mkdir -p "$repo_parent"
+      sudo rm -rf "$staging_dest"
+      owner_spec="${USERNAME}:users"
+    else
+      mkdir -p "$repo_parent"
+      rm -rf "$staging_dest"
+      owner_spec="${USERNAME}:$(id -gn)"
+    fi
 
     if [[ -n "$git_source" ]]; then
-      run_with_spinner "cloning repo history → ${REPO_DEST}" \
-        sudo git clone --quiet "$git_source" "$staging_dest"
+      if [[ "$NIXOS_MODE" == "yes" ]]; then
+        run_with_spinner "cloning repo history → ${REPO_DEST}" \
+          sudo git clone --quiet "$git_source" "$staging_dest"
+      else
+        run_with_spinner "cloning repo history → ${REPO_DEST}" \
+          git clone --quiet "$git_source" "$staging_dest"
+      fi
 
       for artifact in "${INSTALL_ARTIFACTS[@]}"; do
         if [[ -e "$WORKTREE/$artifact" ]]; then
-          sudo install -D -m 0644 "$WORKTREE/$artifact" "$staging_dest/$artifact"
+          if [[ "$NIXOS_MODE" == "yes" ]]; then
+            sudo install -D -m 0644 "$WORKTREE/$artifact" "$staging_dest/$artifact"
+          else
+            install -D -m 0644 "$WORKTREE/$artifact" "$staging_dest/$artifact"
+          fi
         fi
       done
     else
       warn "local git checkout not detected; falling back to rsync snapshot copy"
-      run_with_spinner "copying repo snapshot → ${REPO_DEST}" \
-        sudo rsync -a --delete "$WORKTREE"/ "$staging_dest/"
+      if [[ "$NIXOS_MODE" == "yes" ]]; then
+        run_with_spinner "copying repo snapshot → ${REPO_DEST}" \
+          sudo rsync -a --delete "$WORKTREE"/ "$staging_dest/"
+      else
+        run_with_spinner "copying repo snapshot → ${REPO_DEST}" \
+          rsync -a --delete "$WORKTREE"/ "$staging_dest/"
+      fi
     fi
 
-    sudo rm -rf "$REPO_DEST"
-    sudo mv "$staging_dest" "$REPO_DEST"
+    if [[ "$NIXOS_MODE" == "yes" ]]; then
+      sudo rm -rf "$REPO_DEST"
+      sudo mv "$staging_dest" "$REPO_DEST"
 
-    # Fix ownership inside the target system, where the installed user exists.
-    sudo nixos-enter --root /mnt -c "chown -R ${USERNAME}:users /home/${USERNAME}/src"
+      # Fix ownership inside the target system, where the installed user exists.
+      sudo nixos-enter --root /mnt -c "chown -R ${owner_spec} /home/${USERNAME}/src"
+    else
+      rm -rf "$REPO_DEST"
+      mv "$staging_dest" "$REPO_DEST"
+      chown -R "$owner_spec" "$REPO_DEST" 2>/dev/null || true
+    fi
   fi
 }
 
@@ -738,6 +793,167 @@ run_home_install() {
   info "switching ${USERNAME}@${HOST}"
   "${NIX_CMD[@]}" run nixpkgs#home-manager -- switch --flake "${WORKTREE}#${USERNAME}@${HOST}"
   ok "home-manager switch finished"
+}
+
+configure_home_default_shell() {
+  if [[ "$HOME_MODE" != "yes" || "$NIXOS_MODE" == "yes" || $PORTABLE -eq 1 ]]; then
+    return 0
+  fi
+
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "Dry run: skipping default shell configuration"
+    return 0
+  fi
+
+  local zsh_path="${HOME}/.nix-profile/bin/zsh"
+  local current_shell=""
+
+  if [[ ! -x "$zsh_path" ]]; then
+    warn "zsh was not found at ${zsh_path}; leaving login shell unchanged"
+    return 0
+  fi
+
+  current_shell=$(getent passwd "$USERNAME" | awk -F: '{print $7}')
+  if [[ "$current_shell" == "$zsh_path" ]]; then
+    ok "default shell already set to zsh"
+    return 0
+  fi
+
+  section "default shell"
+
+  if ! sudo -v; then
+    warn "sudo authentication failed; leaving login shell unchanged"
+    return 0
+  fi
+
+  if ! grep -Fxq "$zsh_path" /etc/shells 2>/dev/null; then
+    info "adding ${zsh_path} to /etc/shells"
+    printf '%s\n' "$zsh_path" | sudo tee -a /etc/shells >/dev/null
+  fi
+
+  info "setting ${USERNAME}'s login shell to ${zsh_path}"
+  sudo chsh -s "$zsh_path" "$USERNAME"
+  ok "default shell set to zsh"
+}
+
+configure_caps_remap() {
+  if [[ "$HOME_MODE" != "yes" || "$NIXOS_MODE" == "yes" || $PORTABLE -eq 1 ]]; then
+    return 0
+  fi
+
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "Dry run: skipping Caps remap setup"
+    return 0
+  fi
+
+  if [[ -z "$CAPS_REMAP" ]]; then
+    if prompt_bool "configure Caps as tap Escape / hold Control with interception-tools?" yes; then
+      CAPS_REMAP=yes
+    else
+      CAPS_REMAP=no
+    fi
+  fi
+
+  if [[ "$CAPS_REMAP" != "yes" ]]; then
+    return 0
+  fi
+
+  if [[ ! -r /etc/os-release ]]; then
+    warn "cannot detect OS; skipping Caps remap setup"
+    return 0
+  fi
+
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case " ${ID:-} ${ID_LIKE:-} " in
+    *" ubuntu "*|*" debian "*) ;;
+    *)
+      warn "Caps remap setup currently supports Debian/Ubuntu hosts; detected '${ID:-unknown}'"
+      return 0
+      ;;
+  esac
+
+  section "caps remap"
+
+  if ! sudo -v; then
+    warn "sudo authentication failed; leaving Caps remap unconfigured"
+    return 0
+  fi
+
+  if ! command -v apt-get >/dev/null 2>&1; then
+    warn "apt-get not found; skipping interception-tools setup"
+    return 0
+  fi
+
+  if ! run_with_spinner "updating apt package metadata" \
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get update; then
+    warn "failed to update apt metadata; leaving Caps remap unconfigured"
+    return 0
+  fi
+
+  if ! run_with_spinner "installing interception-tools" \
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y interception-tools interception-caps2esc; then
+    warn "failed to install interception-tools; leaving Caps remap unconfigured"
+    if command -v systemctl >/dev/null 2>&1; then
+      sudo systemctl disable --now udevmon 2>/dev/null || true
+    fi
+    return 0
+  fi
+
+  if ! command -v interception >/dev/null 2>&1 ||
+     ! command -v caps2esc >/dev/null 2>&1 ||
+     ! command -v udevmon >/dev/null 2>&1 ||
+     ! command -v uinput >/dev/null 2>&1; then
+    warn "interception-tools commands are missing after apt install; leaving Caps remap unconfigured"
+    if command -v systemctl >/dev/null 2>&1; then
+      sudo systemctl disable --now udevmon 2>/dev/null || true
+    fi
+    return 0
+  fi
+
+  sudo mkdir -p /etc/interception/udevmon.d
+  sudo rm -f /etc/dual-function-keys.yaml /etc/interception/udevmon.d/dual-function-keys.yaml
+
+  sudo tee /etc/interception/udevmon.yaml >/dev/null <<'EOF'
+- JOB: "interception -g $DEVNODE | caps2esc -m 1 | uinput -d $DEVNODE"
+  DEVICE:
+    EVENTS:
+      EV_KEY: [KEY_CAPSLOCK]
+EOF
+
+  sudo groupadd -f input
+  sudo groupadd -f uinput
+  sudo usermod -aG input "$USERNAME"
+  sudo usermod -aG uinput "$USERNAME"
+
+  if command -v systemctl >/dev/null 2>&1; then
+    if ! systemctl list-unit-files udevmon.service --no-pager 2>/dev/null | grep -q '^udevmon\.service'; then
+      sudo tee /etc/systemd/system/udevmon.service >/dev/null <<'EOF'
+[Unit]
+Description=Monitor input devices for launching interception-tools jobs
+Wants=systemd-udev-settle.service
+After=systemd-udev-settle.service
+Documentation=man:udev(7)
+
+[Service]
+ExecStart=/usr/bin/udevmon -c /etc/interception/udevmon.yaml
+Nice=-20
+Restart=on-failure
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    fi
+    sudo systemctl daemon-reload
+    sudo systemctl enable udevmon
+    sudo systemctl restart udevmon
+    ok "Caps remap configured with interception-tools"
+  else
+    warn "systemctl not found; Caps remap config written but udevmon was not started"
+  fi
+
+  info "log out and back in for input/uinput group membership to refresh"
 }
 
 # --------------------------------------------------------- portable helpers
@@ -802,6 +1018,8 @@ main() {
   run_nixos_install
   copy_repo_to_target
   run_home_install
+  configure_home_default_shell
+  configure_caps_remap
   setup_portable_env
 
   section "done"

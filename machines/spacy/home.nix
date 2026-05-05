@@ -1,8 +1,5 @@
 {
-  config,
   lib,
-  inputs,
-  pkgs,
   username,
   ...
 }: {
@@ -30,11 +27,4 @@
     fi
   '';
 
-  targets.genericLinux.nixGL.packages = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 (import inputs.nixgl {inherit pkgs;});
-  targets.genericLinux.nixGL.defaultWrapper = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 "mesa";
-  targets.genericLinux.nixGL.installScripts = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 ["mesa"];
-  programs.ghostty.package =
-    if pkgs.stdenv.hostPlatform.isx86_64
-    then config.lib.nixGL.wrap pkgs.ghostty
-    else pkgs.ghostty;
 }
