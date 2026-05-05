@@ -226,7 +226,7 @@ in {
 
     dockedMarker = lib.mkOption {
       type = lib.types.str;
-      default = "/etc/ollama/docked";
+      default = "/etc/nixos/docked";
       description = "Marker file that indicates the system booted into docked mode.";
     };
 

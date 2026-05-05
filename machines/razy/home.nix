@@ -3,7 +3,7 @@
   lib,
   ...
 }: let
-  defaultLocalModel = "qwen3.5:27b";
+  defaultLocalModel = "qwen3.6:27b";
 in {
   imports = [
     ../../modules/home/slimevr.nix
@@ -13,7 +13,11 @@ in {
     ../../modules/home/ollama-agent.nix
   ];
 
-  my.codexLocal.enable = true;
+  my.codexLocal = {
+    enable = true;
+    localModel = defaultLocalModel;
+    models = [defaultLocalModel];
+  };
 
   services.ollama-agent = {
     enable = true;

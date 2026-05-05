@@ -14,10 +14,10 @@
       # Keep the desktop on NVIDIA; PRIME offload introduced noticeable input latency on `uni`.
       sync.enable = true;
 
-      # TODO: get the right bus id using `sudo lshw -c display`
-      intelBusId = "PCI:0:2:0";
-      nvidiaBusId = "PCI:1:0:0";
-      # amdgpuBusId = "PCI:54:0:0"; For AMD GPU
+      # Run `just nvidia-prime-bus-ids` on the target host to get these.
+      intelBusId = "PCI:0@0:2:0";
+      nvidiaBusId = "PCI:2@0:0:0";
+      # amdgpuBusId = "PCI:84@0:0:0"; For AMD GPU
     };
 
     hardware.nvidia = {

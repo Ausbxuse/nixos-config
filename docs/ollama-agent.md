@@ -21,7 +21,7 @@ Use the `ollama` CLI directly:
 
 ```sh
 # Pull a new model
-ollama pull gemma4:31b
+ollama pull qwen3.6:27b
 
 # List installed models
 ollama list
@@ -30,17 +30,17 @@ ollama list
 ollama rm <tag>
 
 # Run interactively for a quick sanity check
-ollama run gemma4:31b
+ollama run qwen3.6:27b
 ```
 
 To change which model Codex uses without rebuilding:
 
 ```sh
 # One-shot
-CODEX_LOCAL_MODEL=gemma4:27b codex-local
+CODEX_LOCAL_MODEL=qwen3.6:27b codex-local
 
 # Or switch your current shell
-export CODEX_LOCAL_MODEL=gemma4:27b
+export CODEX_LOCAL_MODEL=qwen3.6:27b
 codex-local
 ```
 

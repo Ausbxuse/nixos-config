@@ -60,12 +60,19 @@ in {
   # Work around a Mutter/Intel Xe (Panther Lake) bug where the desktop
   # wallpaper texture is lost after s2idle resume, leaving a solid-colour
   # fallback.  A quick VT round-trip forces a full GPU redraw.
-  # FIXME:
-  # powerManagement.resumeCommands = ''
-  #   ${pkgs.kbd}/bin/chvt 3
-  #   sleep 1
-  #   ${pkgs.kbd}/bin/chvt 2
-  # '';
+  powerManagement.resumeCommands = ''
+    current_vt="$(${pkgs.kbd}/bin/fgconsole 2>/dev/null || true)"
+    if [ -n "$current_vt" ]; then
+      next_vt=3
+      if [ "$current_vt" = 3 ]; then
+        next_vt=2
+      fi
+
+      ${pkgs.kbd}/bin/chvt "$next_vt" || true
+      sleep 1
+      ${pkgs.kbd}/bin/chvt "$current_vt" || true
+    fi
+  '';
 
   hardware.firmware = with pkgs; [
     linux-firmware

@@ -34,6 +34,10 @@ in {
     mkApp "Install this configuration onto a target host."
     "${packages.install}/bin/install-config";
 
+  "nvidia-prime-bus-ids" =
+    mkApp "Print NixOS NVIDIA PRIME bus IDs for the current host."
+    "${packages.nvidiaPrimeBusIds}/bin/nvidia-prime-bus-ids";
+
   default =
     mkApp "Sync the Minecraft client assets."
     "${packages.minecraftSync}/bin/sync-minecraft-client";

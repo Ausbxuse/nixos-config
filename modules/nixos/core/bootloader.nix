@@ -25,7 +25,7 @@ in {
       # environments and unnecessary for single-OS installs. Opt in per host.
       useOSProber = lib.mkDefault (installDef.useOSProber or false);
       # Keep the EFI partition from filling up with old kernel/initrd copies.
-      configurationLimit = 1;
+      configurationLimit = 3;
       # enableCryptodisk= true;
       #efiInstallAsRemovable = true; # in case canTouchEfiVariables doesn't work for your system
       device = "nodev";

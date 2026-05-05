@@ -224,8 +224,8 @@
       ffmpeg = "ffmpeg -hide_banner";
       gpu = "nvidia-offload";
       # ls="eza --long --git --color=always --no-filesize --icons=always --no-user --no-time --no-permissions --sort=date" ;
-      l = "eza --git --color=always --no-filesize --icons=always --no-user --no-time --no-permissions --sort=date";
-      ls = "eza --long --git --color=always --icons=always --sort=date";
+      l = "eza --git --color=always --no-filesize --icons=always --no-user --no-time --no-permissions --sort=modified --reverse --group-directories-first";
+      ls = "eza --long --git --color=always --icons=always --sort=modified --reverse --group-directories-first";
       grep = "grep --color=auto";
       diff = "diff --color=auto";
       ccat = "highlight --out-format=ansi";

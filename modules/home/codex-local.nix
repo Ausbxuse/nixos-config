@@ -26,13 +26,13 @@ in {
 
     models = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = ["qwen:3.5:27b"];
+      default = ["qwen3.6:27b"];
       description = "List of Ollama models to pre-download for local Codex usage.";
     };
 
     localModel = lib.mkOption {
       type = lib.types.str;
-      default = "qwen3.5:27b";
+      default = "qwen3.6:27b";
       description = "Model name passed to the codex-local wrapper.";
     };
 
@@ -61,8 +61,7 @@ in {
             ${pkgs.ollama}/bin/ollama pull "$model" || true
           done
         ''
-      else
-        "";
+      else "";
 
     xdg.configFile.".mcp.json".text = builtins.toJSON {
       mcpServers = lib.optionalAttrs (cfg.searxngUrl != null) {
@@ -92,7 +91,7 @@ in {
           ${lib.optionalString (cfg.searxngUrl != null) ''
           -c 'mcp_servers.searxng.command="searxng-mcp"' \
           -c 'mcp_servers.searxng.env.SEARXNG_URL="${cfg.searxngUrl}"' \
-          ''} \
+        ''} \
           --model "''${CODEX_LOCAL_MODEL:?CODEX_LOCAL_MODEL must be set}" \
           "$@"
       '';

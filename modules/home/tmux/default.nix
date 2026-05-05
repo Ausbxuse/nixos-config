@@ -382,7 +382,7 @@
             set -g status-position top
             set -g status-style 'bg=default'  # transparent background
             set -g status-left-length 50
-            set -g status-right-length 90
+            set -g status-right-length 110
             set -g status-bg 'default'
             if-shell 'command -v gsettings >/dev/null 2>&1 && gsettings get org.gnome.desktop.interface color-scheme | grep -q prefer-light' \
               'source-file ~/.config/tmux/theme-light.conf' \

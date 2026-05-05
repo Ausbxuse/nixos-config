@@ -11,16 +11,22 @@ dconf:
 	rsync -av ~/.config/dconf/ ./hosts/base/home/gnome/dconf
 
 sys:
-	nixos-rebuild switch {{nix-interactive-options}} --flake .#$(hostname) --sudo $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi)
+	nh os switch --bypass-root-check --ask --diff always --fallback --hostname $(hostname) . -- $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi) {{nix-interactive-options}}
 
 home:
-  home-manager switch {{nix-interactive-options}} --flake .#$(if [ -n "${SUDO_USER:-}" ]; then printf '%s' "$SUDO_USER"; else whoami; fi)@$(hostname) $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi)
+  nh home switch --ask --diff always --fallback --configuration $(if [ -n "${SUDO_USER:-}" ]; then printf '%s' "$SUDO_USER"; else whoami; fi)@$(hostname) . -- $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi) {{nix-interactive-options}}
+
+sys-test:
+	nh os test --bypass-root-check --ask --diff always --fallback --hostname $(hostname) . -- $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi) {{nix-interactive-options}}
 
 debug:
-	nixos-rebuild switch {{nix-interactive-options}} --flake . --sudo --show-trace --verbose $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi)
+	nh os switch --bypass-root-check --ask --diff always --fallback --show-trace --verbose --hostname $(hostname) . -- $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi) {{nix-interactive-options}}
 
 sys-debug:
-	nixos-rebuild switch {{nix-interactive-options}} --flake .#$(hostname) --sudo --show-trace --print-build-logs --verbose --option max-call-depth 10000 $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi)
+	nh os switch --bypass-root-check --ask --diff always --fallback --show-trace --print-build-logs --verbose --hostname $(hostname) . -- $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi) {{nix-interactive-options}} --option max-call-depth 10000
+
+nvidia-prime-bus-ids:
+	nix run .#nvidia-prime-bus-ids
 
 # Update specific input
 # usage: make upp i=home-manager
@@ -43,8 +49,7 @@ precommit:
 	pre-commit run --all-files
 
 clean:
-	# Remove all generations older than 7 days
-	sudo nix profile wipe-history --profile /nix/var/nix/profiles/system  --older-than 7d
+	nh clean all --keep-since 7d --keep 3 --ask
 
 gc:
 	# Garbage collect all unused nix store entries
