@@ -186,7 +186,9 @@ with lib.hm.gvariant; {
       switch-to-workspace-last = ["<Super>End"];
       switch-to-workspace-left = ["<Super>Page_Up" "<Super><Alt>Left" "<Control><Alt>Left"];
       switch-to-workspace-right = ["<Super>Page_Down" "<Super><Alt>Right" "<Control><Alt>Right"];
+      show-desktop = [];
       toggle-fullscreen = ["<Super>f"];
+      panel-run-dialog = [];
       unmaximize = ["<Super>Down" "<Alt>F5"];
     };
 

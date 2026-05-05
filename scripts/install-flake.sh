@@ -89,6 +89,45 @@ home_profile_supports_display_profile() {
   esac
 }
 
+is_debian_like_host() {
+  if [[ ! -r /etc/os-release ]]; then
+    return 1
+  fi
+
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case " ${ID:-} ${ID_LIKE:-} " in
+    *" ubuntu "*|*" debian "*) return 0 ;;
+    *)                         return 1 ;;
+  esac
+}
+
+apt_get_noninteractive() {
+  sudo env DEBIAN_FRONTEND=noninteractive apt-get \
+    -o Acquire::Retries=5 \
+    -o Acquire::http::Timeout=20 \
+    -o Acquire::https::Timeout=20 \
+    "$@"
+}
+
+remove_user_shadowed_gnome_extensions() {
+  local target_dir="${HOME}/.local/share/gnome-shell/extensions"
+  local name
+  local -a distro_extensions=(
+    "drive-menu@gnome-shell-extensions.gcampax.github.com"
+    "screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com"
+    "user-theme@gnome-shell-extensions.gcampax.github.com"
+    "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
+  )
+
+  for name in "${distro_extensions[@]}"; do
+    if [[ -d "/usr/share/gnome-shell/extensions/${name}" && -e "${target_dir}/${name}" ]]; then
+      chmod -R u+w "${target_dir:?}/${name}" 2>/dev/null || true
+      rm -rf "${target_dir:?}/${name}"
+    fi
+  done
+}
+
 list_nixos_profiles() {
   find "$REPO_SOURCE/modules/profiles/nixos" -maxdepth 1 -type f -name '*.nix' \
     -exec basename {} .nix \; 2>/dev/null | sort
@@ -836,6 +875,52 @@ configure_home_default_shell() {
   ok "default shell set to zsh"
 }
 
+configure_gnome_shell_extensions() {
+  if [[ "$HOME_MODE" != "yes" || "$NIXOS_MODE" == "yes" || $PORTABLE -eq 1 ]]; then
+    return 0
+  fi
+
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "Dry run: skipping distro GNOME extension package setup"
+    return 0
+  fi
+
+  if ! home_profile_supports_display_profile "$HOME_PROFILE"; then
+    return 0
+  fi
+
+  if ! is_debian_like_host; then
+    return 0
+  fi
+
+  if ! command -v apt-get >/dev/null 2>&1; then
+    warn "apt-get not found; skipping distro GNOME extension package setup"
+    return 0
+  fi
+
+  section "gnome shell extensions"
+
+  if ! sudo -v; then
+    warn "sudo authentication failed; leaving distro GNOME extensions uninstalled"
+    return 0
+  fi
+
+  info "installing distro GNOME Shell extensions package for workspace-indicator"
+  if ! apt_get_noninteractive update; then
+    warn "failed to update apt metadata; leaving distro GNOME extensions uninstalled"
+    return 0
+  fi
+
+  if ! apt_get_noninteractive install -y gnome-shell-extensions; then
+    warn "failed to install gnome-shell-extensions; workspace-indicator may be unavailable"
+    return 0
+  fi
+
+  remove_user_shadowed_gnome_extensions
+  ok "distro GNOME Shell extensions installed"
+  info "restart GNOME Shell or log out and back in for extension discovery to refresh"
+}
+
 configure_caps_remap() {
   if [[ "$HOME_MODE" != "yes" || "$NIXOS_MODE" == "yes" || $PORTABLE -eq 1 ]]; then
     return 0
@@ -858,20 +943,10 @@ configure_caps_remap() {
     return 0
   fi
 
-  if [[ ! -r /etc/os-release ]]; then
-    warn "cannot detect OS; skipping Caps remap setup"
+  if ! is_debian_like_host; then
+    warn "Caps remap setup currently supports Debian/Ubuntu hosts"
     return 0
   fi
-
-  # shellcheck disable=SC1091
-  . /etc/os-release
-  case " ${ID:-} ${ID_LIKE:-} " in
-    *" ubuntu "*|*" debian "*) ;;
-    *)
-      warn "Caps remap setup currently supports Debian/Ubuntu hosts; detected '${ID:-unknown}'"
-      return 0
-      ;;
-  esac
 
   section "caps remap"
 
@@ -885,14 +960,14 @@ configure_caps_remap() {
     return 0
   fi
 
-  if ! run_with_spinner "updating apt package metadata" \
-    sudo env DEBIAN_FRONTEND=noninteractive apt-get update; then
+  info "updating apt package metadata"
+  if ! apt_get_noninteractive update; then
     warn "failed to update apt metadata; leaving Caps remap unconfigured"
     return 0
   fi
 
-  if ! run_with_spinner "installing interception-tools" \
-    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y interception-tools interception-caps2esc; then
+  info "installing interception-tools"
+  if ! apt_get_noninteractive install -y interception-tools interception-caps2esc; then
     warn "failed to install interception-tools; leaving Caps remap unconfigured"
     if command -v systemctl >/dev/null 2>&1; then
       sudo systemctl disable --now udevmon 2>/dev/null || true
@@ -1017,6 +1092,7 @@ main() {
 
   run_nixos_install
   copy_repo_to_target
+  configure_gnome_shell_extensions
   run_home_install
   configure_home_default_shell
   configure_caps_remap

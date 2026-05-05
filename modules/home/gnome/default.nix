@@ -7,8 +7,25 @@
 }: let
   isGenericLinux = !(hostDef.nixos.enable or false);
   genericLinuxUserExtensions = with pkgs.gnomeExtensions; [
+    astra-monitor
     blur-my-shell
+    bluetooth-battery-meter
+    caffeine
+    color-picker
     forge
+    gsconnect
+    media-controls
+    night-light-slider-updated
+    no-overview
+    rounded-window-corners-reborn
+    status-area-horizontal-spacing
+    unite
+  ];
+  genericLinuxDistroExtensionNames = [
+    "drive-menu@gnome-shell-extensions.gcampax.github.com"
+    "screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com"
+    "user-theme@gnome-shell-extensions.gcampax.github.com"
+    "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
   ];
 in {
   imports = [
@@ -183,12 +200,19 @@ in {
         run cp -aL "$extension" "$target_dir/$name"
       done
     '') genericLinuxUserExtensions}
+
+    ${lib.concatMapStringsSep "\n" (name: ''
+      if [ -e "$target_dir/${name}" ]; then
+        run chmod -R u+w "$target_dir/${name}"
+        run rm -rf "$target_dir/${name}"
+      fi
+    '') genericLinuxDistroExtensionNames}
   '');
 
-  home.packages = with pkgs; [
+  home.packages = with pkgs;
+    [
     capitaine-cursors
     # pinentry
-    gnome-shell-extensions
     gnome-monitor-config
     networkmanager-openvpn
     # gnome-extension-manager
@@ -219,5 +243,8 @@ in {
     gnome-graphs
     loupe
     mpv
+  ]
+  ++ lib.optionals (!isGenericLinux) [
+    gnome-shell-extensions
   ];
 }
