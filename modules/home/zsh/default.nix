@@ -152,6 +152,28 @@
         sort_dir_first = true;
         sort_reverse = true;
       };
+      plugin = {
+        prepend_previewers = [
+          {
+            mime = "image/svg+xml";
+            run = "code";
+          }
+          {
+            url = "*.svg";
+            run = "code";
+          }
+        ];
+        prepend_preloaders = [
+          {
+            mime = "image/svg+xml";
+            run = "noop";
+          }
+          {
+            url = "*.svg";
+            run = "noop";
+          }
+        ];
+      };
     };
   };
 

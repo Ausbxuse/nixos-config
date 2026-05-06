@@ -42,12 +42,12 @@
       trap 'rm -f "$tmp"' EXIT
       cat > "$tmp"
 
-      if [[ -s "$tmp" ]]; then
-        tmux load-buffer "$tmp" 2>/dev/null || true
+      if tmux load-buffer -w "$tmp" 2>/dev/null; then
+        exit 0
       fi
 
-      if [[ -n "''${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
-        wl-copy --type text/plain < "$tmp" && exit 0
+      if [[ -s "$tmp" ]]; then
+        tmux load-buffer "$tmp" 2>/dev/null || true
       fi
 
       if [[ -n "''${DISPLAY:-}" ]] && command -v xsel >/dev/null 2>&1; then

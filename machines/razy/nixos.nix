@@ -3,25 +3,28 @@
   pkgs,
   const,
   ...
-}: let
-  kernel = pkgs.linux_latest.override {
-    kernelPatches = with pkgs.linuxKernel.kernelPatches; [
-      bridge_stp_helper
-      request_key_helper
-      {
-        name = "ptl-razer-blade16-rt721-rt1320";
-        patch = ./patches/ptl-razer-blade16-rt721-rt1320.patch;
-      }
-    ];
-  };
-in {
+}: {
+  # Previous patched kernel:
+  #
+  # kernel = pkgs.linux_latest.override {
+  #   kernelPatches = with pkgs.linuxKernel.kernelPatches; [
+  #     bridge_stp_helper
+  #     request_key_helper
+  #     {
+  #       name = "ptl-razer-blade16-rt721-rt1320";
+  #       patch = ./patches/ptl-razer-blade16-rt721-rt1320.patch;
+  #     }
+  #   ];
+  # };
+
   imports = [
     ../../modules/nixos/hardware/tlp-laptop.nix
     ../../modules/nixos/hardware/rotate-sensor.nix
     ../../modules/nixos/ollama-agent.nix
   ];
 
-  boot.kernelPackages = pkgs.linuxPackagesFor kernel;
+  # boot.kernelPackages = pkgs.linuxPackagesFor kernel;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
   services.xserver.videoDrivers = ["modesetting" "nvidia"];
   boot.kernelParams = [
     "xe.enable_dpcd_backlight=1"
