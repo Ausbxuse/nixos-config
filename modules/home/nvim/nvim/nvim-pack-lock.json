@@ -75,6 +75,10 @@
       "rev": "137eaa6e98e8a6b3dd63548c2de4422007a9e689",
       "src": "https://github.com/ausbxuse/snappy.nvim"
     },
+    "typst-preview.nvim": {
+      "rev": "87db18b8d19c8b0eed399f52e4c527ce5afe4817",
+      "src": "https://github.com/chomosuke/typst-preview.nvim"
+    },
     "undotree": {
       "rev": "6fa6b57cda8459e1e4b2ca34df702f55242f4e4d",
       "src": "https://github.com/mbbill/undotree"

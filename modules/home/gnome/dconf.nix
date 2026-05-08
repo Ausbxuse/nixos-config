@@ -471,7 +471,7 @@ with lib.hm.gvariant; {
       quick-settings-enabled = false;
       split-border-toggle = false;
       tiling-mode-enabled = true;
-      window-gap-hidden-on-single = false;
+      window-gap-hidden-on-single = true;
       window-gap-size = mkUint32 8;
       window-gap-size-increment = mkUint32 1;
       workspace-skip-tile = "";

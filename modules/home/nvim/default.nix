@@ -27,6 +27,25 @@
 in {
   xdg.configFile."nvim".source = config.lib.file.mkOutOfStoreSymlink nvimPath;
 
+  xdg.desktopEntries.nvim = {
+    name = "Neovim";
+    genericName = "Text Editor";
+    comment = "Edit text files in Neovim";
+    exec = "nvim %F";
+    icon = "nvim";
+    terminal = true;
+    type = "Application";
+    categories = ["Utility" "TextEditor"];
+    mimeType = [
+      "application/x-shellscript"
+      "text/markdown"
+      "text/plain"
+      "text/x-nix"
+      "text/x-python"
+      "text/x-typst"
+    ];
+  };
+
   home.packages = with pkgs; [
     gnomeClipboard
     # lua51Packages.luarocks-nix
@@ -47,6 +66,8 @@ in {
     enable = true;
     defaultEditor = true;
     sideloadInitLua = true;
+    withPython3 = true;
+    withRuby = true;
     viAlias = true;
     vimAlias = true;
     # extraWrapperArgs = with pkgs; [

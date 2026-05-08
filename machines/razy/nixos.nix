@@ -24,11 +24,14 @@
   ];
 
   # boot.kernelPackages = pkgs.linuxPackagesFor kernel;
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = pkgs.linuxPackages_6_18;
   services.xserver.videoDrivers = ["modesetting" "nvidia"];
   boot.kernelParams = [
-    "xe.enable_dpcd_backlight=1"
+    # # This platform can hang before resume from s2idle. Prefer S3/deep sleep.
+    # "mem_sleep_default=deep"
     # Hide the blinking VT cursor during the resume handoff back to GNOME.
+    # "xe.enable_dpcd_backlight=1"
+
     "vt.global_cursor_default=0"
   ];
   # hardware.nvidia.prime = {
@@ -59,23 +62,6 @@
       SUBSYSTEM=="drm", ENV{DEVTYPE}=="drm_minor", ENV{DEVNAME}=="/dev/dri/card[0-9]", SUBSYSTEMS=="pci", ATTRS{vendor}=="0x10de", TAG+="mutter-device-preferred-primary"
     '';
   };
-
-  # Work around a Mutter/Intel Xe (Panther Lake) bug where the desktop
-  # wallpaper texture is lost after s2idle resume, leaving a solid-colour
-  # fallback.  A quick VT round-trip forces a full GPU redraw.
-  powerManagement.resumeCommands = ''
-    current_vt="$(${pkgs.kbd}/bin/fgconsole 2>/dev/null || true)"
-    if [ -n "$current_vt" ]; then
-      next_vt=3
-      if [ "$current_vt" = 3 ]; then
-        next_vt=2
-      fi
-
-      ${pkgs.kbd}/bin/chvt "$next_vt" || true
-      sleep 1
-      ${pkgs.kbd}/bin/chvt "$current_vt" || true
-    fi
-  '';
 
   hardware.firmware = with pkgs; [
     linux-firmware

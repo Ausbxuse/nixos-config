@@ -11,7 +11,39 @@ dconf:
 	rsync -av ~/.config/dconf/ ./hosts/base/home/gnome/dconf
 
 sys:
-	nh os switch --bypass-root-check --ask --diff always --fallback --hostname $(hostname) . -- $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi) {{nix-interactive-options}}
+	#!/usr/bin/env bash
+	set -euo pipefail
+
+	user_home="$HOME"
+	if [ -n "${SUDO_USER:-}" ]; then
+		user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+	fi
+
+	extra_args=()
+	if [ -d "$user_home/src/private/nix-secrets" ]; then
+		extra_args+=(--override-input nix-secrets "path:$user_home/src/private/nix-secrets")
+	fi
+
+	mode=switch
+	target_nvidia="$(
+		nix eval --raw .#nixosConfigurations."$(hostname)".config.hardware.nvidia.package.version \
+			"${extra_args[@]}" {{nix-interactive-options}} 2>/dev/null || true
+	)"
+	running_nvidia="$(
+		modinfo nvidia 2>/dev/null | sed -n 's/^version:[[:space:]]*//p' | head -n1 || true
+	)"
+
+	if [ -n "$target_nvidia" ] && [ -n "$running_nvidia" ] && [ "$target_nvidia" != "$running_nvidia" ]; then
+		mode=boot
+		printf 'NVIDIA driver changes require reboot: running %s, target %s.\n' "$running_nvidia" "$target_nvidia"
+		printf 'Using `nh os boot` instead of `nh os switch` to avoid live driver/userspace mismatch.\n'
+	fi
+
+	nh os "$mode" --bypass-root-check --ask --diff always --fallback --hostname "$(hostname)" . -- "${extra_args[@]}" {{nix-interactive-options}}
+
+	if [ "$mode" = boot ]; then
+		printf '\nBoot generation installed. Reboot to load NVIDIA %s.\n' "$target_nvidia"
+	fi
 
 home:
   nh home switch --ask --diff always --fallback --configuration $(if [ -n "${SUDO_USER:-}" ]; then printf '%s' "$SUDO_USER"; else whoami; fi)@$(hostname) . -- $(user_home="$HOME"; if [ -n "${SUDO_USER:-}" ]; then user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi; if [ -d "$user_home/src/private/nix-secrets" ]; then echo "--override-input nix-secrets path:$user_home/src/private/nix-secrets"; fi) {{nix-interactive-options}}

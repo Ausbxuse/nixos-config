@@ -16,7 +16,7 @@
       enable = true;
       defaultApplications = let
         browser = ["firefox.desktop"];
-        editor = ["text.desktop"];
+        editor = ["nvim.desktop"];
         pdfviewer = ["sioyek.desktop" "org.pwmt.zathura.desktop"];
         imageviewer = ["org.gnome.Loupe.desktop"];
         mediaplayer = ["mpv.desktop"];
@@ -24,10 +24,15 @@
       in {
         "application/json" = browser;
         "application/pdf" = pdfviewer;
+        "application/x-shellscript" = editor;
 
         "text/html" = browser;
+        "text/markdown" = editor;
         "text/xml" = browser;
         "text/plain" = editor;
+        "text/x-nix" = editor;
+        "text/x-python" = editor;
+        "text/x-typst" = editor;
         "application/xml" = browser;
         "application/xhtml+xml" = browser;
         "application/xhtml_xml" = browser;
@@ -127,6 +132,7 @@
     userDirs = {
       enable = true;
       createDirectories = false;
+      setSessionVariables = true;
       pictures = "${config.home.homeDirectory}/Media/Pictures";
       videos = "${config.home.homeDirectory}/Media/Videos";
       music = "${config.home.homeDirectory}/Media/Music";

@@ -94,6 +94,12 @@ if [[ -n ${TMUX:-} && -n ${TMUX_PANE:-} ]] && command -v tmux >/dev/null 2>&1; t
     local cmd="$1"
     local start screen_start
 
+    case "$cmd" in
+      last-command.sh* | */last-command.sh*)
+        return 0
+        ;;
+    esac
+
     if [[ "$(wc -c < "$__tmux_cmdlog_file" | tr -d ' ')" -gt 20000000 ]]; then
       : > "$__tmux_cmdlog_file"
     fi

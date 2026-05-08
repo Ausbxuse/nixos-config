@@ -187,6 +187,8 @@
         user.email = const.email;
       })
       {
+        commit.gpgsign = true;
+        gpg.format = "ssh";
         merge.tool = "nvim-conflict";
         mergetool = {
           prompt = false;
@@ -195,6 +197,7 @@
             trustExitCode = false;
           };
         };
+        user.signingkey = "~/.ssh/id_ed25519.pub";
       }
     ];
   };

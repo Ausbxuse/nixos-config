@@ -225,7 +225,16 @@
       }
 
       log_dir_for_pane() {
-        tmux display -p -t "$1" '#{@command-log-dir}' 2>/dev/null || true
+        local dir pane
+
+        dir="$(tmux display -p -t "$1" '#{@command-log-dir}' 2>/dev/null || true)"
+        if [[ -n "$dir" ]]; then
+          printf '%s\n' "$dir"
+          return 0
+        fi
+
+        pane="$1"
+        printf '%s\n' "''${XDG_STATE_HOME:-$HOME/.local/state}/tmux-command-log/''${pane#%}"
       }
 
       pane_has_completed_command() {
