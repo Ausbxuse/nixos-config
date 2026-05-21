@@ -14,6 +14,9 @@
   # the Intel path alone. Keep a low-power NVIDIA profile instead of an
   # Intel-only profile that boots to a black screen.
   specialisation.nonvidia.configuration = {
+    # Avoid GRUB's fallback to the Nix store symlink mtime for specialisations.
+    boot.loader.grub.configurationName = lib.mkDefault "nonvidia";
+
     my.hardware.nvidia.enable = lib.mkForce true;
     services.xserver.videoDrivers = lib.mkForce ["nvidia"];
   };

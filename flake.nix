@@ -3,6 +3,7 @@
     grub2-theme.url = "github:vinceliuice/grub2-themes";
     minegrub.url = "github:Lxtharia/minegrub-theme";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs619.url = "github:NixOS/nixpkgs/4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9";
     nixgl = {
       url = "github:nix-community/nixGL";
       inputs.nixpkgs.follows = "nixpkgs";

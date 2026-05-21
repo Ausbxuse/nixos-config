@@ -17,7 +17,6 @@
     media-controls
     night-light-slider-updated
     no-overview
-    rounded-window-corners-reborn
     status-area-horizontal-spacing
     unite
   ];
@@ -235,7 +234,6 @@ in {
     gnomeExtensions.status-area-horizontal-spacing
     gnomeExtensions.no-overview
     gnomeExtensions.another-window-session-manager
-    gnomeExtensions.rounded-window-corners-reborn
     amberol
     powertop
     xiccd
