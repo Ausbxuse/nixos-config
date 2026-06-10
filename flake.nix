@@ -4,6 +4,10 @@
     minegrub.url = "github:Lxtharia/minegrub-theme";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs619.url = "github:NixOS/nixpkgs/4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9";
+    codex-cli-nix = {
+      url = "github:sadjow/codex-cli-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nixgl = {
       url = "github:nix-community/nixGL";
       inputs.nixpkgs.follows = "nixpkgs";

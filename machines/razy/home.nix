@@ -26,8 +26,9 @@ in {
     flashAttention = true;
     kvCacheType = "q8_0";
     idleKeepAlive = "20m";
-    preloadModel = defaultLocalModel;
-    stopOnBattery = true;
+    autoStart = false;
+    preloadModel = "";
+    stopOnBattery = false;
   };
 
   programs.firefox.profiles.betterfox.extraConfig = lib.mkAfter ''

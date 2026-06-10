@@ -5,6 +5,7 @@
 }: {
   imports = [
     ../../home/env
+    ../../home/codex.nix
     ../../home/zsh
     ../../home/nvim
     ../../home/tmux

@@ -6,14 +6,14 @@ HTTP API itself — so there's no custom gateway.
 
 ## Behavior
 
-- `ollama serve` runs as a user systemd service on `127.0.0.1:11434`.
+- `ollama serve` is available as a user systemd service on `127.0.0.1:11434`.
 - Ollama exposes an OpenAI-compatible API at `http://127.0.0.1:11434/v1`.
 - Models are unloaded automatically after `idleKeepAlive` (default `30m`).
-- When booted in the `docked` specialisation and on AC power, the
-  `ollama-preloader` service keeps `preloadModel` resident indefinitely
-  by calling the API with `keep_alive: -1`.
-- When docked but on battery (or undocked), the preloader reverts to the
-  default idle behavior.
+- On `razy`, Ollama does not start automatically when docked or plugged in.
+  Start it explicitly with `systemctl --user start ollama.service`.
+- If `preloadModel` is set, the `ollama-preloader` service keeps that model
+  resident indefinitely when docked and on AC power by calling the API with
+  `keep_alive: -1`.
 
 ## Managing models
 
@@ -48,7 +48,7 @@ The default shell value comes from `home.sessionVariables.CODEX_LOCAL_MODEL` in
 `machines/razy/home.nix`, but `codex-local` now reads the model at launch time
 instead of pinning it in `~/.codex/config.toml`.
 
-If you want the docked preloader to keep a different model hot by default, update
+If you want the docked preloader to keep a model hot by default, set
 `services.ollama-agent.preloadModel` and rebuild.
 
 ## Performance tuning
@@ -67,7 +67,8 @@ KV cache quantization requires flash attention to be enabled.
 
 ## Power policy
 
+- `autoStart = true` by default, but `razy` overrides it to `false`.
 - `preloadOnlyOnACPower = true` by default.
-- If the machine is docked but on battery, models use the default idle timeout.
+- If `preloadModel` is empty, docked preloading is disabled.
 - Set `services.ollama-agent.preloadOnlyOnACPower = false` to preload whenever
   docked regardless of power state.

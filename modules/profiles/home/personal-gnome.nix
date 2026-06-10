@@ -27,7 +27,6 @@
       quickemu
       discord
       spotify
-      codex
     ]
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [pkgs.sct];
 

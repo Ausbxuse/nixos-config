@@ -224,6 +224,12 @@ in {
       description = "Model tag to preload when docked + on AC. Empty disables preloading.";
     };
 
+    autoStart = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Start the Ollama user service automatically with the user session.";
+    };
+
     dockedMarker = lib.mkOption {
       type = lib.types.str;
       default = "/etc/nixos/docked";
@@ -274,7 +280,7 @@ in {
           "OLLAMA_NUM_PARALLEL=${toString cfg.parallel}"
         ];
       };
-      Install = {
+      Install = lib.mkIf cfg.autoStart {
         WantedBy = ["default.target"];
       };
     };

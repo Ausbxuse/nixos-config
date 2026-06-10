@@ -183,6 +183,7 @@ with lib.hm.gvariant; {
       switch-to-workspace-2 = ["<Super>w"];
       switch-to-workspace-3 = ["<Super>e"];
       switch-to-workspace-4 = ["<Super>r"];
+      switch-to-workspace-5 = ["<Super>t"];
       switch-to-workspace-last = ["<Super>End"];
       switch-to-workspace-left = ["<Super>Page_Up" "<Super><Alt>Left" "<Control><Alt>Left"];
       switch-to-workspace-right = ["<Super>Page_Down" "<Super><Alt>Right" "<Control><Alt>Right"];
@@ -194,7 +195,8 @@ with lib.hm.gvariant; {
 
     "org/gnome/desktop/wm/preferences" = {
       button-layout = "icon:minimize,maximize,close";
-      workspace-names = ["Workspace 1" "Workspace 2" "Workspace 3" "Workspace 4"];
+      num-workspaces = 5;
+      workspace-names = ["Workspace 1" "Workspace 2" "Workspace 3" "Workspace 4" "Workspace 5"];
     };
 
     "org/gnome/mutter" = {

@@ -69,15 +69,57 @@ if command -v micromamba &> /dev/null ; then
 fi
 
 if [[ -n ${TMUX:-} && -n ${TMUX_PANE:-} ]] && command -v tmux >/dev/null 2>&1; then
-  __tmux_cmdlog_dir="${XDG_STATE_HOME:-$HOME/.local/state}/tmux-command-log/${TMUX_PANE#%}"
-  __tmux_cmdlog_file="$__tmux_cmdlog_dir/output.log"
-  mkdir -p "$__tmux_cmdlog_dir"
-  : >> "$__tmux_cmdlog_file"
-
-  tmux set-option -p -q -t "$TMUX_PANE" @command-log-dir "$__tmux_cmdlog_dir" 2>/dev/null || true
-  tmux pipe-pane -o -t "$TMUX_PANE" "cat >> ${(q)__tmux_cmdlog_file}" 2>/dev/null || true
-
   autoload -Uz add-zsh-hook
+
+  __tmux_cmdlog_base="${XDG_STATE_HOME:-$HOME/.local/state}/tmux-command-log"
+  __tmux_cmdlog_dir=""
+  __tmux_cmdlog_file=""
+
+  __tmux_cmdlog_safe_key() {
+    local raw
+
+    raw="$(tmux display -p -t "$TMUX_PANE" '#{session_name}:#{window_index}:#{pane_index}' 2>/dev/null || true)"
+    if [[ -z "$raw" ]]; then
+      raw="pane:${TMUX_PANE#%}"
+    fi
+
+    printf '%s' "$raw" | tr -c '[:alnum:]_.:-' '_'
+  }
+
+  __tmux_cmdlog_migrate_legacy_log() {
+    local legacy_dir file
+
+    legacy_dir="$__tmux_cmdlog_base/${TMUX_PANE#%}"
+    [[ -d "$legacy_dir" && -d "$__tmux_cmdlog_dir" ]] || return 0
+    [[ ! -f "$__tmux_cmdlog_dir/cmd" && -f "$legacy_dir/cmd" ]] || return 0
+
+    for file in output.log cmd cwd start end status screen-start screen-end; do
+      [[ -f "$legacy_dir/$file" ]] || continue
+      cp -n -- "$legacy_dir/$file" "$__tmux_cmdlog_dir/$file" 2>/dev/null || true
+    done
+  }
+
+  __tmux_cmdlog_refresh() {
+    local key dir file
+
+    key="$(__tmux_cmdlog_safe_key)"
+    dir="$__tmux_cmdlog_base/by-position/$key"
+    file="$dir/output.log"
+
+    mkdir -p "$dir"
+    : >> "$file"
+
+    tmux set-option -p -q -t "$TMUX_PANE" @command-log-dir "$dir" 2>/dev/null || true
+    tmux set-option -p -q -t "$TMUX_PANE" @command-log-key "$key" 2>/dev/null || true
+
+    if [[ "$file" != "$__tmux_cmdlog_file" ]]; then
+      __tmux_cmdlog_dir="$dir"
+      __tmux_cmdlog_file="$file"
+      __tmux_cmdlog_migrate_legacy_log
+      tmux pipe-pane -t "$TMUX_PANE" 2>/dev/null || true
+      tmux pipe-pane -t "$TMUX_PANE" "cat >> ${(q)__tmux_cmdlog_file}" 2>/dev/null || true
+    fi
+  }
 
   __tmux_cmdlog_screen_position() {
     local pos history cursor_y
@@ -93,6 +135,8 @@ if [[ -n ${TMUX:-} && -n ${TMUX_PANE:-} ]] && command -v tmux >/dev/null 2>&1; t
   __tmux_cmdlog_preexec() {
     local cmd="$1"
     local start screen_start
+
+    __tmux_cmdlog_refresh
 
     case "$cmd" in
       last-command.sh* | */last-command.sh*)
@@ -121,6 +165,7 @@ if [[ -n ${TMUX:-} && -n ${TMUX_PANE:-} ]] && command -v tmux >/dev/null 2>&1; t
     local exit_status="$?"
     local end screen_end
 
+    [[ -n "$__tmux_cmdlog_file" ]] || __tmux_cmdlog_refresh
     [[ -f "$__tmux_cmdlog_dir/start" ]] || return 0
     end="$(wc -c < "$__tmux_cmdlog_file" | tr -d ' ')"
     screen_end="$(__tmux_cmdlog_screen_position || true)"
@@ -131,6 +176,7 @@ if [[ -n ${TMUX:-} && -n ${TMUX_PANE:-} ]] && command -v tmux >/dev/null 2>&1; t
     print -r -- "$exit_status" > "$__tmux_cmdlog_dir/status"
   }
 
+  __tmux_cmdlog_refresh
   add-zsh-hook preexec __tmux_cmdlog_preexec
   add-zsh-hook precmd __tmux_cmdlog_precmd
 fi

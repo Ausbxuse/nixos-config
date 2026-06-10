@@ -218,28 +218,70 @@
 
       cmd="''${1:-copy}"
       max_lines="''${TMUX_LAST_COMMAND_LINES:-5000}"
+      max_bytes="''${TMUX_LAST_COMMAND_BYTES:-1048576}"
+      clipboard_max_bytes="''${TMUX_LAST_COMMAND_CLIPBOARD_BYTES:-262144}"
 
       fail() {
         printf '%s\n' "$1" >&2
         exit 1
       }
 
+      [[ "$max_lines" =~ ^[0-9]+$ ]] || fail "TMUX_LAST_COMMAND_LINES must be a non-negative integer"
+      [[ "$max_bytes" =~ ^[0-9]+$ ]] || fail "TMUX_LAST_COMMAND_BYTES must be a non-negative integer"
+      [[ "$clipboard_max_bytes" =~ ^[0-9]+$ ]] || fail "TMUX_LAST_COMMAND_CLIPBOARD_BYTES must be a non-negative integer"
+
       log_dir_for_pane() {
-        local dir pane
+        local dir
 
         dir="$(tmux display -p -t "$1" '#{@command-log-dir}' 2>/dev/null || true)"
-        if [[ -n "$dir" ]]; then
+        if dir_has_completed_command "$dir"; then
           printf '%s\n' "$dir"
           return 0
         fi
 
-        pane="$1"
+        dir="$(stable_log_dir_for_pane "$1" 2>/dev/null || true)"
+        if dir_has_completed_command "$dir"; then
+          printf '%s\n' "$dir"
+          return 0
+        fi
+
+        dir="$(legacy_log_dir_for_pane "$1")"
+        if dir_has_completed_command "$dir"; then
+          printf '%s\n' "$dir"
+          return 0
+        fi
+
+        dir="$(tmux display -p -t "$1" '#{@command-log-dir}' 2>/dev/null || true)"
+        [[ -n "$dir" ]] && printf '%s\n' "$dir" && return 0
+
+        stable_log_dir_for_pane "$1" 2>/dev/null || legacy_log_dir_for_pane "$1"
+      }
+
+      stable_log_dir_for_pane() {
+        local key raw
+
+        raw="$(tmux display -p -t "$1" '#{session_name}:#{window_index}:#{pane_index}' 2>/dev/null || true)"
+        [[ -n "$raw" ]] || return 1
+
+        key="$(printf '%s' "$raw" | tr -c '[:alnum:]_.:-' '_')"
+        printf '%s\n' "''${XDG_STATE_HOME:-$HOME/.local/state}/tmux-command-log/by-position/$key"
+      }
+
+      legacy_log_dir_for_pane() {
+        local pane="$1"
+
         printf '%s\n' "''${XDG_STATE_HOME:-$HOME/.local/state}/tmux-command-log/''${pane#%}"
       }
 
       pane_has_completed_command() {
         local dir
         dir="$(log_dir_for_pane "$1")"
+        dir_has_completed_command "$dir"
+      }
+
+      dir_has_completed_command() {
+        local dir="$1"
+
         [[ -n "$dir" && -d "$dir" ]] || return 1
 
         for file in output.log cmd cwd start end status; do
@@ -283,30 +325,204 @@
       [[ "$start" =~ ^[0-9]+$ && "$end" =~ ^[0-9]+$ && "$end" -ge "$start" ]] ||
         fail "Invalid command log offsets for $source_pane"
 
-      capture_screen() {
-        local screen_start screen_end current_history start_line end_line
+      compact_terminal_output() {
+        ${pkgs.perl}/bin/perl -0777 -ne '
+          use Encode qw(decode);
+          binmode STDOUT, ":encoding(UTF-8)";
 
-        [[ -f "$log_dir/screen-start" && -f "$log_dir/screen-end" ]] || return 1
-        screen_start="$(cat "$log_dir/screen-start")"
-        screen_end="$(cat "$log_dir/screen-end")"
-        [[ "$screen_start" =~ ^[0-9]+$ && "$screen_end" =~ ^[0-9]+$ && "$screen_end" -ge "$screen_start" ]] ||
-          return 1
+          my $s = decode("UTF-8", $_);
+          my @lines = ("");
+          my ($row, $col) = (0, 0);
 
-        current_history="$(tmux display -p -t "$source_pane" '#{history_size}' 2>/dev/null || true)"
-        [[ "$current_history" =~ ^[0-9]+$ ]] || return 1
+          sub ensure_row {
+            my ($target) = @_;
+            $target = 0 if $target < 0;
+            push @lines, "" while $#lines < $target;
+          }
 
-        start_line="$((screen_start - current_history))"
-        end_line="$((screen_end - current_history))"
-        tmux capture-pane -p -N -t "$source_pane" -S "$start_line" -E "$end_line" 2>/dev/null
+          sub set_cursor {
+            my ($target_row, $target_col) = @_;
+            $row = $target_row < 0 ? 0 : $target_row;
+            $col = $target_col < 0 ? 0 : $target_col;
+            ensure_row($row);
+          }
+
+          sub put_char {
+            my ($ch) = @_;
+            ensure_row($row);
+            my $line = $lines[$row];
+            my $len = length($line);
+            $line .= " " x ($col - $len) if $col > $len;
+            substr($line, $col, 1) = $ch;
+            $lines[$row] = $line;
+            $col++;
+          }
+
+          sub numeric_params {
+            my ($params) = @_;
+            return $params =~ /(\d+)/g;
+          }
+
+          sub handle_csi {
+            my ($params, $cmd) = @_;
+            my @nums = numeric_params($params);
+            my $n = @nums ? $nums[0] : 1;
+
+            if ($cmd eq "A") { set_cursor($row - $n, $col); return; }
+            if ($cmd eq "B") { set_cursor($row + $n, $col); return; }
+            if ($cmd eq "C") { set_cursor($row, $col + $n); return; }
+            if ($cmd eq "D") { set_cursor($row, $col - $n); return; }
+            if ($cmd eq "E") { set_cursor($row + $n, 0); return; }
+            if ($cmd eq "F") { set_cursor($row - $n, 0); return; }
+            if ($cmd eq "G") { set_cursor($row, $n - 1); return; }
+            if ($cmd eq "H" || $cmd eq "f") {
+              my $target_row = @nums >= 1 ? $nums[0] - 1 : 0;
+              my $target_col = @nums >= 2 ? $nums[1] - 1 : 0;
+              set_cursor($target_row, $target_col);
+              return;
+            }
+
+            ensure_row($row);
+            if ($cmd eq "K") {
+              if ($params =~ /2/) {
+                $lines[$row] = "";
+              } elsif ($params =~ /1/) {
+                my $line = $lines[$row];
+                substr($line, 0, $col + 1) = " " x ($col + 1);
+                $lines[$row] = $line;
+              } else {
+                substr($lines[$row], $col) = "";
+              }
+              return;
+            }
+
+            if ($cmd eq "J") {
+              if ($params =~ /[23]/) {
+                @lines = ("");
+                set_cursor(0, 0);
+              } elsif ($params =~ /1/) {
+                for my $r (0 .. $row - 1) {
+                  $lines[$r] = "";
+                }
+                my $line = $lines[$row];
+                substr($line, 0, $col + 1) = " " x ($col + 1);
+                $lines[$row] = $line;
+              } else {
+                substr($lines[$row], $col) = "";
+                splice @lines, $row + 1 if @lines > $row + 1;
+              }
+            }
+          }
+
+          my $i = 0;
+          while ($i < length($s)) {
+            my $ch = substr($s, $i, 1);
+
+            if ($ch eq "\e") {
+              if (substr($s, $i, 2) eq "\e]") {
+                my $bel = index($s, "\a", $i + 2);
+                my $st = index($s, "\e\\", $i + 2);
+                if ($bel >= 0 && ($st < 0 || $bel < $st)) {
+                  $i = $bel + 1;
+                } elsif ($st >= 0) {
+                  $i = $st + 2;
+                } else {
+                  last;
+                }
+                next;
+              }
+
+              if (substr($s, $i, 2) eq "\e[") {
+                my $j = $i + 2;
+                $j++ while $j < length($s) && substr($s, $j, 1) !~ /[\x40-\x7e]/;
+                last if $j >= length($s);
+                handle_csi(substr($s, $i + 2, $j - $i - 2), substr($s, $j, 1));
+                $i = $j + 1;
+                next;
+              }
+
+              $i += 2;
+              next;
+            }
+
+            if ($ch eq "\r") {
+              $col = 0;
+            } elsif ($ch eq "\n") {
+              set_cursor($row + 1, 0);
+            } elsif ($ch eq "\b") {
+              set_cursor($row, $col - 1);
+            } elsif ($ch eq "\t") {
+              put_char(" ") for 1 .. (8 - ($col % 8));
+            } elsif (ord($ch) >= 32 && ord($ch) != 127) {
+              put_char($ch);
+            }
+
+            $i++;
+          }
+
+          for (@lines) {
+            s/[ \t]+$//;
+          }
+          pop @lines while @lines && $lines[-1] eq "";
+          print join("\n", @lines), "\n" if @lines;
+        '
       }
 
       capture_log() {
+        local bytes raw_start raw_bytes truncated
+
         if [[ "$end" -gt "$start" ]]; then
-          tail -c +"$((start + 1))" "$log_file" |
-            head -c "$((end - start))" |
-            ${pkgs.perl}/bin/perl -pe 's/\e\[[0-?]*[ -\/]*[@-~]//g; s/\e\].*?(\a|\e\\)//g; s/\r//g' |
+          bytes="$((end - start))"
+          raw_start="$start"
+          raw_bytes="$bytes"
+          truncated=false
+
+          if [[ "$max_bytes" != "0" && "$bytes" -gt "$max_bytes" ]]; then
+            raw_start="$((end - max_bytes))"
+            raw_bytes="$max_bytes"
+            truncated=true
+          fi
+
+          {
+            if [[ "$truncated" == true ]]; then
+              printf '[last-command output truncated to last %s bytes before terminal redraw compaction]\n' "$max_bytes"
+            fi
+            tail -c +"$((raw_start + 1))" "$log_file" |
+              head -c "$raw_bytes" |
+              compact_terminal_output
+          } |
             if [[ "$max_lines" == "0" ]]; then cat; else tail -n "$max_lines"; fi
         fi
+      }
+
+      copy_to_system_clipboard() {
+        if [[ -n "''${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
+          ${pkgs.coreutils}/bin/timeout 2s wl-copy < "$tmp" 2>/dev/null && return 0
+        fi
+
+        if [[ -n "''${DISPLAY:-}" ]] && command -v xsel >/dev/null 2>&1; then
+          ${pkgs.coreutils}/bin/timeout 2s xsel --clipboard --input < "$tmp" 2>/dev/null && return 0
+        fi
+
+        if [[ -n "''${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+          ${pkgs.coreutils}/bin/timeout 2s xclip -selection clipboard -in < "$tmp" 2>/dev/null && return 0
+        fi
+
+        return 1
+      }
+
+      load_copy_buffer() {
+        local bytes
+
+        bytes="$(wc -c < "$tmp" | tr -d ' ')"
+        tmux load-buffer "$tmp"
+
+        if [[ "$clipboard_max_bytes" == "0" || "$bytes" -le "$clipboard_max_bytes" ]]; then
+          tmux load-buffer -w "$tmp"
+          return 0
+        fi
+
+        copy_to_system_clipboard || true
       }
 
       tmp="$(mktemp)"
@@ -316,10 +532,10 @@
       trap 'rm -f "$tmp" "$output_tmp" "$log_output_tmp" "$current_buffer_tmp"' EXIT
 
       capture_log > "$log_output_tmp"
-      capture_screen > "$output_tmp" || capture_log > "$output_tmp"
       if ! grep -q '[^[:space:]]' "$log_output_tmp"; then
         fail "Last command produced no output"
       fi
+      cat "$log_output_tmp" > "$output_tmp"
 
       {
         printf 'Last command from tmux pane %s\n\n' "$source_pane"
@@ -341,7 +557,7 @@
       if tmux save-buffer "$current_buffer_tmp" 2>/dev/null && cmp -s "$tmp" "$current_buffer_tmp"; then
         already_copied=true
       else
-        tmux load-buffer -w "$tmp"
+        load_copy_buffer
       fi
 
       case "$cmd" in
@@ -386,7 +602,7 @@
       {
         plugin = continuum; # needs resurrect present
         extraConfig = ''
-            set -g status-interval 60         # update the status bar every 10 seconds
+            set -g status-interval 60         # update the status bar every 60 seconds
             set -g status-justify centre
             set -g status-position top
             set -g status-style 'bg=default'  # transparent background
