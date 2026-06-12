@@ -2,6 +2,7 @@ return {
   {
     'rmagatti/auto-session',
     lazy = false,
+    enabled = vim.env.NVIM_MERGETOOL ~= '1',
 
     ---enables autocomplete for opts
     ---@module "auto-session"

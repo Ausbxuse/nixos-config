@@ -167,7 +167,7 @@
         mergetool = {
           prompt = false;
           "nvim-conflict" = {
-            cmd = ''nvim "$MERGED"'';
+            cmd = ''NVIM_MERGETOOL=1 nvim "$MERGED" -c only'';
             trustExitCode = false;
           };
         };
