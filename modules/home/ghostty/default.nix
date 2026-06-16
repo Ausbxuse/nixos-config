@@ -96,6 +96,11 @@ in {
         font-family-italic = "Operator Mono Book";
         font-size = lib.mkDefault 12;
         font-thicken = true;
+        font-feature = [
+          "+ss01"
+          "+ss02"
+          "+zero"
+        ];
 
         shell-integration-features = "no-cursor,no-sudo,title";
         bell-features = "no-system,no-audio,no-attention,no-title,no-border";

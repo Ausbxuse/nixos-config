@@ -28,7 +28,7 @@ There are two sources of truth involved in the new flow.
 
 ### Global repo settings
 
-[globals.nix](/home/zhenyu/src/public/nix-config/globals.nix) is for repo-wide values only:
+[globals.nix](../globals.nix) is for repo-wide values only:
 
 - username
 - supported systems
@@ -37,7 +37,7 @@ It should not be the place where per-host architecture or per-host role lives.
 
 ### Machine registry
 
-[machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) is the public staging registry for hosts that have not been admitted yet.
+[machines/defs.nix](../machines/defs.nix) is the public staging registry for hosts that have not been admitted yet.
 
 Canonical admitted hosts live in private `nix-secrets/hosts.nix`, which is merged over the public staging defs at evaluation time.
 
@@ -65,7 +65,7 @@ Use public `machines/defs.nix` for pre-admission bootstrap entries. Once a host 
 
 ### Known host install
 
-Use this when the host already exists in the merged host registry and has corresponding files under [machines](/home/zhenyu/src/public/nix-config/machines).
+Use this when the host already exists in the merged host registry and has corresponding files under [machines](../machines).
 
 Example:
 
@@ -106,7 +106,7 @@ The installer will:
 - generate temporary host files inside a worktree under `/tmp`
 - install from that generated configuration
 
-This path is meant for fast bring-up. After the machine is proven working, keep any pre-admission staging entry in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) only until enrollment. The admitted long-term definition should live in private `nix-secrets/hosts.nix`, with machine files committed under [machines](/home/zhenyu/src/public/nix-config/machines).
+This path is meant for fast bring-up. After the machine is proven working, keep any pre-admission staging entry in [machines/defs.nix](../machines/defs.nix) only until enrollment. The admitted long-term definition should live in private `nix-secrets/hosts.nix`, with machine files committed under [machines](../machines).
 
 ### Home Manager-only setup
 
@@ -144,8 +144,8 @@ Prerequisites:
 - network access
 - access to the target disk
 - this repo must already contain:
-  - [machines/<name>/nixos.nix](/home/zhenyu/src/public/nix-config/machines)
-  - [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) entry
+  - [machines/<name>/nixos.nix](../machines)
+  - [machines/defs.nix](../machines/defs.nix) entry
 
 Recommended command:
 
@@ -263,7 +263,7 @@ For example, if an NVIDIA GPU is visible via `lspci`, it currently suggests:
 portable-nvidia-gnome
 ```
 
-For the display profile prompt, the value should match one of the profiles in [modules/home/display-profile.nix](/home/zhenyu/src/public/nix-config/modules/home/display-profile.nix), for example:
+For the display profile prompt, the value should match one of the profiles in [modules/home/display-profile.nix](../modules/home/display-profile.nix), for example:
 
 - `gnome-default`
 - `razy-current`
@@ -291,12 +291,12 @@ The temporary host inventory overlay is for the install run only. It is not writ
 
 When the install succeeds, you should convert the custom host into a real host definition:
 
-1. Add or keep a staging entry in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) if you want to bootstrap admission from the public repo.
+1. Add or keep a staging entry in [machines/defs.nix](../machines/defs.nix) if you want to bootstrap admission from the public repo.
 2. Create:
-   - [machines/<host>/nixos.nix](/home/zhenyu/src/public/nix-config/machines) if needed
-   - [machines/<host>/home.nix](/home/zhenyu/src/public/nix-config/machines) if needed
+   - [machines/<host>/nixos.nix](../machines) if needed
+   - [machines/<host>/home.nix](../machines) if needed
 3. Move the generated hardware configuration into:
-   - [machines/<host>/hardware-configuration.nix](/home/zhenyu/src/public/nix-config/machines)
+   - [machines/<host>/hardware-configuration.nix](../machines)
 4. Enroll the host so its canonical admitted entry lands in private `nix-secrets/hosts.nix`.
 5. Rebuild from the committed repo afterward.
 
@@ -329,7 +329,7 @@ This is useful for:
 - temporary machines
 - new cross-platform personal environments
 
-If the machine should become a long-term tracked host later, stage it in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix), then enroll it so its canonical entry lands in private `nix-secrets/hosts.nix`, and create a real [machines/<host>/home.nix](/home/zhenyu/src/public/nix-config/machines) entry.
+If the machine should become a long-term tracked host later, stage it in [machines/defs.nix](../machines/defs.nix), then enroll it so its canonical entry lands in private `nix-secrets/hosts.nix`, and create a real [machines/<host>/home.nix](../machines) entry.
 
 ## Installer CLI Reference
 
@@ -440,13 +440,13 @@ If Home Manager warns that `nix-secrets/secrets.yaml` is missing, secret-backed 
 If you copied the repo into the target system, switch again from the local tree once the machine is up:
 
 ```bash
-sudo nixos-rebuild switch --flake ~/src/public/nix-config#<host>
+sudo nixos-rebuild switch --flake .#<host>
 ```
 
 And if needed:
 
 ```bash
-home-manager switch --flake ~/src/public/nix-config#<username>@<host>
+home-manager switch --flake .#<username>@<host>
 ```
 
 ### Verify committed host metadata
@@ -456,7 +456,7 @@ Known-host installs and custom installs now override host metadata by writing a 
 That means:
 
 - the live install works immediately
-- but you should still make sure the long-term host definition in `nix-secrets/hosts.nix` (or the temporary staging entry in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) before enrollment) matches the intended username, profiles, disk path, and swap size
+- but you should still make sure the long-term host definition in `nix-secrets/hosts.nix` (or the temporary staging entry in [machines/defs.nix](../machines/defs.nix) before enrollment) matches the intended username, profiles, disk path, and swap size
 
 For permanent hosts, prefer committed host inventory data over relying on custom runtime overrides forever.
 
@@ -464,7 +464,7 @@ For permanent hosts, prefer committed host inventory data over relying on custom
 
 If you installed an unknown machine interactively and want to keep it:
 
-1. Add or keep a staging entry in [machines/defs.nix](/home/zhenyu/src/public/nix-config/machines/defs.nix) if you want to enroll from a public bootstrap record.
+1. Add or keep a staging entry in [machines/defs.nix](../machines/defs.nix) if you want to enroll from a public bootstrap record.
 2. Create real host files.
 3. Save and review `hardware-configuration.nix`.
 4. Ensure the admitted canonical entry in private `nix-secrets/hosts.nix` carries the final `home` / `nixos` / `install` fields.
@@ -480,13 +480,13 @@ Some machines need manual verification beyond the generic validator.
 
 For `razy`, see:
 
-- [docs/razy-bringup.md](/home/zhenyu/src/public/nix-config/docs/razy-bringup.md)
+- [razy-bringup.md](razy-bringup.md)
 
 That document covers the real debugging path and the machine-specific issues for the Razer Blade.
 
 ## Migration From The Old Install Scripts
 
-The old scripts under [scripts](/home/zhenyu/src/public/nix-config/scripts):
+The old scripts under [scripts](../scripts):
 
 - `install.sh`
 - `install_home.sh`
