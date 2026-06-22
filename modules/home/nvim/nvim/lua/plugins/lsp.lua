@@ -283,6 +283,17 @@ vim.lsp.config.cssls = {
 }
 -- }}}
 
+-- HTML {{{
+vim.lsp.config.html = {
+  cmd = { 'vscode-html-language-server', '--stdio' },
+  filetypes = { 'html' },
+  root_markers = { 'package.json', '.git', vim.uv.cwd() },
+  init_options = {
+    provideFormatter = true,
+  },
+}
+-- }}}
+
 -- TailwindCss {{{
 vim.lsp.config.tailwindcssls = {
   cmd = { 'tailwindcss-language-server', '--stdio' },
@@ -334,7 +345,7 @@ vim.lsp.config.tailwindcssls = {
 
 -- }}}
 
-vim.lsp.enable { 'cssls', 'tailwindcssls' }
+vim.lsp.enable { 'cssls', 'html', 'tailwindcssls' }
 
 vim.lsp.config.astro = {
   cmd = { 'astro-ls', '--stdio' },
@@ -378,6 +389,42 @@ vim.lsp.config.basedpyright = {
 }
 
 vim.lsp.enable 'basedpyright'
+
+-- Markup and config files {{{
+vim.lsp.config.jsonls = {
+  cmd = { 'vscode-json-language-server', '--stdio' },
+  filetypes = { 'json', 'jsonc' },
+  root_markers = { 'package.json', '.git', vim.uv.cwd() },
+  init_options = {
+    provideFormatter = true,
+  },
+}
+
+vim.lsp.config.yamlls = {
+  cmd = { 'yaml-language-server', '--stdio' },
+  filetypes = { 'yaml', 'yml' },
+  root_markers = { '.git', vim.uv.cwd() },
+  settings = {
+    yaml = {
+      keyOrdering = false,
+    },
+  },
+}
+
+vim.lsp.config.taplo = {
+  cmd = { 'taplo', 'lsp', 'stdio' },
+  filetypes = { 'toml' },
+  root_markers = { 'taplo.toml', '.git', vim.uv.cwd() },
+}
+
+vim.lsp.config.marksman = {
+  cmd = { 'marksman', 'server' },
+  filetypes = { 'markdown', 'markdown.mdx' },
+  root_markers = { '.marksman.toml', '.git', vim.uv.cwd() },
+}
+
+vim.lsp.enable { 'jsonls', 'yamlls', 'taplo', 'marksman' }
+-- }}}
 
 vim.lsp.config.ltex_ls_plus = {
   cmd = { 'ltex-ls-plus' },

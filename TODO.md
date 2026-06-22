@@ -18,7 +18,7 @@
 ## Razy
 
 - [ ] attic cached installation (nix cache server, especially for razy)
-- [ ] background blue from wake up (docked mode only?)
+- [ ] background blue from wake up (docked mode AND normal mdoe)
 - [ ] personal-doc/media syncing
 - [ ] forge remove decoration: ctrl+alt+y
 - [ ] noisy message from wake up

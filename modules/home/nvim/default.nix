@@ -60,6 +60,24 @@ in {
     # jdk
     # cargo
     gcc
+
+    # Language servers used by the Neovim LSP config.
+    astro-language-server
+    basedpyright
+    bash-language-server
+    clang-tools
+    harper
+    ltex-ls-plus
+    lua-language-server
+    marksman
+    nil
+    nixd
+    tailwindcss-language-server
+    taplo
+    tinymist
+    typos-lsp
+    vscode-langservers-extracted
+    yaml-language-server
   ];
 
   programs.neovim = {

@@ -212,6 +212,19 @@ in {
       description = "Parallel request slots (OLLAMA_NUM_PARALLEL).";
     };
 
+    maxLoadedModels = lib.mkOption {
+      type = lib.types.int;
+      default = 1;
+      description = "Maximum simultaneously loaded models (OLLAMA_MAX_LOADED_MODELS).";
+    };
+
+    modelsDir = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/.local/share/ollama/models";
+      defaultText = lib.literalExpression ''${config.home.homeDirectory}/.local/share/ollama/models'';
+      description = "Directory used by Ollama for model blobs (OLLAMA_MODELS).";
+    };
+
     idleKeepAlive = lib.mkOption {
       type = lib.types.str;
       default = "30m";
@@ -278,6 +291,8 @@ in {
           "OLLAMA_KV_CACHE_TYPE=${cfg.kvCacheType}"
           "OLLAMA_CONTEXT_LENGTH=${toString cfg.contextLength}"
           "OLLAMA_NUM_PARALLEL=${toString cfg.parallel}"
+          "OLLAMA_MAX_LOADED_MODELS=${toString cfg.maxLoadedModels}"
+          "OLLAMA_MODELS=${cfg.modelsDir}"
         ];
       };
       Install = lib.mkIf cfg.autoStart {

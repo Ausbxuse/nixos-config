@@ -22,12 +22,14 @@ in {
   services.ollama-agent = {
     enable = true;
     port = 11434;
-    contextLength = 16384;
+    contextLength = 32768;
     flashAttention = true;
-    kvCacheType = "q8_0";
-    idleKeepAlive = "20m";
-    autoStart = false;
-    preloadModel = "";
+    kvCacheType = "q4_0";
+    parallel = 1;
+    maxLoadedModels = 1;
+    idleKeepAlive = "-1";
+    autoStart = true;
+    preloadModel = defaultLocalModel;
     stopOnBattery = false;
   };
 
