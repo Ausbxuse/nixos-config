@@ -1277,17 +1277,163 @@ switch_to_paired_terminal() {
   "$tmux_bin" select-window -t "$term_window" 2>/dev/null || true
 }
 
-pair_toggle() {
-  local window workbench_window workbench_session
+show_terminal() {
+  local window target term_session term_window
 
   window="$(current_window)"
   if is_workbench_window "$window"; then
-    heal_workbench_window "$window"
+    target="$(fast_paired_terminal_target "$window" || true)"
+    if [[ -n "$target" ]]; then
+      IFS='|' read -r term_session term_window <<<"$target"
+      fast_select_window "$term_session" "$term_window" && return 0
+    fi
+    switch_to_paired_terminal "$window"
+    return 0
+  fi
+
+  is_paired_terminal_window "$window" && return 0
+  return 0
+}
+
+fast_paired_terminal_target() {
+  local window="$1" record session root term_session term_window term_record paired paired_for
+
+  record="$("$tmux_bin" display -p -t "$window" '#{session_name}|#{@task-root}|#{@term-session}|#{@term-window}' 2>/dev/null || true)"
+  IFS='|' read -r session root term_session term_window <<<"$record"
+  [[ -n "$root" && -d "$root" && -n "$term_session" && -n "$term_window" ]] || return 1
+  valid_terminal_session_name "$session" "$term_session" || return 1
+
+  term_record="$("$tmux_bin" display -p -t "$term_window" '#{@paired-terminal}|#{@workbench-window}' 2>/dev/null || true)"
+  IFS='|' read -r paired paired_for <<<"$term_record"
+  [[ "$paired" == 1 && "$paired_for" == "$window" ]] || return 1
+
+  printf '%s|%s\n' "$term_session" "$term_window"
+}
+
+fast_workbench_target() {
+  local window="$1" record paired task_root workbench_session workbench_window workbench_root
+
+  record="$("$tmux_bin" display -p -t "$window" '#{@paired-terminal}|#{@task-root}|#{@workbench-session}|#{@workbench-window}' 2>/dev/null || true)"
+  IFS='|' read -r paired task_root workbench_session workbench_window <<<"$record"
+  [[ "$paired" == 1 && -n "$workbench_session" && -n "$workbench_window" ]] || return 1
+  [[ -z "$task_root" || ! -d "$task_root" ]] || return 1
+
+  workbench_root="$("$tmux_bin" display -p -t "$workbench_window" '#{@task-root}' 2>/dev/null || true)"
+  [[ -n "$workbench_root" && -d "$workbench_root" ]] || return 1
+
+  printf '%s|%s\n' "$workbench_session" "$workbench_window"
+}
+
+fast_select_window() {
+  local session="$1" window="$2"
+
+  [[ -n "$session" && -n "$window" ]] || return 1
+  "$tmux_bin" switch-client -t "$session" 2>/dev/null || return 1
+  "$tmux_bin" select-window -t "$window" 2>/dev/null || return 1
+}
+
+fast_show_primary() {
+  local window="$1" desired="${2:-}" record root primary agent editor parked
+  local target target_role pane_record target_window pane_role owner
+  local current selected
+
+  record="$("$tmux_bin" display -p -t "$window" '#{@task-root}|#{@primary}|#{@agent-pane}|#{@editor-pane}|#{@parked-primary-pane}' 2>/dev/null || true)"
+  IFS='|' read -r root primary agent editor parked <<<"$record"
+  [[ -n "$root" && -d "$root" ]] || return 1
+
+  case "$desired" in
+    agent)
+      target="$agent"
+      target_role=agent
+      ;;
+    editor)
+      target="$editor"
+      target_role=editor
+      ;;
+    "")
+      if [[ "$primary" == editor ]]; then
+        target="$agent"
+        target_role=agent
+      else
+        target="$editor"
+        target_role=editor
+      fi
+      ;;
+    *) return 1 ;;
+  esac
+  [[ -n "$target" ]] || return 1
+
+  pane_record="$("$tmux_bin" display -p -t "$target" '#{window_id}|#{@pane-role}|#{@workbench-window}' 2>/dev/null || true)"
+  IFS='|' read -r target_window pane_role owner <<<"$pane_record"
+  [[ -n "$target_window" && "$pane_role" == "$target_role" && "$owner" == "$window" ]] || return 1
+
+  if [[ "$target_window" != "$window" ]]; then
+    current="$(visible_primary_pane "$window")"
+    [[ -n "$current" ]] || return 1
+    "$tmux_bin" swap-pane -s "$current" -t "$target" 2>/dev/null || return 1
+    set_window_option "$window" @parked-primary-pane "$current"
+  else
+    selected="$("$tmux_bin" display -p -t "$window" '#{pane_id}' 2>/dev/null || true)"
+    [[ "$selected" == "$target" ]] || "$tmux_bin" select-pane -t "$target" 2>/dev/null || return 1
+  fi
+
+  set_window_option "$window" @focus-pane "$target"
+  set_window_option "$window" @primary "$target_role"
+}
+
+select_primary() {
+  local desired="${1:-agent}" window target workbench_session workbench_window
+
+  case "$desired" in
+    agent | editor) ;;
+    *) return 0 ;;
+  esac
+
+  window="$(current_window)"
+  if is_workbench_window "$window"; then
+    fast_show_primary "$window" "$desired" || show_primary "$window" "$desired"
+    return 0
+  fi
+
+  if is_paired_terminal_window "$window"; then
+    target="$(fast_workbench_target "$window" || true)"
+    if [[ -z "$target" ]]; then
+      workbench_window="$(window_option "$window" @workbench-window)"
+      workbench_session="$(window_option "$window" @workbench-session)"
+    else
+      IFS='|' read -r workbench_session workbench_window <<<"$target"
+    fi
+
+    [[ -n "${workbench_window:-}" && -n "${workbench_session:-}" ]] || return 0
+    fast_select_window "$workbench_session" "$workbench_window" || return 0
+    fast_show_primary "$workbench_window" "$desired" || show_primary "$workbench_window" "$desired" || true
+  fi
+}
+
+pair_toggle() {
+  local window target term_session term_window workbench_window workbench_session
+
+  window="$(current_window)"
+  if is_workbench_window "$window"; then
+    target="$(fast_paired_terminal_target "$window" || true)"
+    if [[ -n "$target" ]]; then
+      IFS='|' read -r term_session term_window <<<"$target"
+      fast_select_window "$term_session" "$term_window" && return 0
+    fi
     switch_to_paired_terminal "$window"
     return 0
   fi
 
   if is_paired_terminal_window "$window"; then
+    target="$(fast_workbench_target "$window" || true)"
+    if [[ -n "$target" ]]; then
+      IFS='|' read -r workbench_session workbench_window <<<"$target"
+      if fast_select_window "$workbench_session" "$workbench_window"; then
+        fast_show_primary "$workbench_window" agent || show_primary "$workbench_window" agent || true
+        return 0
+      fi
+    fi
+
     mark_paired_terminal_window \
       "$window" \
       "$(window_option "$window" @workbench-session)" \
@@ -1404,8 +1550,7 @@ toggle_primary() {
   local desired="${1:-}" window
 
   window="$(current_window)"
-  heal_workbench_window "$window"
-  show_primary "$window" "$desired"
+  fast_show_primary "$window" "$desired" || show_primary "$window" "$desired"
 }
 
 show_primary() {
@@ -1640,8 +1785,14 @@ case "$cmd" in
   layout)
     layout_window "${1:-}"
     ;;
+  primary | show-primary)
+    select_primary "${1:-agent}"
+    ;;
   toggle-primary)
     toggle_primary "${1:-}"
+    ;;
+  terminal | show-terminal)
+    show_terminal
     ;;
   terminal-toggle)
     terminal_toggle
@@ -1701,6 +1852,8 @@ commands:
   new
   main [SESSION]
   layout [WINDOW]
+  primary [agent|editor]
+  terminal
   toggle-primary [agent|editor]
   terminal-toggle
   pair-toggle

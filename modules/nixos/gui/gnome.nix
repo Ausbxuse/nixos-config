@@ -54,6 +54,7 @@ in {
 
   environment.systemPackages = with pkgs; [
     capitaine-cursors
+    gnome-connections
     xsel
   ];
   environment.gnome.excludePackages = with pkgs; [
@@ -69,7 +70,6 @@ in {
     geary # email client
     seahorse # password manager
     gedit # text editor
-    gnome-connections
 
     # these should be self explanatory
     gnome-calculator
