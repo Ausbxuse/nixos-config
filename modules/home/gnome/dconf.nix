@@ -132,10 +132,13 @@ with lib.hm.gvariant; {
 
     "org/gnome/desktop/screensaver" = {
       color-shading-type = "solid";
+      idle-activation-enabled = true;
+      lock-delay = mkUint32 0;
       lock-enabled = true;
-      picture-options = "zoom";
-      picture-uri = "file:///home/${username}/.local/share/wallpapers/city.jpg";
-      primary-color = "#3071AE";
+      picture-opacity = 100;
+      picture-options = "none";
+      picture-uri = "";
+      primary-color = "#000000";
       secondary-color = "#000000";
     };
 

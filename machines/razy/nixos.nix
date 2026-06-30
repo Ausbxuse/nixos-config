@@ -78,6 +78,47 @@ in {
     '';
   };
 
+  # Avoid long suspend/resume cycles when a manually-started Ollama model is
+  # still resident in NVIDIA VRAM.
+  systemd.services.razy-unload-ollama-before-sleep = {
+    description = "Unload Ollama GPU models before system sleep";
+    before = ["sleep.target"];
+    wantedBy = ["sleep.target"];
+    path = with pkgs; [
+      curl
+      jq
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      TimeoutStartSec = "20s";
+    };
+    script = ''
+      set -eu
+
+      host=127.0.0.1:11434
+
+      models="$(
+        curl -fsS --max-time 2 "http://$host/api/ps" \
+          | jq -r '.models[]?.name' \
+          || true
+      )"
+
+      if [ -z "$models" ]; then
+        exit 0
+      fi
+
+      printf '%s\n' "$models" | while IFS= read -r model; do
+        [ -n "$model" ] || continue
+        jq -nc --arg model "$model" '{model: $model, prompt: "", keep_alive: 0}' \
+          | curl -fsS --max-time 15 -X POST "http://$host/api/generate" \
+              -H 'Content-Type: application/json' \
+              --data-binary @- \
+              >/dev/null \
+          || true
+      done
+    '';
+  };
+
   # Force mutter to use the NVIDIA GPU as primary renderer on Wayland.
   # Without this, mutter picks Intel (card0) and does a cross-GPU copy to
   # NVIDIA for HDMI output, causing periodic cursor lag.
@@ -117,7 +158,15 @@ in {
   hardware.openrazer.users = [const.username];
   users.users.${const.username}.linger = true;
 
+  networking.firewall.interfaces.tailscale0.allowedUDPPortRanges = [
+    {
+      from = 60000;
+      to = 61000;
+    }
+  ];
+
   environment.systemPackages = with pkgs; [
+    mosh
     openrazer-daemon
     razergenie
   ];

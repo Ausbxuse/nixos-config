@@ -1,9 +1,25 @@
 local lsp_utils = require 'utils.lsp_utils'
 
-local keys = { 'q', 'w', 'e', 'r', 't', '1', '2', '3', '4', '5' }
-for i, key in ipairs(keys) do
-  vim.keymap.set('n', '<leader>' .. key, string.format('<cmd>argu %d|args<CR>', i), { silent = true })
+local arglist_keys = {
+  q = 1,
+  w = 2,
+  e = 3,
+  r = 4,
+  t = 5,
+  ['1'] = 1,
+  ['2'] = 2,
+  ['3'] = 3,
+  ['4'] = 4,
+  ['5'] = 5,
+}
+for key, index in pairs(arglist_keys) do
+  vim.keymap.set('n', '<leader>' .. key, string.format('<cmd>argu %d|args<CR>', index), { silent = true })
 end
+
+vim.keymap.set('n', '<leader>Q', function()
+  vim.diagnostic.setqflist()
+  vim.cmd.copen()
+end, { desc = 'Workspace diagnostics to quickfix' })
 
 vim.keymap.set('i', '<c-c>', '<Esc>')
 vim.keymap.set('n', '<Esc>', '<cmd>nohl<cr>')

@@ -19,7 +19,7 @@ nix build .#nixosConfigurations.razy.config.system.build.toplevel \
 
 # Deployment from a remote git server
 nix build .#nixosConfigurations.razy.config.system.build.toplevel \
-  --override-input nix-secrets git+ssh://git@zhenyuzhao.com/var/lib/git-server/nix-secrets
+  --override-input nix-secrets git+ssh://git@example.com/path/to/nix-secrets.git
 ```
 
 To add a new host:

@@ -31,6 +31,19 @@ return {
   },
   { 'mbbill/undotree' },
   {
+    'kevinhwang91/nvim-bqf',
+    ft = 'qf',
+    opts = {
+      auto_enable = true,
+      preview = {
+        auto_preview = false,
+      },
+    },
+    config = function(_, opts)
+      require('bqf').setup(opts)
+    end,
+  },
+  {
     'oskarrrrrrr/symbols.nvim',
     keys = {
       {

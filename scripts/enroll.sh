@@ -10,7 +10,7 @@
 #   4. admits it locally via admit-host (promotes the host into hosts.nix,
 #      removes any staging entry, re-encrypts secrets.yaml)
 #   5. ensures the target user has an SSH key, records it in hosts.nix, and
-#      appends it to root@zhenyuzhao.com's authorized_keys
+#      optionally appends it to a relay host's authorized_keys
 #   6. generates a pinned syncthing identity for the target, encrypts cert/key
 #      into nix-secrets/secrets.yaml, records the device id in hosts.nix
 #   7. rsyncs the private nix-secrets checkout to ~/src/private/nix-secrets on target
@@ -28,7 +28,7 @@ NIXOS_CONFIG_PATH=""
 NIX_SECRETS_PATH=""
 DRY_RUN=0
 DEFAULT_SOPS_AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
-REMOTE_ROOT_KEY_DEST="root@zhenyuzhao.com"
+REMOTE_ROOT_KEY_DEST="${REMOTE_ROOT_KEY_DEST:-}"
 
 @source_lib@
 
@@ -42,6 +42,7 @@ parse_args() {
       --remote-flake)    REMOTE_FLAKE="${2:?missing value}";      shift 2 ;;
       --config-path)     NIXOS_CONFIG_PATH="${2:?missing value}"; shift 2 ;;
       --secrets-path)    NIX_SECRETS_PATH="${2:?missing value}";  shift 2 ;;
+      --key-relay)       REMOTE_ROOT_KEY_DEST="${2:?missing value}"; shift 2 ;;
       --dry-run)         DRY_RUN=1;                               shift ;;
       --no-color)        USE_COLOR=0; apply_colors;               shift ;;
       -y|--yes)          ASSUME_YES=1;                            shift ;;
@@ -59,6 +60,8 @@ Options:
   --config-path PATH     Local nix-config repo (default: \$PWD or \$NIXOS_CONFIG_PATH)
   --secrets-path PATH    Local nix-secrets checkout (default: \$HOME/src/private/nix-secrets
                          or \$NIX_SECRETS_PATH)
+  --key-relay DEST       Optional SSH destination whose authorized_keys should receive
+                         the target user's pubkey, e.g. root@example.com
   --dry-run              Show the resolved plan and exit without making changes
   --no-color             Disable ANSI colors even on a TTY
   -y, --yes              Accept all confirmation prompts
@@ -67,6 +70,7 @@ Environment:
   NIXOS_CONFIG_PATH      Override local nix-config path
   NIX_SECRETS_PATH       Override local nix-secrets path
   SOPS_AGE_KEY_FILE      User age identity (avoids sudo in admit-host)
+  REMOTE_ROOT_KEY_DEST   Default value for --key-relay
 
 Examples:
   nix run .#enroll -- custom-nixos zhenyu@127.0.0.1:2224
@@ -203,7 +207,7 @@ recap() {
   kv "secrets src"   "$NIX_SECRETS_PATH"
   kv "remote flake"  "$REMOTE_FLAKE"
   kv "remote secrets" "$REMOTE_SECRETS"
-  kv "key relay"     "$REMOTE_ROOT_KEY_DEST"
+  kv "key relay"     "${REMOTE_ROOT_KEY_DEST:-disabled}"
 
   if [[ $DRY_RUN -eq 1 ]]; then
     kv "mode" "${C_YELLOW}dry run${C_RESET}"
@@ -279,7 +283,11 @@ step_user_ssh_key() {
   if [[ $DRY_RUN -eq 1 ]]; then
     info "would ensure ~/.ssh/id_ed25519 exists on target"
     info "would record ${HOSTNAME}.userSshPubKey in hosts.nix"
-    info "would append the key to ${REMOTE_ROOT_KEY_DEST}:~/.ssh/authorized_keys"
+    if [[ -n "$REMOTE_ROOT_KEY_DEST" ]]; then
+      info "would append the key to ${REMOTE_ROOT_KEY_DEST}:~/.ssh/authorized_keys"
+    else
+      info "would skip relay authorized_keys update"
+    fi
     return 0
   fi
 
@@ -305,13 +313,17 @@ step_user_ssh_key() {
   ) || die "admit-host --set-host-user-ssh-key failed"
   ok "user ssh pubkey recorded in hosts.nix"
 
-  escaped_pub=$(quote_sq "$target_user_pub")
-  # shellcheck disable=SC2029
-  if ssh "$REMOTE_ROOT_KEY_DEST" \
-      "umask 077; mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && grep -qxF '$escaped_pub' ~/.ssh/authorized_keys || printf '%s\n' '$escaped_pub' >> ~/.ssh/authorized_keys"; then
-    ok "user ssh pubkey installed on ${REMOTE_ROOT_KEY_DEST}"
+  if [[ -z "$REMOTE_ROOT_KEY_DEST" ]]; then
+    info "no key relay configured; skipping authorized_keys update"
   else
-    warn "failed to install user ssh pubkey on ${REMOTE_ROOT_KEY_DEST} (non-fatal)"
+    escaped_pub=$(quote_sq "$target_user_pub")
+    # shellcheck disable=SC2029
+    if ssh "$REMOTE_ROOT_KEY_DEST" \
+        "umask 077; mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && grep -qxF '$escaped_pub' ~/.ssh/authorized_keys || printf '%s\n' '$escaped_pub' >> ~/.ssh/authorized_keys"; then
+      ok "user ssh pubkey installed on ${REMOTE_ROOT_KEY_DEST}"
+    else
+      warn "failed to install user ssh pubkey on ${REMOTE_ROOT_KEY_DEST} (non-fatal)"
+    fi
   fi
 }
 

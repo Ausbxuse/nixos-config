@@ -67,12 +67,12 @@ return {
             ['ctrl-g'] = false,
           },
         },
-        -- grep = {
-        --   actions = {
-        --     ['ctrl-g'] = false,
-        --     ['ctrl-q'] = actions.file_sel_to_qf,
-        --   },
-        -- },
+        grep = {
+          actions = {
+            ['ctrl-g'] = false,
+            ['ctrl-q'] = actions.file_sel_to_qf,
+          },
+        },
 
         -- winopts = { preview = { layout = 'horizontal' } },
         keymap = {

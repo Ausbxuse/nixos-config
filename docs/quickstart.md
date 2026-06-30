@@ -49,8 +49,8 @@ The `enroll` app:
 | 2   | Promotes `NEWHOST` from public staging defs into `nix-secrets/hosts.nix`, then sets `NEWHOST.sops.ageKey = "age1..."`                                                      |
 | 3   | Regenerates `nix-secrets/.sops.yaml`, re-encrypts `secrets.yaml`                                                                                                             |
 | 4   | Generates a syncthing cert/key for NEWHOST, encrypts them into `secrets.yaml`, records `NEWHOST.syncthing.deviceId` in `hosts.nix` (first boot comes up with pinned identity) |
-| 5   | Pushes NEWHOST's user SSH pubkey to milky (so NEWHOST can pull private repos via `git+ssh://`) — _see "Milky dependency" below_                                              |
-| 6   | Triggers `nixos-rebuild switch` on NEWHOST pulling `nix-secrets` from milky                                                                                                  |
+| 5   | Optionally pushes NEWHOST's user SSH pubkey to a key relay if `--key-relay` / `REMOTE_ROOT_KEY_DEST` is set                                                                 |
+| 6   | Triggers `nixos-rebuild switch` on NEWHOST with `nix-secrets` supplied from the synced private checkout                                                                      |
 
 When it exits cleanly, NEWHOST has `/run/secrets/` populated, a pinned
 syncthing identity, and is a full mesh member.
@@ -63,17 +63,17 @@ cd ~/src/public/nix-config && git add machines/defs.nix && git commit -m "stage 
     && git commit -m "add NEWHOST recipient" && git push )
 ```
 
-### Milky dependency
+### Private remote dependency
 
-Step 4 + step 5 assume **milky** (the VPS) is online as the
-`nix-secrets` git remote. Until milky is set up:
+Step 5 + step 6 can use a private key relay / git remote if configured.
+Without that private infrastructure:
 
-- Step 4 is a no-op (enroll skips the SSH-key push)
-- Step 5 falls back to the local path form:
+- Step 5 is a no-op (enroll skips the SSH-key push)
+- Step 6 falls back to the local path form:
   `--override-input nix-secrets path:/tmp/nix-secrets` after an rsync
 
 Both behaviors are handled by `enroll` automatically — you do not pass
-a flag. Once milky is enrolled the path override is dropped.
+a flag. Once a private remote is available the path override can be dropped.
 
 ---
 

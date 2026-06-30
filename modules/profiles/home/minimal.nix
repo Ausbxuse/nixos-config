@@ -1,9 +1,11 @@
 {
+  config,
   pkgs,
   inputs,
   ...
 }: {
   imports = [
+    inputs.nix-index-database.homeModules.default
     ../../home/env
     ../../home/codex.nix
     ../../home/zsh
@@ -20,12 +22,19 @@
     nix-direnv.enable = true;
   };
   # CLI helpers and nicer rebuild UX
-  # programs.nix-index.enable = true;
 
-  programs.command-not-found.enable = true;
+  programs.command-not-found.enable = false;
+
+  programs.nix-index = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  programs.nix-index-database.comma.enable = true;
+
+  home.file."${config.xdg.cacheHome}/nix-index/files".force = true;
 
   home.packages = with pkgs; [
-    comma
     nh
     nvd
     nix-output-monitor

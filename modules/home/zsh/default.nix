@@ -7,7 +7,15 @@
   hostDefs,
   inputs,
   ...
-}: {
+}: let
+  watt = pkgs.writeShellApplication {
+    name = "watt";
+    runtimeInputs = with pkgs; [
+      gawk
+    ];
+    text = builtins.readFile ../../../scripts/watt.sh;
+  };
+in {
   home.packages = with pkgs; [
     trash-cli
     ueberzugpp
@@ -24,6 +32,7 @@
     wl-clipboard
     xsel
     gdu
+    watt
   ];
 
   programs.fzf = {
@@ -37,6 +46,22 @@
   programs.zoxide = {
     enable = true;
     enableZshIntegration = false;
+  };
+
+  programs.carapace = {
+    enable = true;
+    enableZshIntegration = false;
+    ignoreCase = true;
+  };
+
+  programs.atuin = {
+    enable = true;
+    enableZshIntegration = true;
+    flags = ["--disable-up-arrow"];
+    settings = {
+      auto_sync = false;
+      update_check = false;
+    };
   };
 
   programs.yazi = {
@@ -231,7 +256,6 @@
       s = "sdcv -c -u 'WordNet® 3.0 (En-En)'";
       ga = "git commit -a";
       sdn = "sudo shutdown -h now";
-      watt = "battery_path=''; for d in /sys/class/power_supply/*; do [ -d \"$d\" ] || continue; if [ \"$(cat \"$d/type\" 2>/dev/null)\" = Battery ]; then battery_path=\"$d\"; break; fi; done; [ -n \"$battery_path\" ] || { echo 'no battery found' >&2; exit 1; }; battery_status=$(cat \"$battery_path/status\" 2>/dev/null || echo unknown); if [ -r \"$battery_path/power_now\" ]; then power_uw=$(cat \"$battery_path/power_now\"); elif [ -r \"$battery_path/current_now\" ] && [ -r \"$battery_path/voltage_now\" ]; then power_uw=$(awk -v c=\"$(cat \"$battery_path/current_now\")\" -v v=\"$(cat \"$battery_path/voltage_now\")\" 'BEGIN { printf \"%.0f\", (c * v) / 1000000 }'); else echo 'no power telemetry found' >&2; exit 1; fi; awk -v p=\"$power_uw\" -v s=\"$battery_status\" 'BEGIN { if (s == \"Discharging\") sign = \"-\"; else if (s == \"Charging\") sign = \"+\"; else sign = \"\"; printf \"%s%.2f W\\n\", sign, p / 1000000 }'";
       f = "$FILE";
       e = "$EDITOR";
       v = "$EDITOR";

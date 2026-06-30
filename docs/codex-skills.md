@@ -4,7 +4,8 @@ This workflow keeps Codex skills easy to author and easy to deploy:
 
 - author skills as plain files in a separate skill-pack repo
 - group skills into profiles in Nix
-- deploy one built profile into `~/.codex/skills` with Home Manager
+- deploy one built profile into the global Codex skill location
+  (`~/.agents/skills`) with Home Manager
 
 ## Create a Skill-Pack Repo
 
@@ -82,7 +83,8 @@ just hm
 
 ## Design Notes
 
-- The Home Manager module only deploys a directory tree.
+- The Home Manager module materializes regular files during activation because
+  current Codex releases may ignore symlinked `SKILL.md` files.
 - Profile selection stays in the skill-pack flake.
 - Skills are authored as normal files, not embedded as Nix strings.
 - If the workflow starts feeling complex, prefer simpler profile data over new helpers.

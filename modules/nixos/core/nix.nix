@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  const,
   inputs,
   options,
   pkgs,
@@ -38,8 +39,7 @@
     #    2. command line args `--options substituters http://xxx`
     trusted-users = [username];
 
-    substituters = [
-      "https://cache.zhenyuzhao.com/zhenyu-public"
+    substituters = (const.nix.extraSubstituters or []) ++ [
       "https://cache.nixos.org"
       "https://cache.nixos-cuda.org"
       "https://ausbxuse.cachix.org"
@@ -50,8 +50,7 @@
       #"https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store"
       # "https://cache.nixos.org"
     ];
-    trusted-public-keys = [
-      "zhenyu-public:HJAdTzf9fcFLcjDfAE39xyQv20Ev4M8kTFzXx3ssGho="
+    trusted-public-keys = (const.nix.extraTrustedPublicKeys or []) ++ [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="

@@ -7,64 +7,127 @@
 }: let
   system = pkgs.stdenv.hostPlatform.system;
   codex = inputs.codex-cli-nix.packages.${system}.default;
+  codexModel = "gpt-5.5";
+  codexReasoningEffort = "medium";
+  agentMaxThreads = 5;
+  agentMaxDepth = 1;
+  toml = pkgs.formats.toml {};
+  codexAgents = {
+    "repo-explorer.toml" = {
+      name = "repo-explorer";
+      description = "Fast read-only codebase explorer for narrow questions.";
+      model = "gpt-5.3-codex-spark";
+      model_reasoning_effort = "low";
+      sandbox_mode = "read-only";
+      developer_instructions = ''
+        Answer narrow repo questions quickly.
+        Use rg before broader filesystem scans.
+        Do not edit files.
+        Return concise findings with file paths, command/function flow, and confidence.
+      '';
+    };
+
+    "mechanical-worker.toml" = {
+      name = "mechanical-worker";
+      description = "Fast worker for bounded mechanical edits with explicit file ownership.";
+      model = "gpt-5.4-mini";
+      model_reasoning_effort = "medium";
+      developer_instructions = ''
+        Implement only the assigned bounded change.
+        You are not alone in the codebase. Do not revert edits made by others.
+        Respect the assigned file/module ownership, and report any required scope expansion.
+        Prefer small diffs, local patterns, and focused checks.
+        Return changed files, tests run, and remaining risks.
+      '';
+    };
+  };
+  configureCodex =
+    pkgs.writers.writePython3 "configure-codex" {
+      libraries = [pkgs.python3Packages.tomlkit];
+    } ''
+      import os
+      import sys
+      from pathlib import Path
+
+      import tomlkit
+      from tomlkit.items import Table
+
+      config_file = Path(sys.argv[1])
+      notify_command = sys.argv[2]
+      model = sys.argv[3]
+      reasoning_effort = sys.argv[4]
+      agent_max_threads = int(sys.argv[5])
+      agent_max_depth = int(sys.argv[6])
+      status_line = [
+          "model-with-reasoning",
+          "current-dir",
+          "weekly-limit",
+          "five-hour-limit",
+      ]
+
+
+      def parse_config(text):
+          if not text.strip():
+              return tomlkit.document()
+
+          # Repair the malformed line join from the previous activation script.
+          text = text.replace("]sandbox_mode =", "]\nsandbox_mode =")
+          return tomlkit.parse(text)
+
+
+      def ensure_table(doc, key):
+          table = doc.get(key)
+          if isinstance(table, Table):
+              return table
+
+          table = tomlkit.table()
+          doc[key] = table
+          return table
+
+
+      config_file.parent.mkdir(parents=True, exist_ok=True)
+
+      if config_file.is_symlink():
+          text = config_file.read_text()
+          config_file.unlink()
+      elif config_file.exists():
+          text = config_file.read_text()
+      else:
+          text = ""
+
+      doc = parse_config(text)
+      doc["model"] = model
+      doc["model_reasoning_effort"] = reasoning_effort
+      doc["notify"] = [notify_command]
+      doc["sandbox_mode"] = "danger-full-access"
+
+      tui = ensure_table(doc, "tui")
+      tui["status_line"] = status_line
+      tui["status_line_use_colors"] = True
+
+      agents = ensure_table(doc, "agents")
+      agents["max_threads"] = agent_max_threads
+      agents["max_depth"] = agent_max_depth
+
+      config_file.write_text(tomlkit.dumps(doc))
+      os.chmod(config_file, 0o600)
+    '';
 in {
   home.packages = [codex];
 
+  home.file = lib.mapAttrs' (name: agent:
+    lib.nameValuePair ".codex/agents/${name}" {
+      source = toml.generate "codex-agent-${name}" agent;
+    })
+  codexAgents;
+
   home.activation.configureCodexNotify = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    config_file="${config.home.homeDirectory}/.codex/config.toml"
-    notify_line='notify = ["${config.home.homeDirectory}/.local/bin/tmux/codex-notify.sh"]'
-    status_line='status_line = ["model-with-reasoning", "current-dir", "weekly-limit", "five-hour-limit", "fast-mode"]'
-    status_line_use_colors='status_line_use_colors = true'
-
-    mkdir -p "$(dirname "$config_file")"
-
-    if [ -L "$config_file" ]; then
-      tmp="$(${pkgs.coreutils}/bin/mktemp)"
-      ${pkgs.coreutils}/bin/cat "$config_file" > "$tmp"
-      ${pkgs.coreutils}/bin/rm -f "$config_file"
-      ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$config_file"
-      ${pkgs.coreutils}/bin/rm -f "$tmp"
-    elif [ ! -e "$config_file" ]; then
-      ${pkgs.coreutils}/bin/install -m 600 /dev/null "$config_file"
-    fi
-
-    export CODEX_NOTIFY_LINE="$notify_line"
-    ${pkgs.perl}/bin/perl -0pi -e '
-      my $notify = $ENV{CODEX_NOTIFY_LINE};
-      if (!s/\A(.*?)(^notify\s*=.*$)(.*?)(?=^\[|\z)/$1$notify$3/ms) {
-        s/\A(.*?)(?=^\[|\z)/$1$notify\n\n/ms;
-      }
-    ' "$config_file"
-
-    export CODEX_STATUS_LINE="$status_line"
-    export CODEX_STATUS_LINE_USE_COLORS="$status_line_use_colors"
-    ${pkgs.perl}/bin/perl -0pi -e '
-      my $status_line = $ENV{CODEX_STATUS_LINE};
-      my $use_colors = $ENV{CODEX_STATUS_LINE_USE_COLORS};
-
-      if (!/^\[tui\]\s*$/m) {
-        $_ .= "\n[tui]\n";
-      }
-
-      s{
-        (^\[tui\]\s*\n)
-        (.*?)
-        (?=^\[|\z)
-      }{
-        my ($header, $body) = ($1, $2);
-
-        if ($body =~ s/^status_line\s*=.*$/$status_line/m) {
-        } else {
-          $body = "$status_line\n$body";
-        }
-
-        if ($body =~ s/^status_line_use_colors\s*=.*$/$use_colors/m) {
-        } else {
-          $body = "$body$use_colors\n";
-        }
-
-        "$header$body";
-      }msxe;
-    ' "$config_file"
+    ${configureCodex} \
+      "${config.home.homeDirectory}/.codex/config.toml" \
+      "${config.home.homeDirectory}/.local/bin/tmux/codex-notify.sh" \
+      "${codexModel}" \
+      "${codexReasoningEffort}" \
+      "${toString agentMaxThreads}" \
+      "${toString agentMaxDepth}"
   '';
 }

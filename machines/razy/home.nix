@@ -19,6 +19,8 @@ in {
     models = [defaultLocalModel];
   };
 
+  my.codexSkills.enable = true;
+
   services.ollama-agent = {
     enable = true;
     port = 11434;
@@ -27,9 +29,9 @@ in {
     kvCacheType = "q4_0";
     parallel = 1;
     maxLoadedModels = 1;
-    idleKeepAlive = "-1";
-    autoStart = true;
-    preloadModel = defaultLocalModel;
+    idleKeepAlive = "30m";
+    autoStart = false;
+    preloadModel = "";
     stopOnBattery = false;
   };
 

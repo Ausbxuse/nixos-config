@@ -1,6 +1,6 @@
 {
-  pkgs,
   lib,
+  pkgs,
   ...
 }: {
   programs.tmux = {
@@ -32,6 +32,39 @@
 
   xdg.configFile."tmux/theme-dark.conf".source = ./theme-dark.conf;
   xdg.configFile."tmux/theme-light.conf".source = ./theme-light.conf;
+  home.file.".local/bin/tmux/workbench.sh" = {
+    source = ./workbench.sh;
+    executable = true;
+  };
+  home.file.".local/bin/tmux/windowizer.sh" = {
+    source = ./windowizer.sh;
+    executable = true;
+  };
+  home.file.".local/bin/tmux/dwm.sh" = {
+    source = ./dwm.sh;
+    executable = true;
+  };
+  home.file.".local/bin/tmux/pane-manager.sh" = {
+    source = ./pane-manager.sh;
+    executable = true;
+  };
+  home.file.".local/bin/tmux/resurrect-workbench-save.sh" = {
+    source = ./resurrect-workbench-save.sh;
+    executable = true;
+  };
+  home.file.".local/bin/tmux/resurrect-workbench-restore.sh" = {
+    source = ./resurrect-workbench-restore.sh;
+    executable = true;
+  };
+  home.file.".local/bin/tmux/sessionizer.sh" = {
+    executable = true;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      exec "$HOME/.local/bin/tmux/windowizer.sh" "$@"
+    '';
+  };
   home.file.".local/bin/tmux/copy-to-clipboard.sh" = {
     executable = true;
     text = ''
@@ -65,6 +98,41 @@
       fi
     '';
   };
+  home.file.".local/bin/tmux/history-edit.sh" = {
+    executable = true;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      target="''${1:-}"
+      if [[ -z "$target" ]]; then
+        target="$(tmux display -p '#{pane_id}')"
+      fi
+
+      tmp="$(mktemp --suffix=.tmux-history)"
+      trap 'rm -f "$tmp"' EXIT
+
+      tmux capture-pane -pJ -S - -E - -t "$target" > "$tmp"
+      if ! grep -q '[^[:space:]]' "$tmp"; then
+        exit 0
+      fi
+
+      nvim \
+        -R \
+        -c 'setlocal buftype=nowrite bufhidden=wipe noswapfile nomodifiable nowrap filetype=tmux-history' \
+        -c 'nnoremap <buffer> q <cmd>quit<cr>' \
+        -c 'xnoremap <buffer> y "+y<cmd>quit<cr>' \
+        "$tmp"
+    '';
+  };
+  home.file.".local/bin/tmux/history-copy.sh" = {
+    executable = true;
+    text = ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+      exec ~/.local/bin/tmux/history-edit.sh "$@"
+    '';
+  };
   home.file.".local/bin/tmux/codex-notify.sh" = {
     executable = true;
     text = ''
@@ -76,8 +144,33 @@
         payload="$(cat || true)"
       fi
 
+      summary="''${payload:-needs attention}"
+      state="waiting"
+      lowered="''${summary,,}"
+      case "$lowered" in
+        *'"type":"task_started"'* | *agent-turn-start* | *turn-start* | *turn_start*)
+          state="running"
+          summary="''${payload:-working}"
+          ;;
+        *'"type":"task_complete"'* | *agent-turn-complete* | *turn-complete* | *turn_complete*)
+          state="done"
+          summary="needs review"
+          ;;
+        *error* | *failed* | *failure* | *blocked*)
+          state="blocked"
+          summary="''${payload:-blocked}"
+          ;;
+        *approval* | *requires-input* | *needs-input* | *needs_input* | *user_attention* | *attention*)
+          state="waiting"
+          summary="''${payload:-needs attention}"
+          ;;
+      esac
+
       if [[ -n "''${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
-        pane_tty="$(tmux display-message -p -t "$TMUX_PANE" '#{pane_tty}' 2>/dev/null || true)"
+        TMUX_WORKBENCH_TARGET_PANE="$TMUX_PANE" \
+          "$HOME/.local/bin/tmux/workbench.sh" state "$state" "$summary" 2>/dev/null || true
+
+        pane_tty="$(tmux display -p -t "$TMUX_PANE" '#{pane_tty}' 2>/dev/null || true)"
         if [[ -n "$pane_tty" && -w "$pane_tty" ]]; then
           printf '\a' > "$pane_tty"
           exit 0
@@ -594,20 +687,22 @@
 
           resurrect_dir="$HOME/.local/share/tmux/resurrect"
           set -g @resurrect-dir $resurrect_dir
-          set -g @resurrect-hook-post-save-all 'target=$(readlink -f $HOME/.local/share/tmux/resurrect/last); sed "s|\(.*bin/nvim\) .*|\1|; s|/etc/profiles/per-user/$USER/bin/||g; s|/home/$USER/.nix-profile/bin/||g" $target | sponge $target'
+          set -g @resurrect-hook-post-save-all '$HOME/.local/bin/tmux/resurrect-workbench-save.sh'
+          set -g @resurrect-hook-pre-restore-pane-processes '$HOME/.local/bin/tmux/resurrect-workbench-restore.sh'
+          set -g @resurrect-hook-post-restore-all '$HOME/.local/bin/tmux/workbench.sh recover-restored'
           set -g @resurrect-capture-pane-contents 'on'
-          set -g @resurrect-processes '"~nvim"'
+          set -g @resurrect-processes 'codex "~codex-raw->codex" "~bin/codex->codex"'
         '';
       }
       {
         plugin = continuum; # needs resurrect present
         extraConfig = ''
-            set -g status-interval 60         # update the status bar every 60 seconds
+            set -g status-interval 2          # keep agent state colors current
             set -g status-justify centre
             set -g status-position top
             set -g status-style 'bg=default'  # transparent background
             set -g status-left-length 50
-            set -g status-right-length 110
+            set -g status-right-length 48
             set -g status-bg 'default'
             if-shell 'command -v gsettings >/dev/null 2>&1 && gsettings get org.gnome.desktop.interface color-scheme | grep -q prefer-light' \
               'source-file ~/.config/tmux/theme-light.conf' \

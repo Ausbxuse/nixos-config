@@ -2,3 +2,4 @@ result
 .direnv
 .direnv/*
 .codex-local/
+modules/home/tmux/dashboard/target/

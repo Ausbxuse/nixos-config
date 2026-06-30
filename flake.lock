@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1781761441,
-        "narHash": "sha256-ZXJdWelt7SwbQTh18krnNgSS2SRveK4aoqO3xPdODD8=",
+        "lastModified": 1782378836,
+        "narHash": "sha256-TaT6D1jJUUyu17MI/wix4jb5MDXiomAE8V3OdK+tAL8=",
         "owner": "sadjow",
         "repo": "codex-cli-nix",
-        "rev": "e3e7751853ece92c2a05ba4e8feee54afdb668c8",
+        "rev": "4751eb49f905fc1760b9f6ee7120bf5c32f4eb56",
         "type": "github"
       },
       "original": {
@@ -153,6 +153,26 @@
         "type": "github"
       }
     },
+    "nix-index-database": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1782030356,
+        "narHash": "sha256-h4WpMr455AfRub0FXBaon6Vcpe0waUyJ4GivIW6oyd4=",
+        "owner": "nix-community",
+        "repo": "nix-index-database",
+        "rev": "3017088b49efd404f78e3b104f553b97e4af786b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nix-index-database",
+        "type": "github"
+      }
+    },
     "nix-secrets": {
       "locked": {
         "path": "./secrets/nix-secrets",
@@ -257,6 +277,7 @@
         "grub2-theme": "grub2-theme",
         "home-manager": "home-manager",
         "minegrub": "minegrub",
+        "nix-index-database": "nix-index-database",
         "nix-secrets": "nix-secrets",
         "nixgl": "nixgl",
         "nixpkgs": "nixpkgs_3",

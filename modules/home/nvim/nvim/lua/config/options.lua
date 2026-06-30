@@ -171,9 +171,10 @@ local default_options = {
   listchars = { tab = '  ', trail = '·', nbsp = '␣' },
   cursorline = true,
   scrolloff = 10,
-  fillchars = 'eob: ',
+  fillchars = { eob = ' ', fold = ' ' },
   foldmethod = 'expr',
-  foldexpr = 'nvim_treesitter#foldexpr()',
+  foldexpr = 'v:lua.vim.treesitter.foldexpr()',
+  foldtext = "v:lua.require'config.foldtext'.foldtext()",
   foldlevel = 999,
   hidden = true, -- required to keep multiple buffers and open multiple buffers
   pumheight = 10, -- pop up menu height

@@ -45,6 +45,11 @@
 
   machinePathFor = host: ./.. + "/machines/${host}";
   machineFileExists = host: file: builtins.pathExists (machinePathFor host + "/${file}");
+  privateModulePathFor = kind: name: inputs.nix-secrets + "/modules/${kind}/${name}.nix";
+  optionalPrivateModule = kind: name: let
+    path = privateModulePathFor kind name;
+  in
+    lib.optional (builtins.pathExists path) path;
 
   mkHomeBaseModule = hostname: let
     homeDef = homeDefFor hostname;
@@ -74,12 +79,14 @@
 
   homeModulesFor = hostname:
     [ (mkHomeBaseModule hostname) ]
-    ++ lib.optional (machineFileExists hostname "home.nix") (machinePathFor hostname + "/home.nix");
+    ++ lib.optional (machineFileExists hostname "home.nix") (machinePathFor hostname + "/home.nix")
+    ++ optionalPrivateModule "home" hostname;
 
   nixosModulesFor = hostname:
     [ (mkNixosBaseModule hostname) ]
     ++ lib.optional (machineFileExists hostname "hardware-configuration.nix") (machinePathFor hostname + "/hardware-configuration.nix")
-    ++ lib.optional (machineFileExists hostname "nixos.nix") (machinePathFor hostname + "/nixos.nix");
+    ++ lib.optional (machineFileExists hostname "nixos.nix") (machinePathFor hostname + "/nixos.nix")
+    ++ optionalPrivateModule "nixos" hostname;
 
   mkHome = hostname: let
     system = systemFor hostname;

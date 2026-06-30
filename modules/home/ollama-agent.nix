@@ -271,6 +271,20 @@ in {
   config = lib.mkIf cfg.enable {
     home.packages = [ollamaPkg];
 
+    home.activation.removeLegacyPiOllama = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      legacy_unit=${lib.escapeShellArg "${config.home.homeDirectory}/.config/systemd/user/pi-ollama.service"}
+      legacy_wants=${lib.escapeShellArg "${config.home.homeDirectory}/.config/systemd/user/default.target.wants/pi-ollama.service"}
+
+      ${pkgs.systemd}/bin/systemctl --user stop pi-ollama.service >/dev/null 2>&1 || true
+      ${pkgs.systemd}/bin/systemctl --user disable pi-ollama.service >/dev/null 2>&1 || true
+      ${pkgs.systemd}/bin/systemctl --user reset-failed pi-ollama.service >/dev/null 2>&1 || true
+
+      rm -f "$legacy_wants"
+      rm -f "$legacy_unit"
+
+      ${pkgs.systemd}/bin/systemctl --user daemon-reload >/dev/null 2>&1 || true
+    '';
+
     systemd.user.services.ollama = {
       Unit = {
         Description = "Ollama server";

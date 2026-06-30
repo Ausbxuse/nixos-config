@@ -2,8 +2,37 @@
 # It's a bunch of specifications from freedesktop.org intended to standardize desktops and
 # other GUI applications on various systems (primarily Unix-like) to be interoperable:
 #   https://www.freedesktop.org/wiki/Specifications/
-{config, ...}: {
+{config, pkgs, ...}: {
+  home.file."${config.xdg.binHome}/loupe-ngl" = {
+    force = true;
+    executable = true;
+    text = ''
+      #!${pkgs.runtimeShell}
+      export GSK_RENDERER=ngl
+      exec ${pkgs.loupe}/bin/loupe "$@"
+    '';
+  };
+
   xdg = {
+    # Loupe crashes on razy's NVIDIA/GTK Vulkan path when entering fullscreen.
+    # Keep the desktop ID stable for MIME defaults, but force GTK's NGL renderer.
+    dataFile."applications/org.gnome.Loupe.desktop" = {
+      force = true;
+      text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=Image Viewer
+        GenericName=Image Viewer
+        Comment=Browse and rotate images
+        Exec=${config.xdg.binHome}/loupe-ngl %U
+        Icon=org.gnome.Loupe
+        Terminal=false
+        Categories=GNOME;GTK;Graphics;2DGraphics;RasterGraphics;Viewer;
+        MimeType=image/avif;image/bmp;image/gif;image/heic;image/heif;image/jpeg;image/png;image/svg+xml;image/tiff;image/webp;
+        StartupNotify=true
+      '';
+    };
+
     configFile."mimeapps.list".force = true;
     # manage $XDG_CONFIG_HOME/mimeapps.list
     # xdg search all desktop entries from $XDG_DATA_DIRS, check it by command:

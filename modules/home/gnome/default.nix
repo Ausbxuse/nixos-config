@@ -178,7 +178,7 @@ in {
       fi
 
       $GMC set --logical-layout-mode \
-        -L -M eDP-1 -m '3840x2160@120.043' -x 0 -y 0 -s 3 -t normal \
+        -L -M eDP-1 -m '2560x1600@240.000' -x 0 -y 0 -s 2 -t normal \
         -L -M HDMI-1 -m '3840x2160@143.982' -x 1280 -y 0 -s 2 -t normal -p
     '';
     executable = true;

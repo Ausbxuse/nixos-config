@@ -294,22 +294,21 @@ mount at a predictable location. This avoids path races and makes the udev
 
 ---
 
-## Prerequisite: VPS one-time setup (milky) — TODO
+## Prerequisite: private remote setup — TODO
 
 > **Status:** Not yet done. Tracked as a follow-up.
 
-Before the full flow is possible, milky must host:
+Before the full flow is possible, a private remote must host:
 
 1. **nix-secrets git remote** at
-   `git+ssh://git@zhenyuzhao.com/var/lib/git-server/nix-secrets`
+   `git+ssh://git@example.com/path/to/nix-secrets.git`
    - Bare repo owned by a `git` user
    - `authorized_keys` file **generated declaratively** from
      `machines/defs.nix` (each host's `userSshPubKey` field) as part of
-     milky's NixOS config
+     the private remote's NixOS config
    - Initial push from the current admin machine
 
-Note: syncthing introducer role has moved to razy (see Phase F). Milky
-is no longer needed for syncthing peer discovery.
+Note: syncthing peer discovery does not require the private remote.
 
 ---
 
