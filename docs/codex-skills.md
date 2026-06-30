@@ -48,22 +48,22 @@ Each selected skill must exist under `skills/<name>/` and contain `SKILL.md`.
 
 ## Deploy From nix-config
 
-Add your skill-pack as a flake input in `flake.nix`, for example:
+The built-in `$p` skill is deployed by `modules/home/codex.nix`. Any host using
+the shared home profiles gets the global Codex skill directory populated at
+activation time because those profiles import the Codex home module.
+
+To add extra skills from a skill-pack, add the skill-pack as a flake input in
+`flake.nix`, for example:
 
 ```nix
 inputs.codex-skills.url = "path:../codex-skills";
 ```
 
-Then enable the deployment module in your home-manager config:
+Then point your home-manager config at the package output:
 
 ```nix
 {
-  imports = [
-    ../../modules/home/codex-skills.nix
-  ];
-
   my.codexSkills = {
-    enable = true;
     source = inputs.codex-skills.packages.${pkgs.system}.skills-default;
   };
 }

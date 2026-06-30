@@ -160,6 +160,36 @@ fallback_swap() {
   "$tmux_bin" select-pane -t "$current"
 }
 
+cycle_pane() {
+  local direction="${1:-next}" current window target_index=-1 count i target
+  local panes=()
+
+  current="$(current_pane)"
+  window="$("$tmux_bin" display -p -t "$current" '#{window_id}')"
+
+  mapfile -t panes < <("$tmux_bin" list-panes -t "$window" -F '#{pane_index}	#{pane_id}' 2>/dev/null |
+    sort -t $'\t' -k1,1n |
+    cut -f2)
+
+  count="${#panes[@]}"
+  ((count > 1)) || return 0
+
+  for i in "${!panes[@]}"; do
+    if [[ "${panes[$i]}" == "$current" ]]; then
+      case "$direction" in
+        prev | previous | up) target_index=$(((i - 1 + count) % count)) ;;
+        next | down) target_index=$(((i + 1) % count)) ;;
+        *) return 2 ;;
+      esac
+      break
+    fi
+  done
+
+  ((target_index >= 0 && target_index < count)) || return 0
+  target="${panes[$target_index]}"
+  "$tmux_bin" select-pane -t "$target"
+}
+
 fallback_layout() {
   local window
 
@@ -295,14 +325,18 @@ case "$cmd" in
     fi
     ;;
   swap-next)
-    if is_workbench_window || is_paired_terminal_window; then
+    if is_paired_terminal_window; then
+      cycle_pane next
+    elif is_workbench_window; then
       :
     else
       fallback_swap next
     fi
     ;;
   swap-prev)
-    if is_workbench_window || is_paired_terminal_window; then
+    if is_paired_terminal_window; then
+      cycle_pane prev
+    elif is_workbench_window; then
       :
     else
       fallback_swap prev

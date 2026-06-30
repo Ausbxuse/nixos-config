@@ -9,7 +9,6 @@ in {
     ../../modules/home/slimevr.nix
     ../../modules/home/gnome-tweaks.nix
     ../../modules/home/codex-local.nix
-    ../../modules/home/codex-skills.nix
     ../../modules/home/ollama-agent.nix
   ];
 
@@ -18,8 +17,6 @@ in {
     localModel = defaultLocalModel;
     models = [defaultLocalModel];
   };
-
-  my.codexSkills.enable = true;
 
   services.ollama-agent = {
     enable = true;

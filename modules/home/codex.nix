@@ -113,6 +113,12 @@
       os.chmod(config_file, 0o600)
     '';
 in {
+  imports = [
+    ./codex-skills.nix
+  ];
+
+  my.codexSkills.enable = lib.mkDefault true;
+
   home.packages = [codex];
 
   home.file = lib.mapAttrs' (name: agent:
