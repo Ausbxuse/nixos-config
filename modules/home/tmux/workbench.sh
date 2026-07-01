@@ -129,6 +129,14 @@ unset_pane_option() {
   "$tmux_bin" set-option -pqu -t "$1" "$2" 2>/dev/null || true
 }
 
+set_workbench_window_options() {
+  local window="$1"
+
+  [[ -n "$window" ]] || return 0
+  window_exists "$window" || return 0
+  "$tmux_bin" set-option -wq -t "$window" remain-on-exit on 2>/dev/null || true
+}
+
 pane_exists() {
   local pane="$1" resolved
 
@@ -231,6 +239,7 @@ heal_workbench_window() {
   local agent editor focus parked
 
   is_workbench_window "$window" || return 0
+  set_workbench_window_options "$window"
 
   unset_window_option "$window" @paired-terminal
   unset_window_option "$window" @workbench-session
@@ -743,6 +752,7 @@ create_parked_editor() {
   else
     park_window="$("$tmux_bin" new-session -d -P -F '#{window_id}' -s "$park_session" -n "$park_name" -c "$root" 'nvim .')"
   fi
+  set_workbench_window_options "$park_window"
 
   pane="$("$tmux_bin" list-panes -t "$park_window" -F '#{pane_id}' | head -n 1)"
   set_pane_option "$pane" @pane-role editor
@@ -772,6 +782,7 @@ create_parked_agent() {
   else
     park_window="$("$tmux_bin" new-session -d -P -F '#{window_id}' -s "$park_session" -n "$park_name" -c "$root")"
   fi
+  set_workbench_window_options "$park_window"
 
   pane="$("$tmux_bin" list-panes -t "$park_window" -F '#{pane_id}' | head -n 1)"
   set_pane_option "$pane" @pane-role agent
@@ -1187,6 +1198,20 @@ recover_restored_workbench() {
     done
 }
 
+heal_all_workbench_windows() {
+  local window task_root parked_for
+
+  "$tmux_bin" list-windows -a -F '#{window_id}	#{@task-root}	#{@parked-for}' 2>/dev/null |
+    while IFS=$'\t' read -r window task_root parked_for; do
+      [[ -n "$window" ]] || continue
+      if [[ -n "$task_root" && -d "$task_root" ]]; then
+        heal_workbench_window "$window" >/dev/null 2>&1 || true
+      elif [[ -n "$parked_for" ]]; then
+        set_workbench_window_options "$window"
+      fi
+    done
+}
+
 paired_terminal_spawn() {
   local window current root cwd new_pane
 
@@ -1489,6 +1514,7 @@ create_window() {
   else
     window="$("$tmux_bin" new-session -d -P -F '#{window_id}' -s "$session" -n "$name" -c "$root")"
   fi
+  set_workbench_window_options "$window"
 
   agent="$("$tmux_bin" list-panes -t "$window" -F '#{pane_id}' | head -n 1)"
 
@@ -1610,6 +1636,97 @@ show_primary() {
     selected="$("$tmux_bin" display -p -t "$window" '#{pane_id}' 2>/dev/null || true)"
     [[ "$selected" == "$target" ]] || "$tmux_bin" select-pane -t "$target" 2>/dev/null || true
   fi
+}
+
+handle_primary_pane_died() {
+  local pane="${1:-}" role owner pane_window target target_role target_pane target_label
+  local focus parked park_window session
+
+  [[ -n "$pane" ]] || return 0
+  pane_exists "$pane" || return 0
+
+  role="$(pane_option "$pane" @pane-role)"
+  owner="$(pane_option "$pane" @workbench-window)"
+  case "$role" in
+    agent)
+      target_role=editor
+      target_label=editor
+      ;;
+    editor)
+      target_role=agent
+      target_label=agent
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  [[ -n "$owner" ]] || return 0
+  if ! window_exists "$owner"; then
+    "$tmux_bin" kill-pane -t "$pane" 2>/dev/null || true
+    return 0
+  fi
+  is_workbench_window "$owner" || return 0
+  set_workbench_window_options "$owner"
+
+  pane_window="$("$tmux_bin" display -p -t "$pane" '#{window_id}' 2>/dev/null || true)"
+  session="$("$tmux_bin" display -p -t "$owner" '#{session_name}' 2>/dev/null || true)"
+
+  if [[ "$role" == editor ]]; then
+    set_window_option "$owner" @editor-pane ""
+  else
+    set_window_option "$owner" @agent-pane ""
+  fi
+
+  focus="$(window_option "$owner" @focus-pane)"
+  [[ "$focus" == "$pane" ]] && set_window_option "$owner" @focus-pane ""
+  parked="$(window_option "$owner" @parked-primary-pane)"
+  [[ "$parked" == "$pane" ]] && set_window_option "$owner" @parked-primary-pane ""
+
+  if [[ "$target_role" == agent ]]; then
+    target="$(ensure_agent_pane "$owner" || true)"
+  else
+    target="$(ensure_editor_pane "$owner" || true)"
+  fi
+
+  if [[ -n "$target" ]] && pane_exists "$target"; then
+    if [[ "$pane_window" == "$owner" ]] && ! pane_in_window "$target" "$owner"; then
+      if ! "$tmux_bin" swap-pane -s "$target" -t "$pane" 2>/dev/null; then
+        "$tmux_bin" join-pane -s "$target" -t "$pane" 2>/dev/null || true
+      fi
+    fi
+
+    if pane_in_window "$target" "$owner"; then
+      target_pane="$target"
+    else
+      target_pane="$(window_option "$owner" "@${target_label}-pane")"
+    fi
+
+    if [[ -n "$target_pane" ]] && pane_exists "$target_pane"; then
+      heal_workbench_pane "$target_pane" "$owner" "$target_role"
+      set_window_option "$owner" "@${target_label}-pane" "$target_pane"
+      set_window_option "$owner" @focus-pane "$target_pane"
+      set_window_option "$owner" @primary "$target_role"
+      "$tmux_bin" select-pane -t "$target_pane" 2>/dev/null || true
+    fi
+  fi
+
+  "$tmux_bin" kill-pane -t "$pane" 2>/dev/null || true
+  if [[ "$role" == editor ]]; then
+    set_window_option "$owner" @editor-pane ""
+  else
+    set_window_option "$owner" @agent-pane ""
+  fi
+
+  park_window="$(window_option "$owner" @park-window)"
+  if [[ -n "$park_window" ]] && ! window_exists "$park_window"; then
+    unset_window_option "$owner" @park-window
+    unset_window_option "$owner" @park-session
+  fi
+
+  sync_paired_terminal_index "$owner" >/dev/null 2>&1 || true
+  [[ -n "$session" ]] && bump_event "$session"
+  "$tmux_bin" refresh-client -S 2>/dev/null || true
 }
 
 close_window() {
@@ -1815,6 +1932,9 @@ case "$cmd" in
   close-window)
     close_window "${1:-}"
     ;;
+  pane-died)
+    handle_primary_pane_died "${1:-}"
+    ;;
   cleanup)
     cleanup_orphans
     ;;
@@ -1843,6 +1963,9 @@ case "$cmd" in
   recover-restored)
     recover_restored_workbench
     ;;
+  heal-all)
+    heal_all_workbench_windows
+    ;;
   *)
     cat >&2 <<'EOF'
 usage: workbench.sh COMMAND
@@ -1862,6 +1985,7 @@ commands:
   sync-paired-terminal-index [WINDOW]
   sync-paired-terminals [SESSION]
   close-window [WINDOW]
+  pane-died PANE
   cleanup
   next-agent
   sync [SESSION]
@@ -1871,6 +1995,7 @@ commands:
   summary
   status-sync
   recover-restored
+  heal-all
 EOF
     exit 2
     ;;
